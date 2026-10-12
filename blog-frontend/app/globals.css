@@ -1,0 +1,27 @@
+/* ============================================
+   全局样式入口：只保留 imports
+   所有样式拆分到 ./styles/ 下
+
+   ⚠ 顺序有意义：CSS 层叠依赖顺序，后面的文件能覆盖前面的同名规则。
+     调整顺序前请确认没有跨文件的选择器覆盖关系。
+   ============================================ */
+@import "tailwindcss";
+
+/* ---- 基础 ---- */
+@import "./styles/base.css";
+@import "./styles/animations.css";
+
+/* ---- 首页 ---- */
+@import "./styles/home-cards.css";    /* 随笔卡片、文章翻转卡片（原 components.css） */
+@import "./styles/home-widgets.css";  /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
+
+/* ---- 通用交互组件 ---- */
+@import "./styles/ui-widgets.css";    /* 相册堆叠、返回按钮、标签切换、波频条、昼夜开关（原 components.css） */
+
+/* ---- 页面级 ---- */
+@import "./styles/article.css";
+@import "./styles/archive.css";
+@import "./styles/sidebar.css";
+@import "./styles/life.css";
+@import "./styles/admin.css";
+@import "./styles/essays.css";

@@ -1,0 +1,585 @@
+/* ===== 文章详情页 · 左侧栏 ===== */
+.article-page-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-areas: "sidebar main";
+  gap: 24px;
+  max-width: 1100px;
+  margin: 8px auto 40px;
+  align-items: start;
+}
+
+.article-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+.article-sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-self: start;
+  /* 不滚动，内容自然撑开 */
+  overflow: visible;
+}
+/* 侧栏卡片通用 */
+.side-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(180%);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  color: var(--card-text);
+}
+
+/* ===== 作者卡片 ===== */
+.side-author {
+  text-align: center;
+}
+
+.side-author-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 10px;
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow:
+    0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.side-author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.side-author-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.side-author-bio {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.side-author-socials {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.side-author-social {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+
+.side-author-social:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* ===== 音乐卡片 ===== */
+.side-music {
+  padding: 14px 16px;
+  /* 固定总高度，避免播放/暂停变化 */
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.side-music-header {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.side-music-header::before {
+  content: "";
+  width: 2px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.side-music-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.side-music-cover {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(124,92,255,0.3), rgba(255,45,155,0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.side-music-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.side-music-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.side-music-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-music-artist {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 歌词区：固定高度，永不撑高 */
+.side-music-lyric {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  height: 34px;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.side-music-lyric-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.side-music-lyric-text.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.side-music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.side-music-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.side-music-btn:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+}
+
+.side-music-btn.play {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.side-music-btn.play:hover {
+  background: var(--accent);
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+/* ===== 日历卡片（单周） ===== */
+.side-calendar-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.week-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.week-calendar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-calendar-weekday {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.week-calendar-day {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.2s ease;
+}
+
+.week-calendar-day.highlight {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* ===== 相关文章卡片 ===== */
+.side-related-header {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.side-related-header::before {
+  content: "";
+  width: 2px;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.side-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.side-related-item {
+  display: block;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.25s ease;
+}
+
+.side-related-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.side-related-item:hover {
+  transform: translateX(3px);
+}
+
+.side-related-item:hover .side-related-title {
+  color: var(--accent);
+}
+
+.side-related-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0 0 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.25s;
+}
+
+.side-related-date {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1024px) {
+  .article-page-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "main";
+    max-width: 768px;
+  }
+  .article-sidebar {
+    display: none;
+  }
+}
+
+/* ===== 侧栏顶部返回按钮 ===== */
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 4px;
+  margin-bottom: 2px;
+}
+
+/* ============================================
+   骨架屏：侧栏四张卡片各自的结构
+   ============================================ */
+
+/* 通用基础块 */
+.sk-line {
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sk-circle {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sk-rect {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 作者卡骨架 */
+.sk-author {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.sk-author .sk-circle {
+  width: 64px;
+  height: 64px;
+}
+.sk-author .sk-line {
+  height: 10px;
+}
+.sk-author .sk-line.w-40 { width: 40%; }
+.sk-author .sk-line.w-70 { width: 70%; }
+.sk-author .sk-line.w-90 { width: 90%; }
+.sk-author-socials {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.sk-author-socials .sk-circle {
+  width: 30px;
+  height: 30px;
+}
+
+/* 音乐卡骨架 */
+.sk-music {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sk-music .sk-line.w-30 { width: 30%; height: 10px; }
+.sk-music-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sk-music-track .sk-rect {
+  width: 40px;
+  height: 40px;
+}
+.sk-music-track-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sk-music-track-lines .sk-line.w-70 { width: 70%; }
+.sk-music-track-lines .sk-line.w-50 { width: 50%; }
+.sk-music-lyric {
+  width: 100%;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sk-music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.sk-music-controls .sk-circle {
+  width: 28px;
+  height: 28px;
+}
+
+/* 日历卡骨架 */
+.sk-calendar .sk-line.w-50 {
+  width: 50%;
+  height: 12px;
+  margin-bottom: 14px;
+}
+.sk-calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.sk-calendar-week .sk-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.sk-calendar-week .sk-line.w-60 {
+  width: 60%;
+  height: 8px;
+}
+.sk-calendar-week .sk-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+/* 相关文章卡骨架 */
+.sk-related .sk-line.w-30 {
+  width: 30%;
+  height: 10px;
+  margin-bottom: 14px;
+}
+.sk-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sk-related-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sk-related-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.sk-related-item .sk-line.w-90 { width: 90%; }
+.sk-related-item .sk-line.w-70 { width: 70%; }
+.sk-related-item .sk-line.w-40 { width: 40%; height: 8px; }
+
+/* ============================================
+   侧栏卡片依次浮出
+   ============================================ */
+.article-sidebar > * {
+  opacity: 0;
+  animation: sidebarCardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.article-sidebar > *:nth-child(1) { animation-delay: 0ms; }
+.article-sidebar > *:nth-child(2) { animation-delay: 70ms; }
+.article-sidebar > *:nth-child(3) { animation-delay: 140ms; }
+.article-sidebar > *:nth-child(4) { animation-delay: 210ms; }
+.article-sidebar > *:nth-child(5) { animation-delay: 280ms; }
+.article-sidebar > *:nth-child(6) { animation-delay: 350ms; }
+
+@keyframes sidebarCardIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== 卡片文字：跟随卡片样式变量 ===== */
+.side-author-name,
+.side-music-title,
+.side-calendar-header,
+.side-related-title,
+.week-calendar-day {
+  color: var(--card-text);
+}
+
+.side-author-bio,
+.side-music-artist,
+.side-related-date,
+.side-calendar-weekday,
+.side-music-header,
+.side-related-header {
+  color: var(--card-text-sub);
+}
+

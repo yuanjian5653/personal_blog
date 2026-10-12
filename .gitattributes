@@ -1,0 +1,68 @@
+# ============================================================
+#  换行符与二进制文件规范化
+#
+#  不加这个文件时，Windows 上每次 git add 都会刷一屏
+#  "LF will be replaced by CRLF" 警告，而且多人协作时
+#  容易把整个文件标记成"全改了"。
+# ============================================================
+
+# 默认：仓库内统一用 LF，检出时按平台自动转换
+* text=auto eol=lf
+
+# ---- 明确按 LF 处理（跨平台源码）----
+*.py      text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.json    text eol=lf
+*.css     text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.toml    text eol=lf
+*.html    text eol=lf
+*.sql     text eol=lf
+
+# ---- Windows 脚本 ----
+# eol=crlf 必须保留：cmd.exe 按行解析 .bat 依赖 CRLF，
+# 若被转成 LF，多行会被粘连，报出一堆
+# "is not recognized as an internal or external command"。
+#
+# 注意：不要加 working-tree-encoding=UTF-8 —— 它会让 checkout 时丢掉 UTF-8 BOM，
+# 而 BOM 是 cmd + chcp 65001 下中文提示不乱码的前提。BOM 随文件内容一起入库即可。
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# ---- Shell 脚本必须 LF，否则 Linux/macOS 下报 bad interpreter ----
+*.sh      text eol=lf
+
+# ---- 二进制：禁止任何换行符转换，也不参与 diff ----
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.webp    binary
+*.avif    binary
+*.bmp     binary
+*.ico     binary
+*.mp3     binary
+*.m4a     binary
+*.flac    binary
+*.wav     binary
+*.ogg     binary
+*.aac     binary
+*.docx    binary
+*.xlsx    binary
+*.pdf     binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+
+# ---- 锁文件：不参与 diff 统计，避免污染 PR ----
+pnpm-lock.yaml  -diff
+package-lock.json -diff
+
+# ---- 导出时忽略开发用文件 ----
+.gitattributes  export-ignore
+.github/        export-ignore

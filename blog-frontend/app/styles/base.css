@@ -1,0 +1,123 @@
+/* ===== 主题变量 ===== */
+:root {
+  --bg-primary: #0f1115;
+  --text-primary: #e8e8ea;
+  --text-secondary: #9ca3af;
+  --accent: #7c5cff;
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  --bg-color: #0f1115;
+  --bg-image: none;
+  --bg-blur: 0px;
+  --bg-overlay: 0;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  background: var(--bg-color);
+  scrollbar-gutter: stable;
+}
+
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
+}
+
+body {
+  background: transparent;
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ===== 背景图 + 遮罩 ===== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -40px;
+  z-index: -2;
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(var(--bg-blur));
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, var(--bg-overlay));
+  pointer-events: none;
+}
+
+/* ===== 自定义滚动条 ===== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 92, 255, 0.6);
+  background-clip: content-box;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 92, 255, 0.35) transparent;
+}
+
+/* 隐藏滚动条（工具类） */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   卡片样式主题（由 SiteConfigLoader 动态设置）
+
+/* ===== 默认：原版毛玻璃 ===== */
+:root,
+html[data-card-style="glass"] {
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-bg-hover: rgba(255, 255, 255, 0.1);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-text: var(--text-primary);
+  --card-text-sub: var(--text-secondary);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --card-inner-hl: rgba(255, 255, 255, 0.08);
+  --card-blur: 20px;
+}
+
+
+
+/* ===== 黑色毛玻璃 ===== */
+html[data-card-style="black"] {
+  --card-bg: rgba(15, 17, 21, 0.55);
+  --card-bg-hover: rgba(15, 17, 21, 0.75);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-text: var(--text-primary);
+  --card-text-sub: var(--text-secondary);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --card-inner-hl: rgba(255, 255, 255, 0.05);
+  --card-blur: 30px;
+}

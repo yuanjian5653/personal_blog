@@ -1,0 +1,452 @@
+/* ============================================
+   通用交互组件：相册堆叠、返回按钮、标签切换、波频条、昼夜开关
+   （由原 components.css 按分节拆分而来，顺序与拆分前一致）
+   ============================================ */
+
+/* ---------- 相册堆叠卡片 ---------- */
+.album-stack {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  cursor: pointer;
+  perspective: 1000px;
+}
+
+.album-stack__photo {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(30, 32, 40, 0.9);
+  will-change: transform;
+}
+
+.album-stack__photo--back {
+  transform: rotate(-4deg) translate(-6px, 4px) scale(0.95);
+  z-index: 1;
+}
+
+.album-stack__photo--middle {
+  transform: rotate(3deg) translate(6px, -2px) scale(0.97);
+  z-index: 2;
+}
+
+.album-stack__photo--front {
+  transform: rotate(0deg) scale(1);
+  z-index: 3;
+}
+
+.album-stack:hover .album-stack__photo--back {
+  transform: rotate(-10deg) translate(-24px, 8px) scale(0.95);
+}
+
+.album-stack:hover .album-stack__photo--middle {
+  transform: rotate(8deg) translate(24px, -4px) scale(0.97);
+}
+
+.album-stack:hover .album-stack__photo--front {
+  transform: rotate(-1deg) translate(0, 0) scale(1.03);
+}
+
+.album-stack__badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.album-stack__meta {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.album-stack__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.album-stack__date {
+  font-size: 12px;
+  margin-top: 4px;
+  color: var(--text-secondary);
+}
+
+.album-card-enter {
+  opacity: 0;
+  animation: albumCardEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.article-card-enter {
+  opacity: 0;
+  animation: articleCardEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: opacity, transform;
+}
+
+
+/* ---------- 返回按钮 ---------- */
+.back-btn {
+  --primary-color: var(--text-secondary);
+  --hovered-color: var(--accent);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.back-btn p {
+  margin: 0;
+  position: relative;
+  font-size: 14px;
+  color: var(--primary-color);
+  transition: color 0.3s ease-out;
+}
+
+.back-btn::after {
+  position: absolute;
+  content: "";
+  width: 0;
+  left: 0;
+  bottom: -4px;
+  background: var(--hovered-color);
+  height: 2px;
+  transition: 0.3s ease-out;
+}
+
+.back-btn p::before {
+  position: absolute;
+  content: var(--btn-text, "");
+  width: 0%;
+  inset: 0;
+  color: var(--hovered-color);
+  overflow: hidden;
+  white-space: nowrap;
+  transition: 0.3s ease-out;
+}
+
+.back-btn:hover::after {
+  width: 100%;
+}
+
+.back-btn:hover p::before {
+  width: 100%;
+}
+
+.back-btn svg {
+  color: var(--primary-color);
+  transition: 0.2s;
+  transition-delay: 0.2s;
+  width: 15px;
+  height: 15px;
+}
+
+.back-btn:hover svg {
+  transform: translateX(-4px);
+  color: var(--hovered-color);
+}
+
+
+/* ---------- 标签切换 ---------- */
+.tab-switch {
+  position: relative;
+  display: flex;
+  border-radius: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.25rem;
+}
+
+.tab-switch .tab {
+  flex: 1 1 auto;
+  position: relative;
+  text-align: center;
+}
+
+.tab-switch .tab .name {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease-in-out;
+}
+
+.tab-switch .tab:hover .name {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.tab-switch .tab.active .name {
+  background-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 14px rgba(124, 92, 255, 0.5);
+  animation: tabSelect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tab-switch .tab.active .name::before,
+.tab-switch .tab.active .name::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: tabParticles 0.6s ease forwards;
+}
+
+.tab-switch .tab.active .name::before {
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  --direction: -12px;
+}
+
+.tab-switch .tab.active .name::after {
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  --direction: 12px;
+}
+
+
+/* ---------- 波频条 ---------- */
+.wave-bar {
+  width: 5px;
+  border-radius: 2px;
+  animation: waveBounce 1s ease-in-out infinite;
+  will-change: height;
+}
+
+
+/* ---------- 昼夜切换开关 ---------- */
+.theme-switch {
+  display: inline-block;
+  width: 3.6em;
+  height: 1.8em;
+  position: relative;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.theme-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: linear-gradient(to right, #87ceeb, #e0f6ff);
+  border-radius: 50px;
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.theme-switch .slider-inner {
+  position: absolute;
+  top: 0.18em;
+  left: 0.18em;
+  height: 1.44em;
+  width: 1.44em;
+  border-radius: 50%;
+  background-color: #ffd700;
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+  transform: translateZ(5px);
+}
+
+/* 夜间状态 */
+.theme-switch input:checked + .slider {
+  background: linear-gradient(to right, #1a237e, #3949ab);
+}
+
+.theme-switch input:checked + .slider .slider-inner {
+  transform: translateX(1.8em) translateZ(5px) rotateY(180deg);
+  background-color: #ffffff;
+}
+
+/* 悬浮 */
+.theme-switch:hover .slider {
+  background: linear-gradient(to right, #64b5f6, #e3f2fd);
+}
+.theme-switch input:checked:hover + .slider {
+  background: linear-gradient(to right, #283593, #5c6bc0);
+}
+
+/* 太阳脉冲 */
+@keyframes themeSunPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(255, 215, 0, 0.7),
+      0 0 0 0 rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 14px 6px rgba(255, 215, 0, 0.7),
+      0 0 28px 12px rgba(255, 215, 0, 0.4);
+  }
+}
+
+/* 月亮相位 */
+@keyframes themeMoonPhase {
+  0%, 100% {
+    box-shadow:
+      inset -8px -4px 0 0 #ddd,
+      0 0 14px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 0 #ddd,
+      0 0 14px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.theme-switch input:not(:checked) + .slider .slider-inner {
+  animation: themeSunPulse 3s infinite;
+}
+.theme-switch input:checked + .slider .slider-inner {
+  animation: themeMoonPhase 5s infinite;
+}
+
+/* 星星闪烁 */
+@keyframes themeTwinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.theme-switch .slider::before,
+.theme-switch .slider::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: all 0.6s ease;
+  opacity: 0;
+}
+
+.theme-switch .slider::before {
+  top: 22%;
+  left: 30%;
+}
+.theme-switch .slider::after {
+  bottom: 25%;
+  right: 25%;
+}
+
+.theme-switch input:checked + .slider::before,
+.theme-switch input:checked + .slider::after {
+  opacity: 1;
+  animation: themeTwinkle 2s infinite;
+}
+.theme-switch input:checked + .slider::before {
+  animation-delay: 0.5s;
+}
+
+/* 3D */
+.theme-switch .slider {
+  transform-style: preserve-3d;
+  perspective: 500px;
+}
+
+/* 云朵（白天） */
+.theme-switch .slider-inner::before,
+.theme-switch .slider-inner::after {
+  content: "";
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  transition: all 0.6s ease;
+}
+
+.theme-switch .slider-inner::before {
+  width: 0.6em;
+  height: 0.6em;
+  top: -0.3em;
+  left: -0.1em;
+}
+.theme-switch .slider-inner::after {
+  width: 0.72em;
+  height: 0.72em;
+  bottom: -0.36em;
+  right: -0.18em;
+}
+
+.theme-switch input:checked + .slider .slider-inner::before,
+.theme-switch input:checked + .slider .slider-inner::after {
+  opacity: 0;
+}
+
+/* 月坑（夜间） */
+.theme-switch input:checked + .slider .slider-inner::before {
+  width: 0.36em;
+  height: 0.36em;
+  background-color: rgba(0, 0, 0, 0.2);
+  top: 0.18em;
+  left: 0.18em;
+  opacity: 1;
+}
+.theme-switch input:checked + .slider .slider-inner::after {
+  width: 0.24em;
+  height: 0.24em;
+  background-color: rgba(0, 0, 0, 0.15);
+  bottom: 0.3em;
+  right: 0.3em;
+  opacity: 1;
+}
+
+/* 无障碍 */
+.theme-switch input:focus + .slider {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch .slider,
+  .theme-switch .slider-inner {
+    transition: none;
+  }
+  .theme-switch input:checked + .slider .slider-inner,
+  .theme-switch input:not(:checked) + .slider .slider-inner,
+  .theme-switch input:checked + .slider::before,
+  .theme-switch input:checked + .slider::after {
+    animation: none;
+  }
+}
