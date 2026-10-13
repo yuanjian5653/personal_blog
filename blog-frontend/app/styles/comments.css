@@ -138,17 +138,14 @@
   --cm-text-sub: var(--ld-text-sub, #6b7280);
 }
 
-/* 文章页的评论挂在写死浅色底的主卡片里 —— 页面里是内联样式
-   rgba(255,255,255,0.88)，**不随主题变化**，所以文字必须始终用深色，
-   包括黑色卡片主题下。否则又会变成白字白底。
-   只作用于评论容器，不动文章正文的既有配色。 */
+/* 文章页的评论区：主卡片（.article-card）现在跟随主题，
+   所以这里不再需要为它单独指定文字色，跟随全局即可。
+   仅保留滚动锚点用的定位。 */
 .article-comments {
-  --cm-text: #1f2430;
-  --cm-text-sub: #6b7280;
+  scroll-margin-top: 96px;
 }
 
-/* 生活动态的卡片在黑色主题下会转深色，这时把文字翻回浅色。
-   刻意**不包含** .article-comments —— 它的底色不随主题变，见上。 */
+/* 生活动态的卡片在黑色主题下会转深色，这时把文字翻回浅色 */
 html[data-card-style="black"] .life-detail-card .comments {
   --cm-text: var(--text-primary, #e8e8ea);
   --cm-text-sub: var(--text-secondary, #9ca3af);

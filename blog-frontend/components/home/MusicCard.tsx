@@ -30,7 +30,7 @@ export default function MusicCard() {
 
   if (!currentSong) {
     return (
-      <div className="glass p-6 flex flex-col items-center justify-center h-full text-center">
+      <div className="glass music-card music-card--empty p-6 h-full">
         <div
           className="w-20 h-20 rounded-full mb-4 flex items-center justify-center"
           style={{ background: "rgba(255,255,255,0.05)" }}
@@ -67,7 +67,7 @@ export default function MusicCard() {
   const modeIcon = { order: "↻", loop: "🔀", single: "🔂" }[playMode];
 
   return (
-    <div className="glass p-5 flex flex-col h-full relative overflow-hidden">
+    <div className="glass music-card p-5 flex flex-col h-full relative overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <span
           className="text-xs uppercase tracking-widest"

@@ -1,0 +1,194 @@
+/* ============================================
+   文章详情：主卡片
+
+   背景：这张卡片原来在 page.tsx 里写死了浅色
+   （background: rgba(255,255,255,0.88)，标题 #111827，正文用 .article-content-light），
+   但本站默认是**深色**主题（--bg-primary #0f1115），所以文章页像贴了一张白纸，
+   而且和深色的文章侧栏、评论风格都不一致。
+
+   现在改为跟随主题：
+   · 底色 / 边框 / 文字 全部走 --card-* 变量（与 .glass 同一套）
+   · 正文由 .article-content-light 换成 .article-content-themed
+     （见 article.css，用 --card-text / --card-text-sub）
+   ============================================ */
+
+.article-card {
+  border-radius: 20px;
+  overflow: hidden;
+
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  color: var(--card-text);
+}
+
+.article-card__body {
+  padding: clamp(28px, 5vw, 48px);
+}
+
+.article-card__title {
+  color: var(--card-text);
+  margin-bottom: 1.5rem;
+  line-height: 1.25;
+}
+
+.article-card__excerpt {
+  color: var(--card-text-sub);
+  margin-bottom: 1.5rem;
+  line-height: 1.75;
+}
+
+/* 元信息行：底部用半透明文字色画线，深浅色主题都合适 */
+.article-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--card-text-sub);
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--card-text) 12%, transparent);
+}
+
+/* 底部"返回列表 / 点赞"那一行 */
+.article-card__footer {
+  border-top: 1px solid color-mix(in srgb, var(--card-text) 12%, transparent);
+}
+
+/* ---------- 主题化的正文排版 ----------
+   与 .article-content-light 规则一致，只是把写死的深色字
+   换成主题变量，这样在深色卡片上也能看清。 */
+.article-content-themed {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: var(--card-text);
+  word-break: break-word;
+}
+
+.article-content-themed h1,
+.article-content-themed h2,
+.article-content-themed h3,
+.article-content-themed h4 {
+  color: var(--card-text);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1.8em 0 0.7em;
+}
+
+.article-content-themed h1 { font-size: 1.7em; }
+.article-content-themed h2 {
+  font-size: 1.4em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid color-mix(in srgb, var(--card-text) 12%, transparent);
+}
+.article-content-themed h3 { font-size: 1.18em; }
+
+.article-content-themed p {
+  margin: 0.9em 0;
+}
+
+.article-content-themed ul,
+.article-content-themed ol {
+  margin: 0.9em 0;
+  padding-left: 1.5em;
+}
+
+.article-content-themed li { margin: 0.35em 0; }
+
+.article-content-themed strong {
+  color: var(--card-text);
+  font-weight: 700;
+}
+
+.article-content-themed em { font-style: italic; }
+
+.article-content-themed a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.article-content-themed a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* 行内代码：用文字色派生底色，深浅主题都自动适配 */
+.article-content-themed code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--card-text) 10%, transparent);
+  color: var(--card-text);
+}
+
+/* 代码块：深色底 + 浅色字是通用做法，两种主题下都保持这样
+   （highlight.js 用的是 github-dark / atom-one-dark） */
+.article-content-themed pre {
+  margin: 1.2em 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: rgba(10, 12, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.article-content-themed pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.86em;
+  color: #e6e6e6;
+  line-height: 1.65;
+}
+
+.article-content-themed blockquote {
+  margin: 1.2em 0;
+  padding: 0.6em 1.1em;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--card-text) 5%, transparent);
+  border-radius: 0 8px 8px 0;
+  color: var(--card-text-sub);
+}
+
+.article-content-themed img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 1.2em 0;
+  display: block;
+}
+
+.article-content-themed hr {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--card-text) 14%, transparent);
+  margin: 2em 0;
+}
+
+.article-content-themed table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+
+.article-content-themed th,
+.article-content-themed td {
+  border: 1px solid color-mix(in srgb, var(--card-text) 14%, transparent);
+  padding: 0.55em 0.8em;
+  text-align: left;
+}
+
+.article-content-themed th {
+  background: color-mix(in srgb, var(--card-text) 8%, transparent);
+  font-weight: 600;
+}
+
+.article-content-themed tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--card-text) 3%, transparent);
+}
+
+.article-content-themed input[type="checkbox"] {
+  margin-right: 0.4em;
+}

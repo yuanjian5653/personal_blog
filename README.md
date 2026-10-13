@@ -313,9 +313,21 @@ node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/t
 访客用 GitHub 账号登录后可以：发表评论、回复（一级）、给评论点赞、给说说点赞。
 所有数据都存在 MySQL 里（`commenters` / `comments` / `comment_likes` / `essay_likes` / `commenter_sessions` 五张表）。
 
+> **⚠️ 关于 OAuth 凭据：仓库里不包含，也不需要包含。**
+> `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 属于**每个部署者自己的**凭据，
+> 只存在于本地 `blog-backend/.env`（已被 `.gitignore` 忽略）。
+> 仓库里提供的是 `.env.example` 模板 —— 里面这两项都是**空的**，等你填自己的。
+> 这样设计的原因：
+> - `GITHUB_CLIENT_SECRET` 是密钥，提交上去等于公开凭据
+> - OAuth App 的回调地址是**按域名注册**的，别人的凭据在你的域名上根本用不了
+>
+> 所以克隆本项目后，照下面三步申请**你自己的** OAuth App 即可。
+
 ### 1. 申请 GitHub OAuth App
 
 1. 打开 <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**
+   > 注意是 **OAuth App**，不是 **GitHub App**。两者换 token 的端点不同，
+   > 用错会在登录时报 `incorrect_client_credentials`。
 2. 填写：
    - **Application name**：随意，例如 `personal-blog`
    - **Homepage URL**：前端地址，例如 `http://localhost:3000`
@@ -323,10 +335,13 @@ node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/t
      ```
      http://localhost:8000/api/comments/github/callback
      ```
-     规则是 `${BACKEND_URL}/api/comments/github/callback`
+     规则是 `${BACKEND_URL}/api/comments/github/callback`，**必须完全一致**，
+     否则 GitHub 会报 `redirect_uri_mismatch`
 3. 创建后复制 **Client ID**，再点 **Generate a new client secret** 拿 **Client Secret**
 
 ### 2. 填进 `.env`
+
+把 `blog-backend/.env.example` 复制为 `blog-backend/.env`，然后填：
 
 ```env
 FRONTEND_URL=http://localhost:3000
@@ -377,9 +392,11 @@ python blog-backend/scripts/diagnose_github_net.py
 
 | 情况 | 做法 |
 |---|---|
-| 有本机代理端口（如 `127.0.0.1:26561`） | 在 `.env` 里加 `GITHUB_PROXY=http://127.0.0.1:26561`，重启后端 |
+| 有本机代理端口 | 在 `.env` 里加 `GITHUB_PROXY=http://127.0.0.1:端口`，重启后端（端口看你自己的代理软件） |
 | 代理走系统环境变量 | 启动后端前设 `HTTPS_PROXY`，并设 `NO_PROXY=localhost,127.0.0.1`（否则本机请求也会被塞进代理） |
 | 只信任系统代理/PAC | 上面两项都不行时，在加速器里开启「TUN 模式 / 全局模式」，让所有程序都走代理 |
+
+> 诊断脚本会把**本机正在监听的端口**列出来，照着填 `GITHUB_PROXY` 即可。
 
 > **关于证书**：这类加速器通常做 HTTPS 中间人，用**自签证书**替换 GitHub 的证书。
 > 浏览器信任它（根证书装在系统里），但 Python 默认只用 `certifi`，会报

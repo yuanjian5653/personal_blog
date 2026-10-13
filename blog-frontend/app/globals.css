@@ -15,12 +15,14 @@
 @import "./styles/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
 @import "./styles/home-widgets.css";    /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
 @import "./styles/profile-socials.css"; /* 个人卡片的社交按钮 */
+@import "./styles/music-card.css";      /* 音乐卡片稳定高度 */
 
 /* ---- 通用交互组件 ---- */
 @import "./styles/ui-widgets.css";    /* 相册堆叠、返回按钮、标签切换、波频条、昼夜开关（原 components.css） */
 
 /* ---- 页面级 ---- */
 @import "./styles/article.css";
+@import "./styles/article-card.css";
 @import "./styles/archive.css";
 @import "./styles/sidebar.css";
 @import "./styles/life.css";

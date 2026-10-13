@@ -283,18 +283,9 @@ export default function ArticleDetailPage() {
 
         {/* ============ 主内容 ============ */}
         <div className="article-main">
-          {/* 主卡片 */}
-          <div
-            className="overflow-hidden"
-            style={{
-              borderRadius: 20,
-              background: "rgba(255, 255, 255, 0.88)",
-              backdropFilter: "blur(24px) saturate(140%)",
-              WebkitBackdropFilter: "blur(24px) saturate(140%)",
-              border: "1px solid rgba(255, 255, 255, 0.4)",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
-            }}
-          >
+          {/* 主卡片：底色/文字全部跟随主题（见 styles/article-card.css），
+              不再写死浅色，避免在深色站点上像贴了一张白纸 */}
+          <div className="article-card">
             {article.cover_path && (
               <div
                 className="w-full overflow-hidden"
@@ -308,31 +299,39 @@ export default function ArticleDetailPage() {
               </div>
             )}
 
-            <div style={{ padding: "clamp(28px, 5vw, 48px)" }}>
-              <h1
-                className="text-3xl md:text-4xl font-bold mb-6 leading-tight"
-                style={{ color: "#111827" }}
-              >
+            <div className="article-card__body">
+              <h1 className="text-3xl md:text-4xl font-bold article-card__title">
                 {article.title}
               </h1>
 
               {article.excerpt && (
-                <p
-                  className="text-base mb-6 leading-relaxed"
-                  style={{ color: "#6b7280" }}
-                >
+                <p className="text-base article-card__excerpt">
                   {article.excerpt}
                 </p>
               )}
 
               {/* 元信息 */}
-              <div
-                className="flex flex-wrap items-center gap-4 text-xs mb-10 pb-6"
-                style={{
-                  color: "#9ca3af",
-                  borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
-                }}
-              >
+              <div className="article-card__meta">
+                <span className="inline-flex items-center gap-1.5">
+                  <MorphIcon icon={CalendarIcon} size={12} />
+                  {formatDateTimeCN(article.created_at)}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MorphIcon icon={Clock} size={12} />
+                  {article.read_time} 分钟
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MorphIcon icon={FileText} size={12} />
+                  {article.word_count} 字
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MorphIcon icon={Eye} size={12} />
+                  {article.view_count}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MorphIcon icon={Heart} size={12} />
+                  {article.like_count}
+                </span>
                 <span className="inline-flex items-center gap-1.5">
                   <MorphIcon icon={CalendarIcon} size={12} />
                   {formatDateTimeCN(article.created_at)}
@@ -376,7 +375,7 @@ export default function ArticleDetailPage() {
               </div>
 
               {/* 正文 */}
-              <div ref={contentRef} className="article-content-light">
+              <div ref={contentRef} className="article-content-themed">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight]}
@@ -416,17 +415,16 @@ export default function ArticleDetailPage() {
               </div>
 
               {/* 底部按钮行 */}
-              <div
-                className="mt-16 pt-8 flex justify-between items-center"
-                style={{ borderTop: "1px solid rgba(0, 0, 0, 0.08)" }}
-              >
+              <div className="mt-16 pt-8 flex justify-between items-center article-card__footer">
                 <button
                   onClick={() => router.push("/articles")}
                   className="back-btn"
                   style={
                     {
                       "--btn-text": '"返回文章列表"',
-                      "--primary-color": "#4b5563",
+                      // 原来是写死的深灰 #4b5563，在深色卡片上几乎看不见；
+                      // 改用主题次级文字色，两种主题下都有对比度
+                      "--primary-color": "var(--card-text-sub)",
                       "--hovered-color": "var(--accent)",
                     } as React.CSSProperties
                   }
