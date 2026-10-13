@@ -10,6 +10,7 @@ import { formatDateTimeCN } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
 import { useMounted } from "@/lib/useMounted";
 import LifeImageLightbox from "./LifeImageLightbox";
+import Comments from "@/components/comments/Comments";
 
 function seededRandom(seed: number): number {
   const x = Math.sin(seed * 9301 + 49297) * 233280;
@@ -304,22 +305,8 @@ export default function LifeDetail({
               评论区
             </div>
 
-            <div className="life-detail-comments-list">
-              评论功能开发中，敬请期待～
-            </div>
-
-            <div className="life-detail-comments-form">
-              <textarea
-                className="life-detail-comments-input"
-                placeholder="说点什么吧……"
-                disabled
-              />
-              <div className="life-detail-comments-actions">
-                <button className="life-detail-comments-submit" disabled>
-                  发表评论
-                </button>
-              </div>
-            </div>
+            {/* 评论区：与说说页共用同一个组件，只是 target 不同 */}
+            <Comments target="life" targetId={post.id} title="评论" />
           </div>
         </div>
 

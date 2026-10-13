@@ -74,9 +74,16 @@ export default function PhotosCard() {
     router.push("/photos");
   };
 
-  // 首次加载且无缓存
+  // 加载中：套同样的 .tracker-wrap（min-height:220px），
+  // 让骨架与真实卡片同高，加载完成不会跳一下
   if (loading && !data) {
-    return <CardSkeleton lines={3} />;
+    return (
+      <div className="tracker-wrap">
+        <div className="tracker-inner">
+          <CardSkeleton lines={3} />
+        </div>
+      </div>
+    );
   }
 
   const album = data?.album;

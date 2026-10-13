@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerProvider";
 import { api } from "@/lib/api";
 import { parseLrc, findActiveLyricIndex, type LyricLine } from "@/lib/lrc";
 import { getLyricUrl } from "@/lib/types";
+import { useTypewriter } from "@/lib/useTypewriter";
 
 const DEFAULT_TEXT = "好，支持，威武，有希望了！ ( ) #(滑稽)";
 
@@ -71,77 +72,34 @@ function FrequencyBars({
     </div>
   );
 }
-/** 歌词行打字效果：先逐字删除旧行，再逐字打出新行 */
-function LyricTyper({
+/** 逐字打字 + 逐字删除的动画组件（时序逻辑见 lib/typewriter-core.ts） */
+function Typewriter({
   text,
-  speed = 200,
-  deleteSpeed = 25,
+  typeSpeed,
+  deleteSpeed,
+  holdAfterType,
+  holdAfterDelete,
+  loop,
 }: {
   text: string;
-  speed?: number;
+  typeSpeed?: number;
   deleteSpeed?: number;
+  holdAfterType?: number;
+  holdAfterDelete?: number;
+  loop?: boolean;
 }) {
-  const [displayed, setDisplayed] = useState("");
-  // 记录当前正在显示（或正在删除）的旧文本
-  const currentTextRef = useRef("");
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  /** 清理所有定时器 */
-  const clearTimers = () => {
-    timersRef.current.forEach((t) => clearTimeout(t));
-    timersRef.current = [];
-  };
-
-  useEffect(() => {
-    clearTimers();
-
-    const oldText = currentTextRef.current;
-    currentTextRef.current = text;
-
-    // 如果新文本和当前已显示的完全一致，直接跳过
-    if (oldText === text && displayed === text) return;
-
-    // 第一步：逐字删除旧的
-    let deleteIdx = displayed.length;
-    const doDelete = () => {
-      if (deleteIdx > 0) {
-        deleteIdx--;
-        setDisplayed((prev) => prev.slice(0, prev.length - 1));
-        const t = setTimeout(doDelete, deleteSpeed);
-        timersRef.current.push(t);
-      } else {
-        // 第二步：逐字打出新的
-        let typeIdx = 0;
-        const doType = () => {
-          if (typeIdx < text.length) {
-            typeIdx++;
-            setDisplayed(text.slice(0, typeIdx));
-            const t = setTimeout(doType, speed);
-            timersRef.current.push(t);
-          }
-        };
-        doType();
-      }
-    };
-
-    // 用 setTimeout(0) 让首次渲染先完成
-    const startTimer = setTimeout(doDelete, 0);
-    timersRef.current.push(startTimer);
-
-    return clearTimers;
-    // 依赖 text：每次换行都重新触发删除+打字
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
-
-  // 组件卸载时清理
-  useEffect(() => {
-    return clearTimers;
-  }, []);
+  const tw = useTypewriter(text, {
+    typeSpeed,
+    deleteSpeed,
+    holdAfterType,
+    holdAfterDelete,
+    loop,
+  });
 
   return (
     <>
-      {displayed}
-      {displayed.length < text.length && (
+      {tw.text}
+      {tw.typing && (
         <span
           className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse"
           style={{ background: "var(--accent)" }}
@@ -149,73 +107,6 @@ function LyricTyper({
       )}
     </>
   );
-}
-
-/** 打字动画 Hook：打字 → 停顿 → 删除 → 停顿 → 循环 */
-function useTypewriterLoop(
-  text: string,
-  speed = 90,
-  pauseEnd = 2000,
-  pauseStart = 600
-) {
-  // 动画状态与"它属于哪段文本"绑在一起。
-  // text 变了就当成全新状态（displayed="" / index=0 / phase="typing"），
-  // 于是不需要"text 变化就重置状态"的 effect。
-  const [state, setState] = useState<{
-    forText: string;
-    displayed: string;
-    index: number;
-    phase: "typing" | "deleting";
-  }>({ forText: text, displayed: "", index: 0, phase: "typing" });
-
-  const fresh = { forText: text, displayed: "", index: 0, phase: "typing" as const };
-  const cur = state.forText === text ? state : fresh;
-  const { displayed, index, phase } = cur;
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-
-    if (phase === "typing") {
-      if (index < text.length) {
-        timer = setTimeout(
-          () =>
-            setState({
-              forText: text,
-              displayed: text.slice(0, index + 1),
-              index: index + 1,
-              phase: "typing",
-            }),
-          speed
-        );
-      } else {
-        timer = setTimeout(
-          () => setState({ ...fresh, phase: "deleting" }),
-          pauseEnd
-        );
-      }
-    } else {
-      if (index > 0) {
-        timer = setTimeout(
-          () =>
-            setState({
-              forText: text,
-              displayed: text.slice(0, index - 1),
-              index: index - 1,
-              phase: "deleting",
-            }),
-          speed / 2
-        );
-      } else {
-        timer = setTimeout(() => setState({ ...fresh }), pauseStart);
-      }
-    }
-
-    return () => clearTimeout(timer);
-    // fresh 每次渲染都是新对象，但从 text 派生，列出 text 等原始依赖即可
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, phase, text, speed, pauseEnd, pauseStart]);
-
-  return displayed;
 }
 
 export default function TextCard() {
@@ -240,7 +131,7 @@ export default function TextCard() {
       .catch(() => {});
   }, [pathname]);
 
-  const typedText = useTypewriterLoop(textContent);
+  const typed = useTypewriter(textContent);
 
   // 歌词内容与"它属于哪首歌"一起存，切歌时无需 setLyrics([]) 清空
   const [lyricsData, setLyricsData] = useState<{
@@ -323,9 +214,15 @@ export default function TextCard() {
                     transform: isActive ? "scale(1.08)" : "scale(1)",
                   }}
                 >
-                  {/* 当前行用"先删除再打字"的效果，其他行直接显示 */}
+                  {/* 当前行：打字 → 停顿 → 删除；其他行直接显示 */}
                   {isActive ? (
-                    <LyricTyper text={line.text} speed={50} deleteSpeed={20} />
+                    <Typewriter
+                      text={line.text}
+                      typeSpeed={55}
+                      deleteSpeed={30}
+                      holdAfterType={1200}
+                      holdAfterDelete={250}
+                    />
                   ) : (
                     line.text
                   )}
@@ -338,10 +235,12 @@ export default function TextCard() {
             <p className="text-base font-medium text-center truncate">
               <span style={{ color: "var(--text-secondary)" }}>正在播放 </span>
               <span style={{ color: "var(--accent)" }}>
-                <LyricTyper
+                <Typewriter
                   text={currentSong?.title || ""}
-                  speed={60}
-                  deleteSpeed={25}
+                  typeSpeed={60}
+                  deleteSpeed={30}
+                  holdAfterType={1500}
+                  holdAfterDelete={300}
                 />
               </span>
             </p>
@@ -349,11 +248,13 @@ export default function TextCard() {
         ) : (
           <div className="h-full flex items-center justify-center">
             <p className="text-base font-medium text-center truncate">
-              {typedText}
-              <span
-                className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse"
-                style={{ background: "var(--accent)" }}
-              />
+              {typed.text}
+              {typed.typing && (
+                <span
+                  className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse"
+                  style={{ background: "var(--accent)" }}
+                />
+              )}
             </p>
           </div>
         )}

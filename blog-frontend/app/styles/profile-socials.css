@@ -1,0 +1,141 @@
+/* ============================================
+   首页个人卡片的社交按钮
+   参考 Uiverse「horrible-eel-23」的方形极简图标风格：
+   线框方块 → 悬停放大 + 主色填充 → 按下回弹
+   ============================================ */
+
+/* 卡片里通往 /about 的那块（头像 + 姓名 + 简介）。
+   外层刻意不用 <Link> 包整张卡：卡片内已有社交 <a>，
+   <a> 嵌套 <a> 是非法 HTML，会触发 hydration 错误。 */
+.profile-card-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  transition: opacity 0.25s ease;
+}
+
+.profile-card-link:hover {
+  opacity: 0.82;
+}
+
+.profile-card-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.profile-socials {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.profile-social-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 方形（参考样式是 square，不用圆角药丸） */
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+
+  /* 默认：透明底 + 细描边，图标用次级文字色 */
+  background: transparent;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12));
+  color: var(--text-secondary);
+
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 填充层：从底部升起，做出"填色"过渡 */
+.profile-social-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
+}
+
+/* 图标浮在填充层之上 */
+.profile-social-btn > svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- 悬停：填充升起、图标转白、方块上浮 + 微放大 ---- */
+.profile-social-btn:hover {
+  color: #fff;
+  border-color: var(--accent);
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.profile-social-btn:hover::before {
+  transform: translateY(0);
+}
+
+/* ---- 键盘可达性：与 hover 一致 ---- */
+.profile-social-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- 按下：回弹到略微下沉，给出点击反馈 ---- */
+.profile-social-btn:active {
+  transform: translateY(-1px) scale(0.95);
+  transition-duration: 0.08s;
+}
+
+/* 名称提示：悬停时从按钮下方淡入（窄屏隐藏，避免拥挤） */
+.profile-social-btn__label {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.profile-social-btn:hover .profile-social-btn__label {
+  opacity: 0.85;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---- 减少动效偏好：只保留颜色变化 ---- */
+@media (prefers-reduced-motion: reduce) {
+  .profile-social-btn,
+  .profile-social-btn::before,
+  .profile-social-btn__label {
+    transition: none;
+  }
+  .profile-social-btn:hover,
+  .profile-social-btn:active {
+    transform: none;
+  }
+}

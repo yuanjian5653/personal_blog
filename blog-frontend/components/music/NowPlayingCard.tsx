@@ -19,6 +19,8 @@ export default function NowPlayingCard() {
     seek,
     setVolume,
     setPlayMode,
+    playError,
+    clearPlayError,
   } = usePlayer();
 
   const cycleMode = () => {
@@ -42,6 +44,33 @@ export default function NowPlayingCard() {
 
   return (
     <div className="glass p-8">
+      {/* 播放失败提示：网易云 VIP / 版权限制时后端流返回 404，
+          APlayer 会在 2 秒后自动跳到下一首；这里告诉用户刚才那首为什么没声音 */}
+      {playError && (
+        <div
+          role="status"
+          className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg text-xs"
+          style={{
+            background: "rgba(248,113,113,0.12)",
+            border: "1px solid rgba(248,113,113,0.3)",
+            color: "#f87171",
+          }}
+        >
+          <span>⚠</span>
+          <span className="flex-1 min-w-0">
+            《{playError}》无法播放（可能需要 VIP 或受版权限制），已自动跳到下一首
+          </span>
+          <button
+            onClick={clearPlayError}
+            className="px-1.5 rounded hover:bg-white/10"
+            title="关闭提示"
+            aria-label="关闭提示"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center gap-8">
         {/* 左侧唱片/封面 */}
         <div className="relative w-40 h-40 flex-shrink-0">

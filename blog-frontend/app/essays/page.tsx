@@ -6,7 +6,6 @@ import { MessageSquare, Search } from "lucide";
 import { api } from "@/lib/api";
 import type { Essay } from "@/lib/types";
 import EssayItem from "@/components/essays/EssayItem";
-import EssayDetailModal from "@/components/essays/EssayDetailModal";
 
 function dateKey(s: string): string {
   const d = new Date(s);
@@ -19,24 +18,34 @@ function dateLabel(s: string): string {
 }
 
 export default function EssaysPage() {
-  const [essays, setEssays] = useState<Essay[]>([]);
-  const [loading, setLoading] = useState(true);
+  // null = 尚未加载完；loading 由它派生，避免在 effect 里同步 setState
+  const [essays, setEssays] = useState<Essay[] | null>(null);
+  const loading = essays === null;
   const [keyword, setKeyword] = useState("");
-  const [selected, setSelected] = useState<Essay | null>(null);
+  // 已展开的说说 id（同一天里可以同时展开多条）
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    let cancelled = false;
     api
       .get<Essay[]>("/api/essays")
-      .then(setEssays)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then((list) => {
+        if (!cancelled) setEssays(list);
+      })
+      .catch(() => {
+        if (!cancelled) setEssays([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // 关键词筛选
   const filtered = useMemo(() => {
-    if (!keyword.trim()) return essays;
+    const list = essays ?? [];
+    if (!keyword.trim()) return list;
     const kw = keyword.toLowerCase();
-    return essays.filter(
+    return list.filter(
       (e) =>
         (e.content || "").toLowerCase().includes(kw) ||
         (e.title || "").toLowerCase().includes(kw)
@@ -61,12 +70,20 @@ export default function EssaysPage() {
     });
   }, [filtered]);
 
-  // 当前选中的 essay 被点赞后，同步列表里的数据
+  // 点赞后同步列表数据（展开视图里的点赞按钮会回调）
   const handleLikeUpdate = (id: number, likes: number) => {
     setEssays((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, likes } : e))
+      (prev ?? []).map((e) => (e.id === id ? { ...e, likes } : e))
     );
-    setSelected((prev) => (prev && prev.id === id ? { ...prev, likes } : prev));
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -127,29 +144,29 @@ export default function EssaysPage() {
                 <span className="essays-group-line" />
               </div>
 
-              {/* 同日卡片列表 */}
+              {/* 同一天的说说叠成一摞纸条，点开展开详细内容 */}
               <div className="essays-group-list">
-                {items.map((e) => (
-                  <EssayItem
-                    key={e.id}
-                    essay={e}
-                    onClick={() => setSelected(e)}
-                  />
-                ))}
+                {items.map((e, i) => {
+                  // 上面任意一条展开时，本条不再向上叠压（否则会盖住展开内容）
+                  const prevExpanded = items
+                    .slice(0, i)
+                    .some((prev) => expandedIds.has(prev.id));
+                  return (
+                    <EssayItem
+                      key={e.id}
+                      essay={e}
+                      index={i}
+                      expanded={expandedIds.has(e.id)}
+                      prevExpanded={prevExpanded}
+                      onToggle={() => toggleExpand(e.id)}
+                      onLikeUpdate={handleLikeUpdate}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
-      )}
-
-      {/* 详情弹窗：key 保证切换到另一条说说时重新挂载（点赞数是组件内部状态） */}
-      {selected && (
-        <EssayDetailModal
-          key={selected.id}
-          essay={selected}
-          onClose={() => setSelected(null)}
-          onLikeUpdate={handleLikeUpdate}
-        />
       )}
     </div>
   );

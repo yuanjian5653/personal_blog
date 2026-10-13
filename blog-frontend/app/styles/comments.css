@@ -1,0 +1,575 @@
+/* ============================================
+   评论区（说说内联展开的评论）
+   挂在 .essay-comments 里，由 EssayComments 渲染
+   ============================================ */
+
+/* ---------- GitHub 登录结果提示（全局，固定右上角）---------- */
+.login-notice {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9998;
+  max-width: min(420px, calc(100vw - 40px));
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--cm-text);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(180%);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.75);
+  animation: loginNoticeIn 0.35s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+@keyframes loginNoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.login-notice.is-ok {
+  border-color: color-mix(in srgb, #34d399 45%, transparent);
+}
+
+.login-notice.is-fail {
+  border-color: color-mix(in srgb, #f87171 50%, transparent);
+}
+
+.login-notice__icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 1px;
+}
+
+.login-notice.is-ok .login-notice__icon {
+  background: #34d399;
+}
+
+.login-notice.is-fail .login-notice__icon {
+  background: #f87171;
+}
+
+.login-notice__text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.login-notice__text b {
+  color: #f87171;
+}
+
+.login-notice__close {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--cm-text-sub);
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.login-notice__close:hover {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .login-notice {
+    top: auto;
+    bottom: 96px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
+
+/* ============================================
+   评论区
+
+   ⚠️ 关于配色（踩过的坑）：
+   评论区会出现在三种不同底色的容器里：
+     1. 说说页：深色玻璃卡片（.glass）—— 文字应跟随全局 --card-text
+     2. 文章页：**浅色**卡片（页面里写死 rgba(255,255,255,0.88)）
+     3. 生活动态：.life-detail-card，默认浅色、黑色主题下转深色
+   如果统一用全局 --card-text（本站默认深色主题 → 浅色文字），
+   放到浅色卡片里就会变成"白字白底"看不见。
+   所以下面为评论区派生一组自己的变量：
+   默认跟随全局主题；进入 .life-detail-card 等已知浅色容器时，
+   按容器自己的文字色覆盖，黑色主题下再翻回浅色。
+   ============================================ */
+
+.comments {
+  padding-top: 4px;
+  color: var(--cm-text);
+}
+
+/* 评论区语义色的默认值（放在 :root，这样不在 .comments 内的元素 ——
+   例如全局的登录提示 —— 也能用）。默认跟随全局主题。 */
+:root {
+  --cm-text: var(--card-text, var(--text-primary, #e8e8ea));
+  --cm-text-sub: var(--card-text-sub, var(--text-secondary, #9ca3af));
+}
+
+/* 生活动态的卡片自带 --ld-text（浅色卡片上是深色字） */
+.life-detail-card .comments {
+  --cm-text: var(--ld-text, #1a1a1a);
+  --cm-text-sub: var(--ld-text-sub, #6b7280);
+}
+
+/* 文章页的评论挂在写死浅色底的主卡片里 —— 页面里是内联样式
+   rgba(255,255,255,0.88)，**不随主题变化**，所以文字必须始终用深色，
+   包括黑色卡片主题下。否则又会变成白字白底。
+   只作用于评论容器，不动文章正文的既有配色。 */
+.article-comments {
+  --cm-text: #1f2430;
+  --cm-text-sub: #6b7280;
+}
+
+/* 生活动态的卡片在黑色主题下会转深色，这时把文字翻回浅色。
+   刻意**不包含** .article-comments —— 它的底色不随主题变，见上。 */
+html[data-card-style="black"] .life-detail-card .comments {
+  --cm-text: var(--text-primary, #e8e8ea);
+  --cm-text-sub: var(--text-secondary, #9ca3af);
+}
+
+/* ---------- 杂谈 / 留言板 ---------- */
+.guestbook-card {
+  padding: 22px 24px;
+  border-radius: 16px;
+}
+
+/* 留言板里评论列表的间距大一点，更像"留言条目" */
+.guestbook-card .comments__list {
+  gap: 18px;
+}
+
+.guestbook-card .comments__head {
+  /* 留言板自成一块，不需要上方的虚线分隔 */
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* ---------- 文章底部评论区 ---------- */
+.article-comments {
+  margin-top: 40px;
+  padding-top: 8px;
+  /* 被浮动按钮锚点跳转时要留出顶部导航高度，见页面里的 scroll 计算 */
+  scroll-margin-top: 96px;
+}
+
+/* ---------- 头部：标题 + 数量 + 当前登录用户 ---------- */
+.comments__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed color-mix(in srgb, var(--cm-text) 12%, transparent);
+  min-height: 28px;
+}
+
+.comments__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cm-text-sub);
+  letter-spacing: 0.05em;
+}
+
+.comments__count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.comments__me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.comments__me-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.comments__me-name {
+  font-size: 11px;
+  color: var(--cm-text-sub);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comments__logout {
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--cm-text-sub);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.comments__logout:hover {
+  color: #f87171;
+  opacity: 1;
+}
+
+/* ---------- 未登录：GitHub 登录入口 ---------- */
+.comments__login {
+  padding: 16px 0 6px;
+  text-align: center;
+}
+
+.comments__github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  background: #24292f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.25s ease;
+}
+
+.comments__github-btn:hover {
+  background: #2f363d;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.7);
+}
+
+.comments__github-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.comments__hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+/* ---------- 输入框 ---------- */
+.comments__form {
+  margin-top: 14px;
+}
+
+.comments__replying {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--cm-text-sub);
+  margin-bottom: 6px;
+}
+
+.comments__replying b {
+  color: var(--accent);
+}
+
+.comments__replying button {
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--cm-text-sub);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.comments__textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  color: var(--cm-text);
+  background: color-mix(in srgb, var(--cm-text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cm-text) 14%, transparent);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.comments__textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--cm-text) 8%, transparent);
+}
+
+.comments__textarea::placeholder {
+  color: var(--cm-text-sub);
+  opacity: 0.6;
+}
+
+.comments__form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.comments__tip {
+  font-size: 11px;
+  color: var(--cm-text-sub);
+  opacity: 0.7;
+}
+
+.comments__submit {
+  padding: 7px 20px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.comments__submit:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.comments__submit:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.comments__submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.comments__error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #f87171;
+}
+
+/* ---------- 列表 ---------- */
+.comments__list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.comments__empty {
+  padding: 18px 0 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cm-text-sub);
+  opacity: 0.75;
+}
+
+/* ---------- 单条评论 ---------- */
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comment-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cm-text);
+  text-decoration: none;
+}
+
+.comment-name:hover {
+  color: var(--accent);
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--cm-text-sub);
+  opacity: 0.7;
+}
+
+.comment-content {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--cm-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.comment-action {
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--cm-text-sub);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+}
+
+.comment-action:hover:not(:disabled) {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.comment-action:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+/* 已点赞 */
+.comment-action.is-on {
+  color: #ff2d9b;
+  opacity: 1;
+  font-weight: 600;
+}
+
+.comment-action--danger:hover:not(:disabled) {
+  color: #f87171;
+}
+
+.comment-action:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+
+/* 一级回复：缩进 + 左侧细线 */
+.comment-replies {
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comment-item.is-reply .comment-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+}
+
+/* ---------- 说说点赞按钮的"已赞"状态 ---------- */
+.essay-item-like.is-on {
+  color: #ff2d9b;
+  background: color-mix(in srgb, #ff2d9b 22%, transparent);
+  border-color: color-mix(in srgb, #ff2d9b 45%, transparent);
+}
+
+.essay-item-login-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--cm-text-sub);
+}
+
+.essay-item-login-hint a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 窄屏：缩小头像与缩进，避免内容被挤窄 */
+@media (max-width: 480px) {
+  .comment-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .comment-replies {
+    padding-left: 8px;
+  }
+  .comments__me-name {
+    max-width: 70px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comments__github-btn,
+  .comments__submit,
+  .comment-action {
+    transition: none;
+  }
+  .comments__github-btn:hover,
+  .comments__submit:hover:not(:disabled) {
+    transform: none;
+  }
+}

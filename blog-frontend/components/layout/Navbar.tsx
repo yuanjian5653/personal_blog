@@ -10,6 +10,7 @@ import {
   Coffee,
   Home,
   Image as ImageIcon,
+  MessagesSquare,
   Music,
   User,
   Users,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/projects", label: "项目", icon: FolderKanban },
   { href: "/tools", label: "工具", icon: Wrench },
   { href: "/friends", label: "友链", icon: Users },
+  { href: "/guestbook", label: "杂谈", icon: MessagesSquare },
   { href: "/about", label: "关于", icon: User },
 ];
 

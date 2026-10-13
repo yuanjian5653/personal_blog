@@ -26,15 +26,6 @@ const FIELDS: Array<{
     ],
   },
   {
-    group: "首页统计数字",
-    hint: "首页作者卡片底部显示的数字",
-    items: [
-      { key: "author_stats_articles", label: "文章数", type: "text" },
-      { key: "author_stats_posts", label: "说说数", type: "text" },
-      { key: "author_stats_photos", label: "照片数", type: "text" },
-    ],
-  },
-  {
     group: "社交链接",
     hint: "留空则不显示对应图标",
     items: [

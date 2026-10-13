@@ -36,6 +36,10 @@ interface PlayerContextValue {
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
   getFrequencyData: () => Uint8Array | null;
+  /** 当前无法播放的歌曲标题（网易云 VIP/版权限制等），null 表示正常 */
+  playError: string | null;
+  /** 手动清掉错误提示 */
+  clearPlayError: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -128,11 +132,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
   const [playMode, setPlayModeState] = useState<PlayMode>("order");
+  // 播放失败的提示（网易云 VIP / 版权限制时后端返回 404，audio 触发 error）
+  const [playError, setPlayError] = useState<string | null>(null);
+
+  // listswitch 回调里需要知道"当前这首歌叫什么"，用 ref 避免闭包拿到旧值
+  const currentSongRef = useRef<Song | null>(null);
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+  }, [currentSong]);
 
   const playlistRef = useRef<Song[]>([]);
   const playModeRef = useRef<PlayMode>("order");
-  // 忽略 listswitch 事件的标记（用代码主动切歌时）
-  const ignoreListSwitchRef = useRef(false);
 
   useEffect(() => {
     playlistRef.current = playlist;
@@ -204,7 +214,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ===== 事件监听 =====
-      ap.on("play", () => setIsPlaying(true));
+      ap.on("play", () => {
+        setIsPlaying(true);
+        // 能播起来了就清掉上一次的失败提示
+        setPlayError(null);
+      });
       ap.on("pause", () => setIsPlaying(false));
 
       ap.on("timeupdate", () => {
@@ -215,17 +229,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setDuration(ap.audio?.duration || 0);
       });
 
-      // APlayer 内部切歌（用户点 APlayer 的下一首，或 ended 时）
-      ap.on("listswitch", () => {
-        const idx = ap.list?.index ?? -1;
-        setCurrentIndex(idx);
-        // 忽略代码触发的 switch，避免覆盖刚设置的 currentSong
-        if (ignoreListSwitchRef.current) {
-          ignoreListSwitchRef.current = false;
-          return;
-        }
+      // APlayer 内部切歌（用户点下一首 / 播完自动下一首 / 播放失败的自动跳过）
+      //
+      // 关键：APlayer 的 list.switch() 实现是
+      //     trigger("listswitch", {index: e});  THEN  this.index = e;
+      // 事件是**在 this.index 更新之前**同步触发的。
+      // 所以这里必须用回调参数里的 index，读 ap.list.index 会拿到上一个索引，
+      // 导致"切到第 5 首却显示第 4 首"这类播放/显示不一致。
+      ap.on("listswitch", (data) => {
+        const idx = (data as { index?: number } | undefined)?.index;
         const list = playlistRef.current;
-        if (list[idx]) setCurrentSong(list[idx]);
+        if (typeof idx !== "number" || !list[idx]) return;
+        setCurrentIndex(idx);
+        setCurrentSong(list[idx]);
+      });
+
+      // 播放失败（网易云 VIP / 版权限制会让后端流返回 404，audio 报 error）。
+      // APlayer 自己会在 2 秒后跳到下一首，但用户只会看到"这首没声音"，
+      // 所以这里明确提示是哪首歌失败了。
+      ap.on("error", () => {
+        const failed = currentSongRef.current;
+        if (failed) setPlayError(failed.title || "这首歌");
       });
 
       ap.on("ended", () => {
@@ -236,18 +260,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           ap.seek(0);
           ap.play();
         } else if (mode === "loop" && list.length > 1) {
+          // 随机下一首；切歌后 listswitch 会同步状态，这里不用再手动 set
           const idx = Math.floor(Math.random() * list.length);
-          ignoreListSwitchRef.current = true;
           ap.list.switch(idx);
-          setCurrentIndex(idx);
-          setCurrentSong(list[idx]);
           ap.play();
         } else {
-          ignoreListSwitchRef.current = true;
+          // 顺序播放：交给 APlayer 前进，listswitch 会同步 currentSong/currentIndex
           ap.skipForward();
-          const idx = ap.list.index;
-          setCurrentIndex(idx);
-          if (list[idx]) setCurrentSong(list[idx]);
+          if (!ap.audio?.paused) ap.play();
         }
       });
     })();
@@ -286,27 +306,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     );
     const realIndex = index >= 0 ? index : 0;
 
-    // 1. 先同步 ref（关键！让 listswitch 事件读到新数据）
+    // 1. 先同步 ref（listswitch 回调要靠它取到最新的歌曲列表）
     playlistRef.current = targetList;
 
-    // 2. 打标记，忽略接下来的 listswitch 事件
-    ignoreListSwitchRef.current = true;
-
-    // 3. 同步 React 状态（让顶部卡片立即更新）
+    // 2. 同步 React 状态（让顶部卡片立即更新）
     setPlaylist(targetList);
     setCurrentIndex(realIndex);
     setCurrentSong(targetList[realIndex] || song);
 
-    // 4. 一次性清空 APlayer 列表
+    // 3. 一次性清空 APlayer 列表
     while (ap.list.audios.length > 0) {
       ap.list.remove(0);
     }
 
-    // 5. 一次性添加整个列表（APlayer 支持数组，别循环 add）
+    // 4. 一次性添加整个列表（APlayer 支持数组，别循环 add）
     const audios = targetList.map(toAPlayerAudio);
     ap.list.add(audios);
 
-    // 6. 关键：用双层 requestAnimationFrame 确保列表 DOM 就绪后再播放
+    // 5. 关键：用双层 requestAnimationFrame 确保列表 DOM 就绪后再播放
     //    直接 ap.play() 会触发 "play() request was interrupted" 错误
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -329,15 +346,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /* ---------- 上一首 / 下一首 ---------- */
-    const next = useCallback(() => {
+  // 状态同步统一由 listswitch 事件负责，这里只驱动 APlayer 切歌，
+  // 避免两处各自 setState 造成显示与实际播放不一致。
+  //
+  // 注：这里读 ap.list.index 是安全的 —— 它在 list.switch() 内部、
+  // 事件触发之后就被赋值。只有"在 listswitch 回调里"读它才会拿到旧值。
+  const next = useCallback(() => {
     const ap = aplayerRef.current;
     if (!ap) return;
     const list = playlistRef.current;
     if (list.length === 0) return;
     const newIndex = (ap.list.index + 1) % list.length;
-    ignoreListSwitchRef.current = true;
-    setCurrentIndex(newIndex);
-    setCurrentSong(list[newIndex]);
     ap.list.switch(newIndex);
     // APlayer 内部切歌需要一点时间加载 metadata
     setTimeout(() => ap.play(), 50);
@@ -349,9 +368,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const list = playlistRef.current;
     if (list.length === 0) return;
     const newIndex = (ap.list.index - 1 + list.length) % list.length;
-    ignoreListSwitchRef.current = true;
-    setCurrentIndex(newIndex);
-    setCurrentSong(list[newIndex]);
     ap.list.switch(newIndex);
     setTimeout(() => ap.play(), 50);
   }, []);
@@ -410,11 +426,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (!ap) return;
     const list = playlistRef.current;
     if (index < 0 || index >= list.length) return;
-    ignoreListSwitchRef.current = true;
+    // listswitch 会同步 currentIndex / currentSong
     ap.list.switch(index);
     ap.play();
-    setCurrentIndex(index);
-    setCurrentSong(list[index]);
   }, []);
 
   const removeFromQueue = useCallback((index: number) => {
@@ -460,6 +474,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return data;
   }, []);
 
+  const clearPlayError = useCallback(() => setPlayError(null), []);
+
   const value: PlayerContextValue = {
     currentSong,
     playlist,
@@ -482,6 +498,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     removeFromQueue,
     clearQueue,
     getFrequencyData,
+    playError,
+    clearPlayError,
   };
 
   return (

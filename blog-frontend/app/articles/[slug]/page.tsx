@@ -15,9 +15,10 @@ import { createPortal } from "react-dom";
 import rehypeHighlight from "rehype-highlight";
 
 import { MorphIcon } from "morphicons/react";
-import { Calendar as CalendarIcon, Clock, FileText, Eye, Heart } from "lucide";
+import { Calendar as CalendarIcon, Clock, FileText, Eye, Heart, MessageSquare } from "lucide";
 
 import ArticleSidebar from "@/components/article/ArticleSidebar";
+import Comments from "@/components/comments/Comments";
 
 interface TocItem {
   id: string;
@@ -462,6 +463,11 @@ export default function ArticleDetailPage() {
                   <span>点赞 {article.like_count}</span>
                 </button>
               </div>
+
+              {/* 评论区 */}
+              <div id="comments" className="article-comments">
+                <Comments target="article" targetId={article.id} title="评论" />
+              </div>
             </div>
           </div>
         </div>
@@ -538,6 +544,29 @@ export default function ArticleDetailPage() {
                 ☰
               </button>
             )}
+
+            <button
+              onClick={() => {
+                // 跳到评论区（id=comments），平滑滚动并留出顶部导航的高度
+                const el = document.getElementById("comments");
+                if (!el) return;
+                const top =
+                  el.getBoundingClientRect().top + window.scrollY - 96;
+                window.scrollTo({ top, behavior: "smooth" });
+              }}
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{
+                background: "rgba(20, 22, 30, 0.9)",
+                color: "var(--text-primary)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+              }}
+              title="跳到评论区"
+            >
+              <MorphIcon icon={MessageSquare} size={18} />
+            </button>
 
             <button
               onClick={scrollToTop}

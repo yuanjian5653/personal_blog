@@ -9,16 +9,16 @@ interface CacheEntry<T> {
 }
 
 /**
- * 从 sessionStorage 同步读一条有效缓存。
+ * 从 sessionStorage 读一条有效缓存。
  *
- * 关键：这个函数在 **useState 的惰性初始化**里调用，而不是在 useEffect 里。
- * 原来的写法是在 effect 里 setData/setLoading，那会导致：
- *   1. 首屏先用 null 渲染一帧，再被缓存覆盖（闪一下）
- *   2. 触发 react-hooks/set-state-in-effect 警告（effect 里同步 setState）
- * 放到初始化函数里就没有这两个问题——缓存命中时第一帧就是数据。
- *
- * SSR 时 window 不存在，直接返回 undefined，服务端与客户端首帧一致，
- * 不会产生 hydration mismatch。
+ * ⚠️ 只能在 effect（或事件回调）里调用，**绝不能在渲染期调用** ——
+ * 包括 useState 的惰性初始化函数。原因：
+ *   服务端渲染时 window 不存在 → 返回 undefined
+ *   客户端"首次"渲染时 window 已存在 → 能读到缓存
+ * 两边 html 不一致，React 就会报
+ * "Hydration failed because the server rendered HTML didn't match the client"。
+ * （之前就是踩了这个坑：把读缓存放进惰性初始化，导致首页 PhotosCard、
+ *   ProfileCard 出现 hydration 失败。）
  */
 function readCache<T>(key: string, ttlMs: number): T | undefined {
   if (typeof window === "undefined") return undefined;
@@ -39,20 +39,23 @@ function writeCache<T>(key: string, value: T): void {
 }
 
 /**
- * 带缓存的 fetch Hook
- * - 命中 sessionStorage 缓存时首帧直接出数据，切换页面不闪烁
- * - 命中缓存也会在后台静默刷新一次
- * - 未命中则请求接口
+ * 带缓存的 fetch Hook。
+ *
+ * 1. 首帧固定 data=null（服务端与客户端首帧一致 → hydration 安全）
+ * 2. 挂载后立刻用 sessionStorage 缓存填充，命中缓存时不必等网络
+ * 3. 随后请求接口，拿到新数据覆盖并写回缓存（命中缓存时相当于静默刷新）
+ *
+ * loading 由 data 派生，不单独维护状态。
  */
 export function useCachedFetch<T>(
   cacheKey: string,
   fetcher: () => Promise<T>,
   ttlMs: number = 5 * 60 * 1000
 ): { data: T | null; loading: boolean } {
-  const [data, setData] = useState<T | null>(() => readCache<T>(cacheKey, ttlMs) ?? null);
+  const [data, setData] = useState<T | null>(null);
 
-  // 把 fetcher 放进 ref，这样调用方每次渲染传新函数也不会重跑 effect。
-  // 注意：ref 赋值必须放在 effect 里（渲染期读写 ref 会被 react-hooks/refs 拦下）。
+  // fetcher 放进 ref，避免调用方每次渲染传新函数导致 effect 重跑。
+  // ref 赋值必须放在 effect 里（渲染期读写 ref 会被 react-hooks/refs 拦下）。
   const fetcherRef = useRef(fetcher);
   useEffect(() => {
     fetcherRef.current = fetcher;
@@ -61,7 +64,17 @@ export function useCachedFetch<T>(
   useEffect(() => {
     let cancelled = false;
 
-    // 缓存命中与否都请求一次（命中时是后台静默刷新）
+    // 1. 先用缓存快速填充，避免骨架屏停留太久。
+    //    这里是**故意**同步 setState：命中缓存时希望在"挂载后的第一时间"
+    //    就出数据（等一个 tick 会多闪一帧骨架）。它不会循环触发，
+    //    因为依赖是 [cacheKey, ttlMs]，不会因 data 变化而重跑。
+    const cached = readCache<T>(cacheKey, ttlMs);
+    if (cached !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 见上：一次性填充缓存，非派生数据
+      setData(cached);
+    }
+
+    // 2. 再请求接口
     fetcherRef
       .current()
       .then((fresh) => {
@@ -70,7 +83,7 @@ export function useCachedFetch<T>(
         writeCache(cacheKey, fresh);
       })
       .catch(() => {
-        // 请求失败：若已有缓存就继续用缓存，否则保持 null（由 loading 派生）
+        // 请求失败：有缓存就继续用缓存，否则保持 null（由 loading 派生）
       });
 
     return () => {
@@ -78,7 +91,6 @@ export function useCachedFetch<T>(
     };
   }, [cacheKey, ttlMs]);
 
-  // loading 由 data 派生，不再单独维护一个状态
   return { data, loading: data === null };
 }
 

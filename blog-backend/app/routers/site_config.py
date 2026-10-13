@@ -7,14 +7,18 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlmodel import Session
+from sqlmodel import Session, func, select
 
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
 from app.deps import get_current_admin
-from app.models import Admin
-from app.schemas.site_config import SiteConfigResponse, SiteConfigUpdate
+from app.models import Admin, Album, Article, Essay, Photo, Song
+from app.schemas.site_config import (
+    SiteConfigResponse,
+    SiteConfigUpdate,
+    SiteStats,
+)
 from app.services.log_service import log_operation
 from app.services.site_config import get_all_configs, update_configs
 
@@ -25,6 +29,29 @@ router = APIRouter(prefix="/api/site-config", tags=["站点配置"])
 def read_configs(db: Session = Depends(get_session)):
     """读取全部站点配置（公开）"""
     return SiteConfigResponse(configs=get_all_configs(db))
+
+
+@router.get("/stats", response_model=SiteStats)
+def read_stats(db: Session = Depends(get_session)):
+    """站点实时统计（公开）
+
+    首页个人卡片直接用这里的数字，所以后台改了内容、首页刷新就会同步，
+    不用再去「关于内容」里手动改数字。
+    """
+    def count(model, *conditions) -> int:
+        stmt = select(func.count()).select_from(model)
+        for c in conditions:
+            stmt = stmt.where(c)
+        return db.exec(stmt).one()
+
+    return SiteStats(
+        # 只统计已发布的文章，草稿不计入
+        articles=count(Article, Article.status == "published"),
+        essays=count(Essay),
+        photos=count(Photo),
+        albums=count(Album),
+        songs=count(Song),
+    )
 
 
 @router.put("", response_model=SiteConfigResponse)

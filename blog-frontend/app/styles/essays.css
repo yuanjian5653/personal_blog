@@ -91,11 +91,15 @@
 }
 
 /* ===== 单条说说小卡片 ===== */
+
+/* 同一天的说说叠成"一摞小纸条"。
+   同一列的卡片内联设置 margin-top: -62%，于是彼此重叠、
+   只露出上一条的头部；内联还会给每张一个固定的随机倾斜角。
+   展开时（.is-expanded）margin-top 归零，后面的卡片自然被推开。 */
 .essays-group-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   padding-left: 4px;
+  /* 旋转后的卡片会略微超出边界，留点空间避免被裁 */
+  padding-block: 6px;
 }
 
 .essay-item {
@@ -103,20 +107,77 @@
   padding: 14px 18px;
   border-radius: 14px;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+
   background: var(--card-bg);
   backdrop-filter: blur(var(--card-blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--card-blur)) saturate(180%);
   border: 1px solid var(--card-border);
   color: var(--card-text);
+  box-shadow: 0 4px 14px -8px rgba(0, 0, 0, 0.45);
+
+  /* 只过渡"展开/收起"相关的属性。
+     margin-top 负责把下面的卡片推开（丝滑下拉的关键），
+     transform 负责把倾斜的纸条摆正。
+     缓动用带过冲的回弹曲线，展开时先冲过一点再弹回来。 */
+  transition:
+    margin-top 0.5s cubic-bezier(0.34, 1.4, 0.5, 1),
+    transform 0.5s cubic-bezier(0.34, 1.4, 0.5, 1),
+    height 0.5s cubic-bezier(0.34, 1.4, 0.5, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+
+  will-change: margin-top, transform;
+  transform-origin: center top;
 }
 
+/* 折叠状态下内容只显示一行，超出用省略号 */
+.essay-item .essay-item-content {
+  overflow: hidden;
+}
+
+/* 悬停：轻微抬起 + 提示可点击（不改变角度，避免和随机倾斜打架） */
 .essay-item:hover {
-  transform: translateX(6px);
   background: var(--card-bg-hover, var(--card-bg));
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: 0 10px 28px -12px
+  box-shadow: 0 12px 30px -12px
     color-mix(in srgb, var(--accent) 45%, transparent);
+  z-index: 40 !important;
+}
+
+/* 展开：摆正、抬起、推到最上层 */
+.essay-item.is-expanded {
+  transform: rotate(0deg) scale(1) !important;
+  z-index: 50 !important;
+  box-shadow: 0 18px 44px -16px rgba(0, 0, 0, 0.55);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* 展开后内容不再截断 */
+.essay-item.is-expanded .essay-item-content {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+/* 卡片内的可点区域：占满宽度、继承排版，去掉按钮默认样式 */
+.essay-item-toggle-area {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.essay-item-toggle-area:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
 .essay-item-head {
@@ -147,290 +208,196 @@
   color: var(--card-text);
   margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
   white-space: pre-wrap;
 }
 
-/* ============================================
-   说说详情弹窗
-   ============================================ */
-.essay-detail-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(5, 5, 10, 0.75);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px 40px;
-  overflow-y: auto;
-  animation: essayBackdropIn 0.25s ease;
+/* ---- 展开后的详细内容 ---- */
+.essay-item-detail {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed color-mix(in srgb, var(--card-text) 12%, transparent);
+  /* 带过冲的回弹：内容先冲进来一点再落位 */
+  animation: essayDetailIn 0.5s cubic-bezier(0.34, 1.5, 0.5, 1);
 }
 
-@keyframes essayBackdropIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.essay-detail-modal {
-  position: relative;
-  width: 100%;
-  max-width: 520px;
-  padding: 24px 26px;
-  border-radius: 20px;
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--card-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(180%);
-  border: 1px solid var(--card-border);
-  box-shadow:
-    inset 1.5px 1.5px 0 0 rgba(255, 255, 255, 0.08),
-    0 20px 60px -20px rgba(0, 0, 0, 0.6);
-  color: var(--card-text);
-  /* 从卡片位置展开的感觉 */
-  animation: essayModalIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes essayModalIn {
-  0% {
+@keyframes essayDetailIn {
+  from {
     opacity: 0;
-    transform: scale(0.92) translateY(20px);
+    transform: translateY(-10px);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
   }
 }
 
-/* 作者头 */
-.essay-detail-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--card-text) 8%, transparent);
+.essay-item-detail__images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
-.essay-detail-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.essay-item-detail__images img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: zoom-in;
+  transition: transform 0.25s ease;
+}
+
+.essay-item-detail__images img:hover {
+  transform: scale(1.04);
+}
+
+.essay-item-detail__more {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  color: var(--accent);
-  flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.essay-detail-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--card-text);
-  margin-bottom: 2px;
-}
-
-.essay-detail-time {
-  font-size: 11px;
-  color: var(--card-text-sub);
-}
-
-/* 标题 + 内容 */
-.essay-detail-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--card-text);
-  margin: 0 0 8px;
-}
-
-.essay-detail-content {
-  font-size: 14px;
-  line-height: 1.85;
-  color: var(--card-text);
-  margin: 0 0 16px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* ===== 图片网格 ===== */
-.essay-detail-images {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.essay-detail-images--1 {
-  grid-template-columns: 1fr;
-  max-width: 320px;
-}
-.essay-detail-images--1 .essay-detail-image {
-  aspect-ratio: 4 / 3;
-}
-
-.essay-detail-images--2 {
-  grid-template-columns: 1fr 1fr;
-}
-.essay-detail-images--2 .essay-detail-image {
   aspect-ratio: 1;
-}
-
-.essay-detail-images--3 {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-.essay-detail-images--3 .essay-detail-image {
-  aspect-ratio: 1;
-}
-
-.essay-detail-images--more {
-  grid-template-columns: repeat(3, 1fr);
-}
-.essay-detail-images--more .essay-detail-image {
-  aspect-ratio: 1;
-}
-
-.essay-detail-image {
   border-radius: 8px;
-  overflow: hidden;
-  cursor: zoom-in;
-  background: rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-.essay-detail-image:hover {
-  transform: scale(1.03);
-}
-
-.essay-detail-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* ===== 互动区 ===== */
-.essay-detail-actions {
+.essay-item-detail__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--card-text) 8%, transparent);
-  margin-bottom: 14px;
+  gap: 12px;
 }
 
-.essay-detail-like {
+.essay-item-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 通用小胶囊按钮（评论 / 点赞共用外观） */
+.essay-item-action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 5px;
+  padding: 5px 12px;
   border-radius: 9999px;
-  background: color-mix(in srgb, #ff2d9b 12%, transparent);
-  border: 1px solid color-mix(in srgb, #ff2d9b 25%, transparent);
-  color: #ff2d9b;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
   font-family: inherit;
+  cursor: pointer;
+  color: var(--card-text-sub);
+  background: color-mix(in srgb, var(--card-text) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-text) 14%, transparent);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
-.essay-detail-like:hover {
+.essay-item-action:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  transform: scale(1.05);
+}
+
+.essay-item-action:active {
+  transform: scale(0.95);
+}
+
+/* 评论区已展开时按钮保持高亮 */
+.essay-item-action.is-on {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ---- 评论区：grid-template-rows 0fr → 1fr 实现丝滑下拉 ---- */
+.essay-comments {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.45s cubic-bezier(0.34, 1.3, 0.5, 1),
+    opacity 0.35s ease;
+}
+
+.essay-comments.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+/* 内层必须是 overflow:hidden，否则 0fr 收不起来 */
+.essay-comments__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+
+
+.essay-item-detail__date {
+  font-size: 11px;
+  color: var(--card-text-sub);
+  opacity: 0.75;
+}
+
+.essay-item-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #ff2d9b;
+  background: color-mix(in srgb, #ff2d9b 12%, transparent);
+  border: 1px solid color-mix(in srgb, #ff2d9b 25%, transparent);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.essay-item-like:hover {
   background: color-mix(in srgb, #ff2d9b 22%, transparent);
   transform: scale(1.05);
 }
 
-.essay-detail-like.liking {
-  transform: scale(1.15);
+.essay-item-like:active {
+  transform: scale(0.95);
 }
 
-.essay-detail-hint {
-  font-size: 11px;
+.essay-item-like:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* 展开时的小提示图标（右上角） */
+.essay-item-toggle {
+  font-size: 10px;
   color: var(--card-text-sub);
-  opacity: 0.7;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-left: 6px;
 }
 
-/* ===== 评论区 ===== */
-.essay-detail-comments-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--card-text);
-  margin-bottom: 10px;
+.essay-item.is-expanded .essay-item-toggle {
+  transform: rotate(180deg);
 }
 
-.essay-detail-comments-empty {
-  font-size: 12px;
-  color: var(--card-text-sub);
-  text-align: center;
-  padding: 14px 0;
-  border-top: 1px dashed color-mix(in srgb, var(--card-text) 10%, transparent);
-  border-bottom: 1px dashed color-mix(in srgb, var(--card-text) 10%, transparent);
-  margin-bottom: 12px;
-}
-
-.essay-detail-comments-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.essay-detail-comments-input {
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--card-text);
-  font-size: 12px;
-  font-family: inherit;
-  resize: vertical;
-  outline: none;
-}
-
-.essay-detail-comments-input::placeholder {
-  color: var(--card-text-sub);
-  opacity: 0.7;
-}
-
-.essay-detail-comments-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.essay-detail-comments-submit {
-  padding: 7px 18px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.essay-detail-comments-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 移动端 */
-@media (max-width: 640px) {
-  .essay-detail-backdrop {
-    padding: 60px 12px 20px;
-    align-items: flex-start;
-  }
-  .essay-detail-modal {
-    padding: 18px;
-  }
-  .essays-hero-title {
-    font-size: 24px;
+@media (prefers-reduced-motion: reduce) {
+  .essay-item,
+  .essay-item-detail,
+  .essay-item-toggle {
+    transition: none;
+    animation: none;
   }
 }

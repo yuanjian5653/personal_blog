@@ -5,6 +5,8 @@ import Navbar from "@/components/layout/Navbar";
 import { PlayerProvider } from "@/components/player/PlayerProvider";
 import PlayerBar from "@/components/player/PlayerBar";
 import SiteConfigLoader from "@/components/SiteConfigLoader";
+import LoginNotice from "@/components/LoginNotice";
+import VisitTracker from "@/components/VisitTracker";
 import PageTransition from "@/components/layout/PageTransition";
 import "highlight.js/styles/github-dark.css";
 import "highlight.js/styles/atom-one-dark.css";
@@ -35,6 +37,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* PlayerProvider 包裹整个应用，让任何页面都能控制播放器 */}
         <PlayerProvider>
           <SiteConfigLoader />
+          <LoginNotice />
+          <VisitTracker />
           <Navbar />
           <main className="pt-28 pb-24 max-w-6xl mx-auto px-6 w-full flex-1">
             <PageTransition>{children}</PageTransition>

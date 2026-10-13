@@ -14,12 +14,15 @@
 | 模块 | 说明 |
 |---|---|
 | 文章 | Markdown 正文、分类、多标签筛选、置顶、阅读量/点赞、相关文章推荐、目录（TOC）、Word 文档导入 |
-| 随笔 | 短文本 + 多图，时间轴分组展示，点赞 |
+| 随笔 | 短文本 + 多图，同日卡片叠成"一摞纸条"随机倾斜，点击丝滑下拉展开，点赞 |
+| 评论 | **访客用 GitHub 登录后**在「说说」和「生活动态」下评论 / 一级回复 / 点赞；也可给说说点赞。数据存 MySQL，登录态与管理员完全隔离 |
 | 生活动态 | 图文动态、地点标记、瀑布流卡片 + 详情弹窗 / 图片灯箱 |
 | 相册 | 相册分组、批量上传自动压缩、自动生成缩略图、灯箱浏览 |
 | 音乐 | 扫描 `media/music/` 自动提取 mp3/m4a 标签与内嵌封面、歌词（LRC）、歌单、播放队列、频谱动画 |
 | 网易云 | 通过 Cookie 代理搜索 / 歌单 / 歌词 / 音频流 |
 | 站点配置 | 站点标题、主题色、背景（纯色/图片+模糊+遮罩）、卡片风格、社交链接、ICP 备案等，全部后台可改 |
+| 后台看板 | 已发布/草稿/分类/标签/评论/访客 六张统计卡 + 文章发布趋势、访客趋势（近30天）+ 分类分布、浏览器分布环形图 |
+| 评论管理 | 后台统一管理文章/说说/生活动态/杂谈的评论：位置与状态筛选、关键词搜索、分页、展开查看回复、通过/拒绝、删除 |
 | 操作日志 | 后台增删改自动记录，支持筛选与展开查看字段级变更 |
 | 认证 | 基于 HttpOnly Cookie 的 Session 登录（bcrypt 哈希存密码） |
 
@@ -183,7 +186,7 @@ pnpm dev
 
 | 位置 | 内容 |
 |---|---|
-| MySQL `personal_blog` 库 | 文章、随笔、动态、配置、日志、以及**图片/音频的文件名** |
+| MySQL `personal_blog` 库 | 文章、随笔、动态、**评论/点赞/访客账号**、配置、日志、以及**图片/音频的文件名** |
 | `blog-backend/media/photos/` | 相册原图 |
 | `blog-backend/media/thumbs/` | 自动生成的缩略图 |
 | `blog-backend/media/covers/` | 从音频文件里提取的内嵌封面 |
@@ -290,6 +293,12 @@ node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/t
 | `DEBUG` | `True` | `True` 会打印每条 SQL，生产环境建议改 `False` |
 | `MEDIA_ROOT` / `MUSIC_DIR` / `COVER_DIR` / `PHOTO_DIR` / `THUMB_DIR` | `media/...` | 媒体目录，相对 `blog-backend/` |
 | `NETEASE_MUSIC_U` | 空 | 网易云 Cookie。**也可以不填 `.env`**，登录后台后在音乐页填入即可（会存进数据库） |
+| `FRONTEND_URL` | `http://localhost:3000` | GitHub 登录完成后跳回哪里 |
+| `BACKEND_URL` | `http://localhost:8000` | 后端对外地址。拼 OAuth 回调地址用，**必须与 GitHub OAuth App 里填的一致** |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 空 | 访客 GitHub 登录用，见下方「评论功能」 |
+| `COMMENTER_SESSION_DAYS` | `30` | 访客登录态保持天数 |
+| `COOKIE_SAMESITE` | `lax` | 前后端**不同域**部署时改成 `none` |
+| `COOKIE_SECURE` | `false` | 配合上一条，不同域 + HTTPS 时改 `true` |
 
 `blog-frontend/.env.local`：
 
@@ -299,7 +308,146 @@ node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/t
 
 ---
 
-## 常见问题
+## 评论功能（GitHub 登录）
+
+访客用 GitHub 账号登录后可以：发表评论、回复（一级）、给评论点赞、给说说点赞。
+所有数据都存在 MySQL 里（`commenters` / `comments` / `comment_likes` / `essay_likes` / `commenter_sessions` 五张表）。
+
+### 1. 申请 GitHub OAuth App
+
+1. 打开 <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**
+2. 填写：
+   - **Application name**：随意，例如 `personal-blog`
+   - **Homepage URL**：前端地址，例如 `http://localhost:3000`
+   - **Authorization callback URL**：**必须**填
+     ```
+     http://localhost:8000/api/comments/github/callback
+     ```
+     规则是 `${BACKEND_URL}/api/comments/github/callback`
+3. 创建后复制 **Client ID**，再点 **Generate a new client secret** 拿 **Client Secret**
+
+### 2. 填进 `.env`
+
+```env
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+GITHUB_CLIENT_ID=你的 Client ID
+GITHUB_CLIENT_SECRET=你的 Client Secret
+```
+
+改完**重启后端**。没配这两项时，评论列表仍能正常浏览，但点「GitHub 登录」会返回 503 并提示未配置。
+
+### 3. 说明
+
+- **新库不需要迁移**：表由 `SQLModel.metadata.create_all` 自动创建，重启后端即生效
+- **已有数据库需要跑一次迁移**：评论表先后扩展过"生活动态""文章""留言板"，
+  还加了 `ip` / `status` 两个审核字段，并新增了 `page_views` 访问统计表。
+  因为 `create_all` 不会修改已有表结构，请执行一次：
+  ```bash
+  python blog-backend/scripts/migrate_comments_target.py --dry-run   # 先看会改什么
+  python blog-backend/scripts/migrate_comments_target.py            # 执行
+  ```
+  脚本是**幂等**的，重复执行不会出错。
+- 申请时**不要**勾选 `repo` 等权限，本项目只申请 `read:user`（读公开资料）
+- 登录态用的是**独立的 Cookie**（`commenter_token`），与管理员的 `session_token` 完全分开，
+  互不影响：管理员登录不会让访客变成"已登录评论用户"，反之亦然
+- 访客只能删除自己的评论；删除父评论时会连带删掉它的一级回复与点赞
+- 评论支持**两种目标**：说说（`/api/comments/essay/{id}/...`）和生活动态
+  （`/api/comments/life/{id}/...`）。两者数据完全隔离，不会串号
+- 登录后会自动**跳回你发起登录的那个页面**（靠 `return_to`），不会一律回首页
+- 登录成功/失败都会在页面右上角弹出提示；失败时会显示 GitHub 返回的具体原因
+
+### 4. 网络受限怎么办（中国大陆常见）
+
+如果你的网络直连 `github.com` 不通、需要靠加速器/代理才能打开 GitHub，
+**后端也必须显式走同一个代理** —— 因为 `httpx` **不会**读取 Windows 系统代理或 PAC 脚本。
+典型症状：浏览器能正常打开 GitHub、也能完成授权，但点完登录后报
+`ConnectTimeout`，或者页面提示"登录失败：后端连接 GitHub 失败"。
+
+**先诊断**：
+
+```bash
+python blog-backend/scripts/diagnose_github_net.py
+```
+
+它会分别测 `github.com`、`api.github.com` 的 DNS / TCP / HTTPS，
+并列出本机监听的端口，最后给出该怎么做。
+
+**然后按情况处理**：
+
+| 情况 | 做法 |
+|---|---|
+| 有本机代理端口（如 `127.0.0.1:26561`） | 在 `.env` 里加 `GITHUB_PROXY=http://127.0.0.1:26561`，重启后端 |
+| 代理走系统环境变量 | 启动后端前设 `HTTPS_PROXY`，并设 `NO_PROXY=localhost,127.0.0.1`（否则本机请求也会被塞进代理） |
+| 只信任系统代理/PAC | 上面两项都不行时，在加速器里开启「TUN 模式 / 全局模式」，让所有程序都走代理 |
+
+> **关于证书**：这类加速器通常做 HTTPS 中间人，用**自签证书**替换 GitHub 的证书。
+> 浏览器信任它（根证书装在系统里），但 Python 默认只用 `certifi`，会报
+> `CERTIFICATE_VERIFY_FAILED`。
+> 本项目已自动把**操作系统证书存储**里的证书一并载入
+> （见 `app/services/github_oauth.py` 的 `_ssl_context()`），
+> 所以**不需要**关闭证书校验。
+
+### 5. 生产部署注意
+
+前后端**同域**（例如都用 `https://blog.example.com`，后端挂在 `/api`）时无需额外配置。
+
+若前后端**不同域**，浏览器默认不会带上跨站 Cookie，需要：
+
+```env
+COOKIE_SAMESITE=none
+COOKIE_SECURE=true      # 必须配合 HTTPS
+ALLOWED_ORIGINS=https://你的前端域名
+```
+
+并且把 GitHub OAuth App 的 callback 地址改成生产环境的
+`https://你的后端域名/api/comments/github/callback`。
+
+---
+
+## 后台功能
+
+### 仪表盘看板
+
+进入 `/admin/dashboard` 可以看到：
+
+- **六张统计卡**：已发布文章、草稿、分类、标签、评论、访客（近30天去重）
+- **两张趋势图**：文章发布趋势、访客趋势（近 30 天）
+- **两张分布图**：分类分布、浏览器分布（环形图）
+
+图表是**手写 SVG**，没有引入任何图表库 —— 只需要"平滑曲线 + 渐变填充 + 环形占比"，
+引一个图表库要多几百 KB，且 SSR 下还要额外处理。
+
+**访客数据来自前台上报**：`components/VisitTracker.tsx` 会在每次路径变化时
+调用 `POST /api/admin/track`。几个设计点：
+
+- 后台路径（`/admin*`）不计入统计
+- 同一访客 + 同一路径在 **6 小时内只记一次**，避免刷新灌水
+- 访客标识 = `hash(IP + UA + 当日日期)`，**无法跨天追踪**（隐私上更克制）
+- 记录 IP 但**不信任** `X-Forwarded-For`（那是客户端可伪造的头）
+
+> 趋势图一开始会是空的 —— 埋点是本次新增的，只统计**从现在开始**的访问。
+
+### 评论管理
+
+后台侧栏「互动」分组下有两个入口：
+
+| 页面 | 作用 |
+|---|---|
+| `/admin/comments` | 统一管理**文章 / 说说 / 生活动态 / 杂谈**的评论 |
+| `/admin/guestbook` | 只看留言板（同一个组件，固定 target=guestbook） |
+
+支持：
+- 按**位置**（文章/说说/生活动态/杂谈）和**状态**（已通过/已拒绝）筛选
+- 按内容或用户名**关键词搜索**
+- 分页
+- 点「N 条回复」**下拉展开**该条评论的所有回复，回复也能单独通过/拒绝/删除
+- 删除顶层评论会**连带删除它的回复与点赞**
+
+审核状态说明：`rejected` 的评论**不在前台展示**（公开接口只返回 `approved`），
+但记录保留，可以随时改回 `approved`。
+
+---
 
 **`pip install -r requirements.txt` 报解析错误**
 

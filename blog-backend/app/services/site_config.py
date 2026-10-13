@@ -31,9 +31,10 @@ DEFAULT_CONFIG: dict[str, str] = {
     "card_text": "好，支持，威武，有希望了！ ( ) #(滑稽)",
 
     # ---- 个人卡片 ----
-    "author_stats_articles": "6",
-    "author_stats_posts": "20",
-    "author_stats_photos": "71",
+    # 注：作者卡片的文章/说说/照片数量已改为实时统计
+    # （见 routers/site_config.py 的 GET /api/site-config/stats），
+    # 不再需要手动填写，因此原来的 author_stats_* 配置项已移除。
+    # 老数据库里残留的同名记录不会被读取，也不会报错。
 
     # ---- 社交链接（留空则不显示对应图标）----
     "social_github": "https://github.com",
