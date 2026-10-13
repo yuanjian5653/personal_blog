@@ -1,0 +1,556 @@
+/* ============================================
+   后台：数据看板 + 评论管理
+
+   ⚠️ 配色全部走主题变量，不要写死白色/黑色。
+   本站默认是**深色**主题（--bg-primary #0f1115，文字为浅色），
+   所以后台面板必须和前台一样用 --card-bg / --card-text 这一套；
+   之前这里写死了 #fff 底色 + #1f2430 文字，在深色站点上会显得极不协调。
+   同时 bg_color 是后台可配的，所以下面全部用变量 + color-mix 派生，
+   保证在浅色配置下也不会出现"白字白底"。
+   ============================================ */
+
+/* 派生一批后台内部用的语义色，集中在一处方便统一调整 */
+:root {
+  /* 面板/表格底：跟随卡片风格（glass 或 black），半透明叠加 */
+  --adm-surface: var(--card-bg, rgba(255, 255, 255, 0.06));
+  --adm-surface-hover: var(--card-bg-hover, rgba(255, 255, 255, 0.1));
+  --adm-border: var(--card-border, rgba(255, 255, 255, 0.1));
+  --adm-text: var(--card-text, var(--text-primary, #e8e8ea));
+  --adm-text-sub: var(--card-text-sub, var(--text-secondary, #9ca3af));
+
+  /* 表头底色：在面板底上再压一层极淡的文字色 */
+  --adm-head-bg: color-mix(in srgb, var(--adm-text) 5%, transparent);
+  --adm-row-hover: color-mix(in srgb, var(--adm-text) 4%, transparent);
+  --adm-line: color-mix(in srgb, var(--adm-text) 9%, transparent);
+  --adm-tag-bg: color-mix(in srgb, var(--adm-text) 8%, transparent);
+  --adm-icon-bg: color-mix(in srgb, var(--accent, #7c5cff) 14%, transparent);
+
+  /* 状态色（浅底深字 / 深底浅字都能看清） */
+  --adm-ok: #16a34a;
+  --adm-ok-bg: color-mix(in srgb, #22c55e 18%, transparent);
+  --adm-danger: #dc2626;
+  --adm-danger-bg: color-mix(in srgb, #ef4444 16%, transparent);
+  --adm-warn: #d97706;
+}
+
+/* 深色背景下把提示色提亮一档，保证对比度 */
+html[data-card-style="black"] {
+  --adm-ok: #4ade80;
+  --adm-danger: #f87171;
+  --adm-warn: #fbbf24;
+}
+
+/* ---------- 通用面板 ---------- */
+.admin-panel {
+  background: var(--adm-surface);
+  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  border: 1px solid var(--adm-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  color: var(--adm-text);
+}
+
+/* 表格类面板自己控制内边距 */
+.admin-panel--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--adm-text);
+}
+
+.admin-muted {
+  color: var(--adm-text-sub);
+}
+
+.admin-error {
+  color: var(--adm-danger);
+  font-size: 13px;
+  padding: 10px 14px;
+  background: var(--adm-danger-bg);
+  border: 1px solid color-mix(in srgb, var(--adm-danger) 35%, transparent);
+  border-radius: 8px;
+}
+
+/* ---------- 顶部统计卡片 ---------- */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--adm-surface);
+  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  border: 1px solid var(--adm-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--adm-text);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+a.stat-card:hover {
+  transform: translateY(-2px);
+  background: var(--adm-surface-hover);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.stat-card__icon {
+  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--adm-icon-bg);
+}
+
+.stat-card__label {
+  font-size: 12px;
+  color: var(--adm-text-sub);
+  margin-bottom: 2px;
+}
+
+.stat-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 图表区 ---------- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  /* currentColor 给网格线用，跟随主题文字色 */
+  color: var(--adm-text);
+  display: block;
+}
+
+.chart-tick {
+  font-size: 10px;
+  fill: var(--adm-text-sub);
+}
+
+.chart-tip {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--adm-text) 82%, transparent);
+  color: var(--adm-surface);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 环形图 ---------- */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.donut-wrap svg {
+  flex-shrink: 0;
+}
+
+.donut-total {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--adm-text);
+}
+
+.donut-sub {
+  font-size: 10px;
+  fill: var(--adm-text-sub);
+}
+
+.donut-legend {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.donut-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.donut-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--adm-text-sub);
+}
+
+.donut-legend__value {
+  font-weight: 600;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-legend__pct {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--adm-text-sub);
+}
+
+.donut-legend__empty {
+  font-size: 12px;
+  color: var(--adm-text-sub);
+}
+
+/* ---------- 筛选栏 ---------- */
+.admin-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--adm-text-sub);
+}
+
+.admin-field--grow {
+  flex: 1;
+  min-width: 180px;
+}
+
+.admin-field select,
+.admin-field input {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+  /* 半透明底 + 主题文字色：深色下是深底浅字，浅色下自动反过来 */
+  background: var(--adm-head-bg);
+  color: var(--adm-text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+/* 下拉展开的候选项由浏览器画，给它一个贴合主题的底 */
+.admin-field select option {
+  background: #1a1d26;
+  color: #e8e8ea;
+}
+
+.admin-field select:focus,
+.admin-field input:focus {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.admin-field input::placeholder {
+  color: var(--adm-text-sub);
+  opacity: 0.7;
+}
+
+.admin-btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.admin-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.admin-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.admin-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-btn--ghost {
+  background: var(--adm-head-bg);
+  border-color: var(--adm-border);
+  color: var(--adm-text-sub);
+}
+
+.admin-btn--ghost:hover:not(:disabled) {
+  color: var(--adm-text);
+}
+
+/* ---------- 表格 ---------- */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--adm-text);
+}
+
+.admin-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--adm-text-sub);
+  padding: 12px 14px;
+  background: var(--adm-head-bg);
+  border-bottom: 1px solid var(--adm-line);
+  white-space: nowrap;
+}
+
+.admin-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--adm-line);
+  color: var(--adm-text);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--adm-row-hover);
+}
+
+/* 被拒绝的评论整行淡显 */
+.admin-table tbody tr.is-rejected {
+  opacity: 0.55;
+}
+
+.admin-cell-content {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-cell-sub {
+  font-size: 11px;
+  margin-top: 2px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-cell-time {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- 用户单元格 ---------- */
+.admin-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--adm-tag-bg);
+}
+
+.admin-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.admin-user__name {
+  color: var(--adm-text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user__name:hover {
+  color: var(--accent);
+}
+
+/* ---------- 标签 / 徽章 ---------- */
+.admin-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--adm-tag-bg);
+  color: var(--adm-text-sub);
+  white-space: nowrap;
+}
+
+.admin-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.admin-badge--approved {
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+}
+
+.admin-badge--rejected {
+  background: var(--adm-danger-bg);
+  color: var(--adm-danger);
+}
+
+/* ---------- 操作列 ---------- */
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.admin-link {
+  font: inherit;
+  font-size: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--adm-warn);
+  transition: opacity 0.15s ease;
+}
+
+.admin-link:hover:not(:disabled) {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+.admin-link:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+
+.admin-link--danger {
+  color: var(--adm-danger);
+}
+
+.admin-link--warn {
+  color: var(--adm-warn);
+}
+
+/* ---------- 展开的回复区 ---------- */
+.admin-replies-row > td {
+  padding: 0 14px 14px 14px !important;
+  background: var(--adm-head-bg);
+}
+
+.admin-replies {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  padding: 10px 0 10px 16px;
+}
+
+.admin-replies__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--adm-text-sub);
+  margin-bottom: 10px;
+}
+
+.admin-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.admin-reply + .admin-reply {
+  border-top: 1px dashed var(--adm-line);
+}
+
+.admin-reply__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-reply__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.admin-reply__content {
+  font-size: 13px;
+  color: var(--adm-text);
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* ---------- 分页 ---------- */
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-table {
+    font-size: 12px;
+  }
+  .admin-cell-content {
+    max-width: 160px;
+  }
+}

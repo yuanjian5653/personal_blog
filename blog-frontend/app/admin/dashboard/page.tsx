@@ -1,37 +1,133 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-const CARDS = [
-  { title: "站点配置", desc: "标题、主题色、背景", href: "/admin/site", icon: "⚙️" },
-  { title: "音乐管理", desc: "歌曲与歌单", href: "/admin/music", icon: "🎵" },
-  { title: "文章管理", desc: "日记与长文", href: "/admin/posts", icon: "📝" },
-  { title: "随笔管理", desc: "碎片化记录", href: "/admin/essays", icon: "✍️" },
-  { title: "图片管理", desc: "相册与照片", href: "/admin/photos", icon: "🖼️" },
-  { title: "操作日志", desc: "查看变更记录", href: "/admin/logs", icon: "📋" },
-    { title: "生活动态", desc: "日常片段管理", href: "/admin/life", icon: "☕" },
-];
+import {
+  fetchDashboardStats,
+  type DashboardStats,
+  type StatCard,
+} from "@/lib/admin";
+import AreaChart from "@/components/admin/charts/AreaChart";
+import DonutChart from "@/components/admin/charts/DonutChart";
+
+/** 卡片图标（用 emoji，和后台其他页面保持一致的轻量风格） */
+const CARD_ICONS: Record<string, string> = {
+  published: "📄",
+  drafts: "✏️",
+  categories: "🗂️",
+  tags: "🏷️",
+  comments: "💬",
+  visitors: "👤",
+};
+
+/** 卡片点击后跳哪里（有对应管理页的才给链接） */
+const CARD_LINKS: Record<string, string> = {
+  published: "/admin/posts",
+  drafts: "/admin/posts",
+  comments: "/admin/comments",
+  tags: "/admin/posts",
+  categories: "/admin/posts",
+};
+
+function StatCards({ cards }: { cards: StatCard[] }) {
+  return (
+    <div className="stat-cards">
+      {cards.map((c) => {
+        const href = CARD_LINKS[c.key];
+        const inner = (
+          <>
+            <div className="stat-card__icon">{CARD_ICONS[c.key] ?? "📊"}</div>
+            <div className="stat-card__body">
+              <div className="stat-card__label">{c.label}</div>
+              <div className="stat-card__value">{c.value}</div>
+            </div>
+          </>
+        );
+        return href ? (
+          <Link key={c.key} href={href} className="stat-card">
+            {inner}
+          </Link>
+        ) : (
+          <div key={c.key} className="stat-card">
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchDashboardStats()
+      .then((d) => {
+        if (!cancelled) setStats(d);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "加载失败");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <div className="admin-panel">
+        <p className="admin-error">看板加载失败：{error}</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="admin-panel">
+        <p className="admin-muted">看板加载中…</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-5xl">
-      <h1 className="text-2xl font-bold">仪表盘</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CARDS.map((card) => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="glass p-5 block hover:scale-[1.02] transition-transform"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-xl">{card.icon}</span>
-              <span className="font-semibold">{card.title}</span>
-            </div>
-            <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              {card.desc}
-            </div>
-          </Link>
-        ))}
+    <div className="space-y-6">
+      <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold">仪表盘</h1>
+        <span className="admin-muted text-xs">
+          趋势区间 {stats.range_start} ~ {stats.range_end}
+        </span>
+      </div>
+
+      {/* 顶部统计卡片 */}
+      <StatCards cards={stats.cards} />
+
+      {/* 两张趋势图 */}
+      <div className="chart-grid">
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">文章发布趋势（近30天）</h2>
+          <AreaChart data={stats.article_trend} color="#6366f1" />
+        </section>
+
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">访客趋势（近30天）</h2>
+          <AreaChart data={stats.visitor_trend} color="#14b8a6" />
+        </section>
+      </div>
+
+      {/* 两张分布图 */}
+      <div className="chart-grid">
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">分类分布</h2>
+          <DonutChart data={stats.category_distribution} />
+        </section>
+
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">浏览器分布</h2>
+          <DonutChart data={stats.browser_distribution} />
+        </section>
       </div>
     </div>
   );

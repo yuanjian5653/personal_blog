@@ -33,6 +33,13 @@ const MENU_GROUPS: Array<{
     ],
   },
   {
+    title: "互动",
+    items: [
+      { href: "/admin/comments", label: "评论管理", icon: "💬" },
+      { href: "/admin/guestbook", label: "杂谈管理", icon: "📮" },
+    ],
+  },
+  {
     title: "扩展",
     items: [
       { href: "/admin/projects", label: "项目管理", icon: "📦" },
