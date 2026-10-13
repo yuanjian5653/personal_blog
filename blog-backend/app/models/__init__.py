@@ -8,6 +8,15 @@ from app.models.album import Album, Photo
 from app.models.article import Article
 from app.models.essay import Essay
 from app.models.life import LifePost
+from app.models.comment import (
+    Comment,
+    Commenter,
+    CommenterSession,
+    CommentLike,
+    EssayLike,
+)
+from app.models.pageview import PageView
+
 __all__ = [
     "Admin",
     "AdminSession",
@@ -21,4 +30,10 @@ __all__ = [
     "Article",
     "Essay",
     "LifePost",
+    "Comment",
+    "Commenter",
+    "CommenterSession",
+    "CommentLike",
+    "EssayLike",
+    "PageView",
 ]

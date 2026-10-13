@@ -9,9 +9,11 @@ from app import models  # noqa: F401  （导入以注册所有表）
 from app.config import settings
 from app.database import init_db
 from app.routers import (
+    admin,
     album,
     article,
     auth,
+    comments,
     essay,
     life,
     log,
@@ -88,6 +90,8 @@ app.include_router(article.router)
 app.include_router(log.router)
 app.include_router(life.router)
 app.include_router(upload.router)
+app.include_router(comments.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def root():
