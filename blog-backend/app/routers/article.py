@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session, func, select
 
-from app.constants import WORD_EXTENSIONS
+from app.constants import DOCUMENT_EXTENSIONS, MARKDOWN_EXTENSIONS
 from app.database import get_session
 from app.deps import get_current_admin
 from app.models import Admin, Article
@@ -292,35 +292,122 @@ def delete_article(
 MAX_WORD_SIZE = 20 * 1024 * 1024  # 20MB
 
 
-@router.post("/parse-word")
-async def parse_word(
+def _decode_text(raw: bytes) -> str:
+    """把上传的纯文本解码成 str。
+
+    Markdown 文件在中文环境里编码很杂：UTF-8 最常见，但 Windows 上
+    用记事本/老编辑器另存为的常常是 **GBK**，而 UTF-8 解码 GBK 字节
+    通常不会报错、只会得到一堆乱码 —— 那比直接报错更难排查。
+    所以这里按 BOM → UTF-8 → GBK 的顺序试，并显式失败，
+    避免"能导入但内容全是乱码"。
+    """
+    # 1) 带 BOM 的 UTF-8 / UTF-16，交给 utf-8-sig 或 utf-16 处理
+    if raw.startswith(b"\xef\xbb\xbf"):
+        return raw.decode("utf-8-sig")
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw.decode("utf-16")
+
+    # 2) 严格 UTF-8（不用 errors="ignore"，否则会掩盖编码问题）
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        pass
+
+    # 3) 退回 GBK（中文 Windows 常见）
+    try:
+        return raw.decode("gbk")
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="文件编码无法识别，请另存为 UTF-8 后再上传",
+        )
+
+
+def _title_from_markdown(text: str, fallback: str) -> str:
+    """从 Markdown 里推断标题。
+
+    优先取第一个一级标题（`# xxx`）；没有就用文件名。
+    找不到一级标题时会退回第一个非空行（截断），比文件名更贴近内容。
+    """
+    first_line = None
+    for line in text.splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if first_line is None:
+            first_line = s
+        if s.startswith("# "):
+            title = s[2:].strip()
+            # 去掉标题里可能的行尾 # 号（## xxx ## 这种写法）
+            title = re.sub(r"\s*#+\s*$", "", title).strip()
+            if title:
+                return title[:200]
+            break
+
+    if first_line:
+        # 去掉常见 Markdown 前缀，避免标题里带 `#` `>` `-` 等符号
+        cleaned = re.sub(r"^[#>\-\*\s]+", "", first_line).strip()
+        if cleaned:
+            return cleaned[:200]
+
+    return fallback
+
+
+@router.post("/parse-document")
+async def parse_document(
     file: UploadFile = File(...),
     current_admin: Admin = Depends(get_current_admin),
 ):
     """
-    上传 .docx 文件，用 MarkItDown 转换为 Markdown。
-    返回 {title, content}，不写数据库，由前端填入编辑器后再保存。
+    上传文档并转成 Markdown 正文。
+
+    支持：
+      · .md / .markdown —— 本身就是 Markdown，直接读文本（不做任何改写）
+      · .docx          —— 用 MarkItDown 转成 Markdown
+
+    返回 {title, content, filename}，**不写数据库**，
+    由前端填入编辑器、确认分类标签后再保存。
 
     注意：只做解析，不创建文章。
     """
-    from markitdown import MarkItDown
-
-    # 1. 检查扩展名
     original = Path(file.filename or "")
     ext = original.suffix.lower()
-    if ext not in WORD_EXTENSIONS:
+
+    if ext not in DOCUMENT_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"仅支持 {', '.join(sorted(WORD_EXTENSIONS))} 格式",
+            detail=f"仅支持 {', '.join(sorted(DOCUMENT_EXTENSIONS))} 格式",
         )
 
-    # 2. 写到临时文件（MarkItDown 需要文件路径）
-    content = await file.read()
-    if len(content) > MAX_WORD_SIZE:
+    raw = await file.read()
+    if len(raw) > MAX_WORD_SIZE:
         raise HTTPException(status_code=400, detail="文件过大（>20MB）")
+    if not raw:
+        raise HTTPException(status_code=400, detail="文件是空的")
+
+    fallback_title = original.stem or "未命名文章"
+
+    # ---------- Markdown：直接当正文 ----------
+    if ext in MARKDOWN_EXTENSIONS:
+        text = _decode_text(raw)
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="文件内容为空")
+
+        # 原样返回，不做任何格式转换或清理 ——
+        # 用户写好的 Markdown 不该被我们改写。
+        content = text.replace("\r\n", "\n")
+        return {
+            "title": _title_from_markdown(content, fallback_title),
+            "content": content,
+            "filename": original.name,
+            "source": "markdown",
+        }
+
+    # ---------- Word：交给 markitdown ----------
+    from markitdown import MarkItDown
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-        tmp.write(content)
+        tmp.write(raw)
         tmp_path = Path(tmp.name)
 
     try:
@@ -335,15 +422,16 @@ async def parse_word(
             raise HTTPException(status_code=400, detail="文档内容为空")
 
         return {
-            "title": original.stem or "未命名文章",
+            "title": fallback_title,
             "content": markdown,
             "filename": original.name,
+            "source": "word",
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("[Word 导入] 解析失败：%s", original.name)
+        logger.exception("[文档导入] 解析失败：%s", original.name)
         raise HTTPException(status_code=500, detail=f"解析失败：{e}")
     finally:
         # 清理临时文件（不存在也不报错）

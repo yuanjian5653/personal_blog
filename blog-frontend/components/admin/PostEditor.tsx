@@ -33,7 +33,7 @@ const EMPTY: FormData = {
 function readPendingImport(): { title?: string; content?: string } | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem("word_import_pending");
+    const raw = sessionStorage.getItem("post_import_pending");
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -62,7 +62,7 @@ export default function ArticleEditor() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(() =>
     id === null && readPendingImport()
-      ? "已从 Word 导入，请确认分类、标签后保存"
+      ? "已导入文档内容，请确认分类、标签后保存"
       : null
   );
   // 记录"哪个 id 的数据已经到位"：数字=该 id 已加载；null=尚未就绪。
@@ -74,7 +74,7 @@ export default function ArticleEditor() {
   useEffect(() => {
     if (id !== null) return;
     try {
-      sessionStorage.removeItem("word_import_pending");
+      sessionStorage.removeItem("post_import_pending");
     } catch {}
   }, [id]);
 

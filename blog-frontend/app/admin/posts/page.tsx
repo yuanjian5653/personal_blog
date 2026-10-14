@@ -30,7 +30,7 @@ export default function AdminPostsPage() {
     load();
   }, []);
 
-    // 处理 Word 文件上传
+    // 处理文档导入（Word .docx 或 Markdown .md）
   const handleWordImport = async (file: File) => {
     setImporting(true);
     setImportError(null);
@@ -38,7 +38,7 @@ export default function AdminPostsPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${API_BASE}/api/articles/parse-word`, {
+      const res = await fetch(`${API_BASE}/api/articles/parse-document`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -53,7 +53,7 @@ export default function AdminPostsPage() {
 
       // 把解析结果存到 sessionStorage，编辑器启动时读取
       sessionStorage.setItem(
-        "word_import_pending",
+        "post_import_pending",
         JSON.stringify({
           title: data.title,
           content: data.content,
@@ -85,19 +85,19 @@ export default function AdminPostsPage() {
         <h1 className="text-2xl font-bold">文章管理</h1>
 
         <div className="flex items-center gap-3">
-          {/* 导入 Word 按钮 */}
+          {/* 导入文档：Word / Markdown 都转成 Markdown 正文 */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-50"
-            title="从 Word 文档导入"
+            title="导入 Word (.docx) 或 Markdown (.md) 文件，自动转成正文"
           >
-            {importing ? "解析中..." : "📄 导入 Word"}
+            {importing ? "解析中..." : "📄 导入文档"}
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".docx"
+            accept=".docx,.md,.markdown"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

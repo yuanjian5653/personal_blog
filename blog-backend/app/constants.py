@@ -20,5 +20,10 @@ SUPPORTED_AUDIO_EXTENSIONS: frozenset[str] = frozenset({".mp3", ".m4a"})
 # 兼容旧命名，指向同一份集合
 AUDIO_EXTENSIONS: frozenset[str] = SUPPORTED_AUDIO_EXTENSIONS
 
-# ---- 文档：文章 Word 导入 ----
+# ---- 文档：文章导入（Word / Markdown）----
+# Word 走 markitdown 转换；Markdown 本身就是目标格式，直接读文本即可。
 WORD_EXTENSIONS: frozenset[str] = frozenset({".docx"})
+MARKDOWN_EXTENSIONS: frozenset[str] = frozenset({".md", ".markdown"})
+
+# 文章导入允许的扩展名（两者合集）
+DOCUMENT_EXTENSIONS: frozenset[str] = WORD_EXTENSIONS | MARKDOWN_EXTENSIONS
