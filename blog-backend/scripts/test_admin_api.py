@@ -272,6 +272,11 @@ check_true("记录了浏览器", bool(rows[0].browser), rows[0].browser)
 print("\n=== 9. 后台删除评论（连带回复与点赞）===")
 from app.models import Commenter  # noqa: E402
 
+# 安全护栏：默认拒绝在非测试库上运行（这些脚本会插入并清理数据）
+from test_guard import guard  # noqa: E402
+
+guard("test_admin_api.py")
+
 with Session(engine) as db:
     u1 = db.exec(select(Commenter).where(Commenter.login == TEST_LOGINS[0])).first()
     db.add(CommentLike(comment_id=top_id, commenter_id=u1.id))

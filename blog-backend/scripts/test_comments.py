@@ -47,6 +47,11 @@ from app.routers.comments import (  # noqa: E402
 from app.routers.comments import _target_where  # noqa: E402
 from app.schemas.comment import CommentCreate  # noqa: E402
 
+# 安全护栏：默认拒绝在非测试库上运行（这些脚本会插入并清理数据）
+from test_guard import guard  # noqa: E402
+
+guard("test_comments.py")
+
 engine = create_engine(settings.DATABASE_URL, echo=False)
 
 LOGINS = ["__test_alice", "__test_bob"]

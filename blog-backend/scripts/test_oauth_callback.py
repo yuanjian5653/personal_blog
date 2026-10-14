@@ -25,6 +25,11 @@ from app.main import app  # noqa: E402
 from app.models import Comment, Commenter, CommenterSession, CommentLike  # noqa: E402
 import app.routers.comments as comments_mod  # noqa: E402
 
+# 安全护栏：默认拒绝在非测试库上运行（这些脚本会插入并清理数据）
+from test_guard import guard  # noqa: E402
+
+guard("test_oauth_callback.py")
+
 engine = create_engine(settings.DATABASE_URL, echo=False)
 
 TEST_LOGIN = "__oauth_test"

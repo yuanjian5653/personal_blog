@@ -61,6 +61,7 @@ blog-backend/backups/
 # ---------- 临时文件 ----------
 # 用 git commit -F 时的提交信息文件
 msg_*.txt
+_*.txt
 # 排查问题时临时写的探针/调试脚本（约定以 _ 开头，用完即删）
 blog-backend/scripts/_*.py
 blog-frontend/scripts/_*
