@@ -49,9 +49,6 @@ yarn-error.log*
 Thumbs.db
 desktop.ini
 
-# ---------- 重构临时快照（确认无误后可删除并移除本行）----------
-/.cleanup_backup_*/
-
 # ---------- 媒体文件 ----------
 # 图片与音频本体不入库：它们是个人内容，且会让仓库膨胀。
 # 应用启动时会自动创建这些目录；部署时另行上传媒体文件。
@@ -60,3 +57,10 @@ blog-backend/media/
 
 # ---------- 一次性数据操作的结构备份（本机记录，不需要入库）----------
 blog-backend/backups/
+
+# ---------- 临时文件 ----------
+# 用 git commit -F 时的提交信息文件
+msg_*.txt
+# 排查问题时临时写的探针/调试脚本（约定以 _ 开头，用完即删）
+blog-backend/scripts/_*.py
+blog-frontend/scripts/_*
