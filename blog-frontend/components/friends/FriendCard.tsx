@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { hostOf, initialOf, type FriendLink } from "@/lib/friendlinks";
+import { initialOf, type FriendLink } from "@/lib/friendlinks";
 
 /** 卡片在动画循环里由物理引擎驱动，这里只接收渲染所需的数据 */
 export interface CardVisual {
@@ -16,16 +16,17 @@ export interface CardVisual {
 interface Props {
   link: FriendLink;
   visual: CardVisual;
-  /** 是否已展开气泡详情 */
+  /** 是否是当前展开气泡的那张（用来加高亮） */
   active: boolean;
-  onToggle: () => void;
 }
 
 /**
  * 一张友链卡片：圆形（不是常规矩形卡片），权重越大直径越大、光晕越强。
- * 点击后在卡片旁边弹出气泡详情。
+ *
+ * 交互（点击看详情 / 长按拖动）统一由父级 FriendsClient 在舞台层处理，
+ * 因为卡片位置每帧在变、而且需要捕获指针；这里只负责画。
  */
-export default function FriendCard({ link, visual, active, onToggle }: Props) {
+export default function FriendCard({ link, visual, active }: Props) {
   const [coverBroken, setCoverBroken] = useState(false);
 
   const size = visual.size;
@@ -39,78 +40,35 @@ export default function FriendCard({ link, visual, active, onToggle }: Props) {
       style={{
         width: size,
         height: size,
-        // 用 CSS 变量把"强调程度"传给样式，避免写一堆内联属性
+        // 用 CSS 变量把"强调程度"传给样式，避免一堆内联属性
         ["--fc-glow" as string]: glow,
         ["--fc-name-size" as string]: `${10 + visual.emphasis * 4}px`,
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${link.name}：点击查看详情，长按可拖动`}
+      data-link-id={link.id}
     >
-      <button
-        type="button"
-        className="fc-card__hit"
-        onClick={onToggle}
-        aria-label={`${link.name} 详情`}
-        aria-expanded={active}
-      >
-        {showCover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={link.cover as string}
-            alt=""
-            className="fc-card__cover"
-            onError={() => setCoverBroken(true)}
-            draggable={false}
-          />
-        ) : (
-          <span className="fc-card__initial">{initialOf(link.name)}</span>
-        )}
+      {showCover ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={link.cover as string}
+          alt=""
+          className="fc-card__cover"
+          onError={() => setCoverBroken(true)}
+          draggable={false}
+        />
+      ) : (
+        <span className="fc-card__initial">{initialOf(link.name)}</span>
+      )}
 
-        {/* 名称始终可读：压在底部，带渐变底衬 */}
-        <span className="fc-card__name" title={link.name}>
-          {link.name}
-        </span>
-      </button>
+      {/* 名称始终可读：压在底部，带渐变底衬 */}
+      <span className="fc-card__name" title={link.name}>
+        {link.name}
+      </span>
 
       {/* 类型标签（有才显示） */}
       {link.category && <span className="fc-card__tag">{link.category}</span>}
-
-      {/* 气泡详情 */}
-      {active && (
-        <div className="fc-bubble" role="dialog" aria-label={`${link.name} 信息`}>
-          <div className="fc-bubble__arrow" />
-          <div className="fc-bubble__head">
-            {showCover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={link.cover as string} alt="" className="fc-bubble__avatar" />
-            ) : (
-              <span className="fc-bubble__avatar fc-bubble__avatar--fallback">
-                {initialOf(link.name)}
-              </span>
-            )}
-            <div className="fc-bubble__title-wrap">
-              <div className="fc-bubble__title">{link.name}</div>
-              <div className="fc-bubble__host">{hostOf(link.url)}</div>
-            </div>
-          </div>
-
-          {link.description && (
-            <p className="fc-bubble__desc">{link.description}</p>
-          )}
-
-          <div className="fc-bubble__foot">
-            {link.category && (
-              <span className="fc-bubble__tag">{link.category}</span>
-            )}
-            <a
-              className="fc-bubble__visit"
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              访问站点 →
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

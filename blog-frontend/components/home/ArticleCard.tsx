@@ -7,7 +7,7 @@ import type { ArticleListItem } from "@/lib/types";
 import { resolveImageUrl } from "@/lib/url";
 import { parseTags } from "@/lib/tags";
 
-export default function ArticleCard({ height = 180 }: { height?: number }) {
+export default function ArticleCard({ height = 300 }: { height?: number }) {
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
@@ -57,44 +57,47 @@ export default function ArticleCard({ height = 180 }: { height?: number }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* 背景封面：key 变化触发滑入回弹动画 */}
-      <div
-        key={animKey}
-        className="article-flip-card__bg-img"
-        style={{
-          backgroundImage: coverUrl ? `url(${coverUrl})` : "none",
-        }}
-      />
+      {/* 正面：封面 + 遮罩 + 标题/简介/标签（hover 时整体下移淡出） */}
+      <div className="article-flip-card__front">
+        {/* 背景封面：key 变化触发滑入回弹动画 */}
+        <div
+          key={animKey}
+          className="article-flip-card__bg-img"
+          style={{
+            backgroundImage: coverUrl ? `url(${coverUrl})` : "none",
+          }}
+        />
 
-      {/* 底部渐变遮罩 */}
-      <div className="article-flip-card__overlay" />
+        {/* 底部渐变遮罩 */}
+        <div className="article-flip-card__overlay" />
 
-      {/* 默认状态：底部显示标题 + 简介 + 标签 */}
-      <div key={`info-${animKey}`} className="article-flip-card__default">
-        <h2 className="article-flip-card__default-title">{article.title}</h2>
-        <p className="article-flip-card__default-desc">
-          {article.excerpt || ""}
-        </p>
-        {/* 标签 */}
-        {article.tags && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {parseTags(article.tags, 3).map((tag) => (
-              <span
-                key={tag}
-                className="text-[10px] px-1.5 py-0.5 rounded"
-                style={{
-                  background: "rgba(124, 92, 255, 0.4)",
-                  color: "#fff",
-                }}
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* 默认状态：底部显示标题 + 简介 + 标签 */}
+        <div key={`info-${animKey}`} className="article-flip-card__default">
+          <h2 className="article-flip-card__default-title">{article.title}</h2>
+          <p className="article-flip-card__default-desc">
+            {article.excerpt || ""}
+          </p>
+          {/* 标签 */}
+          {article.tags && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {parseTags(article.tags, 3).map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[10px] px-1.5 py-0.5 rounded"
+                  style={{
+                    background: "rgba(124, 92, 255, 0.4)",
+                    color: "#fff",
+                  }}
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 悬浮翻出层 */}
+      {/* 详情层：默认藏在视口上方，hover 时滑下来 */}
       <div className="article-flip-card__content">
         <div className="article-flip-card__content-inner">
           <h2 className="article-flip-card__title">{article.title}</h2>
@@ -105,14 +108,7 @@ export default function ArticleCard({ height = 180 }: { height?: number }) {
           {article.tags && (
             <div className="flex flex-wrap gap-1">
               {parseTags(article.tags).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] px-2 py-0.5 rounded"
-                  style={{
-                    background: "rgba(124, 92, 255, 0.15)",
-                    color: "#7c5cff",
-                  }}
-                >
+                <span key={tag} className="article-flip-card__tag">
                   #{tag}
                 </span>
               ))}

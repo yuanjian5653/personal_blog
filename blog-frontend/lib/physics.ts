@@ -21,6 +21,12 @@ export interface PhysicsBody {
   r: number;
   /** 质量（由半径换算，越大越沉） */
   mass: number;
+  /**
+   * 是否正被鼠标拖动。
+   * 拖动中的圆不参与积分（位置由指针直接给定），
+   * 但仍然作为碰撞体把别的圆推开 —— 这样"拖着撞开一片"才成立。
+   */
+  dragging?: boolean;
 }
 
 export interface PhysicsOptions {
@@ -144,7 +150,9 @@ export function step(
   const n = bodies.length;
 
   // ---- 1. 随机扰动 + 摩擦 ----
+  // 被拖动的圆跳过这一步：它的位置由鼠标给定，速度由松手时赋值
   for (const b of bodies) {
+    if (b.dragging) continue;
     b.vx += (Math.random() - 0.5) * jitter;
     b.vy += (Math.random() - 0.5) * jitter;
     b.vx *= friction;
@@ -162,7 +170,10 @@ export function step(
   }
 
   // ---- 2. 边界反弹 ----
+  // 拖动中的圆不处理：位置完全由指针决定，
+  // 否则走到边缘会被"吸"回界内，从指针下溜走
   for (const b of bodies) {
+    if (b.dragging) continue;
     if (b.x - b.r < 0) {
       b.x = b.r;
       b.vx = Math.abs(b.vx);
@@ -207,14 +218,31 @@ export function step(
       const ny = dy / dist;
 
       // ---- 位置修正：各按质量反比推开，彻底消除重叠 ----
+      // 被鼠标拖住的圆位置由指针决定，不能被推开 ——
+      // 所以把它当成"质量无穷大"：重叠全部由对方让出。
       const overlap = minD - dist;
-      const total = a.mass + b.mass;
-      const aPush = (b.mass / total) * overlap;
-      const bPush = (a.mass / total) * overlap;
-      a.x -= nx * aPush;
-      a.y -= ny * aPush;
-      b.x += nx * bPush;
-      b.y += ny * bPush;
+      const aFixed = a.dragging === true;
+      const bFixed = b.dragging === true;
+
+      if (aFixed && bFixed) {
+        // 两个都在被拖（多点触控）：各让一半，避免僵住
+        a.x -= nx * overlap * 0.5;
+        a.y -= ny * overlap * 0.5;
+        b.x += nx * overlap * 0.5;
+        b.y += ny * overlap * 0.5;
+      } else if (aFixed) {
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+      } else if (bFixed) {
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+      } else {
+        const total = a.mass + b.mass;
+        a.x -= nx * ((b.mass / total) * overlap);
+        a.y -= ny * ((b.mass / total) * overlap);
+        b.x += nx * ((a.mass / total) * overlap);
+        b.y += ny * ((a.mass / total) * overlap);
+      }
 
       // ---- 速度交换（一维弹性碰撞，沿法线方向）----
       const rvx = b.vx - a.vx;
@@ -225,17 +253,27 @@ export function step(
       if (velAlongNormal > 0) continue;
 
       const e = 0.9; // 弹性系数
-      const impulse = (-(1 + e) * velAlongNormal) / (1 / a.mass + 1 / b.mass);
+      // 无穷大质量 => 1/mass = 0（拖动中的圆速度不被改变，只把动量传给对方）
+      const invA = aFixed ? 0 : 1 / a.mass;
+      const invB = bFixed ? 0 : 1 / b.mass;
+      if (invA + invB === 0) continue;
 
-      a.vx -= (impulse * nx) / a.mass;
-      a.vy -= (impulse * ny) / a.mass;
-      b.vx += (impulse * nx) / b.mass;
-      b.vy += (impulse * ny) / b.mass;
+      const impulse = (-(1 + e) * velAlongNormal) / (invA + invB);
+
+      if (!aFixed) {
+        a.vx -= impulse * nx * invA;
+        a.vy -= impulse * ny * invA;
+      }
+      if (!bFixed) {
+        b.vx += impulse * nx * invB;
+        b.vy += impulse * ny * invB;
+      }
     }
   }
 
-  // 位置修正可能把圆推出边界，再夹一次
+  // 位置修正可能把圆推出边界，再夹一次（拖动中的不夹，否则会从指针下滑走）
   for (const b of bodies) {
+    if (b.dragging) continue;
     b.x = clamp(b.x, b.r, Math.max(b.r, width - b.r));
     b.y = clamp(b.y, b.r, Math.max(b.r, height - b.r));
   }

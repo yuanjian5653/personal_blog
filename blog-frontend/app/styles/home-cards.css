@@ -232,7 +232,11 @@
 }
 
 
-/* ---------- 首页文章翻转卡片（网格 / 光晕 / 扫光） ---------- */
+/* ---------- 首页文章卡片（向上滑动揭示） ----------
+   交互参考 Uiverse.io by gharsh11032000：
+   正面默认铺满；hover 时正面往下移并淡化，详情层从上方滑下来盖住。
+   两层的过渡都统一用 cubic-bezier(0.23, 1, 0.32, 1)，
+   与参考实现一致 —— 这条曲线起步快、收尾极缓，是"丝滑"的关键。 */
 .article-flip-card {
   position: relative;
   display: block;
@@ -240,19 +244,32 @@
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  perspective: 1000px;
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  background: linear-gradient(
-    135deg,
-    rgba(124, 92, 255, 0.4),
-    rgba(255, 45, 155, 0.3)
-  );
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  isolation: isolate;
+  background: rgba(18, 20, 27, 0.9);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition:
+    box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1),
+    transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .article-flip-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 44px -14px rgba(0, 0, 0, 0.6),
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* ===== 正面：封面 + 标题 + 标签 ===== */
+.article-flip-card__front {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.article-flip-card:hover .article-flip-card__front {
+  /* 往下移出，露出下方（配合详情层滑下，形成"推移"的手感） */
+  transform: translateY(30%);
 }
 
 .article-flip-card__bg-img {
@@ -262,7 +279,6 @@
   background-position: center;
   background-color: rgba(30, 32, 40, 0.9);
   z-index: 0;
-  border-radius: 16px;
   animation: articleSlideIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -271,12 +287,11 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.88) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.45) 55%,
     transparent 100%
   );
   z-index: 1;
-  border-radius: 16px;
 }
 
 .article-flip-card__default {
@@ -286,7 +301,7 @@
   bottom: 0;
   padding: 16px 20px;
   z-index: 2;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   animation: articleTextSlideIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both;
 }
 
@@ -317,100 +332,37 @@
   margin: 0;
 }
 
-/* ===== 悬浮翻出层（网格 + 光晕 + 扫光） ===== */
+/* ===== 详情层：默认在视口上方，hover 时滑下来 ===== */
 .article-flip-card__content {
   position: absolute;
   inset: 0;
   padding: 20px;
   overflow: hidden;
   border-radius: 16px;
-  transform: rotateX(-90deg);
-  transform-origin: bottom;
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  z-index: 3;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  z-index: 3;
 
-  /* 底色：极浅紫白，衬托网格和光晕 */
-  background: #fafaff;
+  /* 主题色渐变，和站点配色一致 */
+  background: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--accent) 88%, #10121a) 0%,
+    color-mix(in srgb, var(--accent) 55%, #ff2d9b) 100%
+  );
+  color: #f2f2f5;
+
+  /* 默认藏在上面，整体不可点（避免挡住链接点击） */
+  transform: translateY(-96%);
+  pointer-events: none;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .article-flip-card:hover .article-flip-card__content {
-  transform: rotateX(0deg);
+  transform: translateY(0);
 }
 
-/* ---- 底层：双层网格背景 ---- */
-.article-flip-card__content::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    /* 细网格 */
-    linear-gradient(rgba(124, 92, 255, 0.15) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 92, 255, 0.15) 1px, transparent 1px),
-    /* 粗网格（每 5 格一条） */
-    linear-gradient(rgba(124, 92, 255, 0.28) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 92, 255, 0.28) 1px, transparent 1px);
-  background-size:
-    16px 16px,
-    16px 16px,
-    80px 80px,
-    80px 80px;
-  z-index: 0;
-  pointer-events: none;
-  /* 网格呼吸：透明度 0.5 ↔ 1 */
-  animation: cardGridBreath 4s ease-in-out infinite;
-}
-
-@keyframes cardGridBreath {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-/* ---- 中层：中心紫色光晕 ---- */
-.article-flip-card__content::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 340px;
-  height: 340px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--accent) 55%, transparent) 0%,
-    color-mix(in srgb, var(--accent) 25%, transparent) 30%,
-    transparent 65%
-  );
-  animation: cardGlowPulse 3s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-  mix-blend-mode: multiply;
-}
-
-@keyframes cardGlowPulse {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(0.6);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.4);
-    opacity: 1;
-  }
-}
-
-/* ---- 内容层：置于装饰之上 ---- */
-.article-flip-card__content-inner {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ---- 上层：斜向扫光（hover 时触发） ---- */
+/* ---- 装饰：斜向扫光（hover 时循环一次） ---- */
 .article-flip-card:hover .article-flip-card__content-inner::before {
   content: "";
   position: absolute;
@@ -421,7 +373,7 @@
   background: linear-gradient(
     100deg,
     transparent 20%,
-    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 255, 255, 0.35) 50%,
     transparent 80%
   );
   transform: translateX(-120%) rotate(-8deg);
@@ -436,11 +388,20 @@
   100% { transform: translateX(120%) rotate(-8deg); }
 }
 
+/* ---- 内容层 ---- */
+.article-flip-card__content-inner {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* ---- 文字 ---- */
 .article-flip-card__title {
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #ffffff;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -450,17 +411,16 @@
   margin: 0;
   position: relative;
   z-index: 3;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .article-flip-card__desc {
   font-size: 12px;
-  color: #4b5563;
-  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.55;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   margin: 0;
   position: relative;
@@ -469,19 +429,36 @@
 
 .article-flip-card__more {
   font-size: 12px;
-  color: var(--accent);
+  color: #ffffff;
   font-weight: 700;
   margin-top: 4px;
   position: relative;
   z-index: 3;
   letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* 详情层里的标签：白底半透明，压在渐变上仍然清楚 */
+.article-flip-card__tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  backdrop-filter: blur(4px);
 }
 
 /* ---- 无障碍：减少动效 ---- */
 @media (prefers-reduced-motion: reduce) {
-  .article-flip-card__content::before,
-  .article-flip-card__content::after,
   .article-flip-card__content-inner::before {
     animation: none !important;
+  }
+  .article-flip-card,
+  .article-flip-card__front,
+  .article-flip-card__default,
+  .article-flip-card__content {
+    transition-duration: 0.01ms !important;
   }
 }

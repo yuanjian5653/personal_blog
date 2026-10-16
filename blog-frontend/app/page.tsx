@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SearchBar from "@/components/home/SearchBar";
 import ProfileCard from "@/components/home/ProfileCard";
 import MusicCard from "@/components/home/MusicCard";
@@ -40,16 +41,29 @@ export default function HomePage() {
           </div>
       </div>
 
-        {/* 5. 预留功能卡片（加上浮） */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {["项目", "工具", "友链"].map((name) => (
-          <div key={name} className="glass p-5 card-lift">
-            <h2 className="text-base font-semibold mb-1">{name}</h2>
-            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-              敬请期待
-            </p>
-          </div>
-        ))}
+      {/* 5. 预留功能卡片（加上浮）；友链已实现，直接跳过去 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {[
+          { name: "项目", href: null },
+          { name: "工具", href: null },
+          { name: "友链", href: "/friends" },
+        ].map(({ name, href }) =>
+          href ? (
+            <Link key={name} href={href} className="glass p-5 card-lift">
+              <h2 className="text-base font-semibold mb-1">{name} →</h2>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                去看看我的朋友们
+              </p>
+            </Link>
+          ) : (
+            <div key={name} className="glass p-5 card-lift">
+              <h2 className="text-base font-semibold mb-1">{name}</h2>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                敬请期待
+              </p>
+            </div>
+          )
+        )}
       </div>
 
       {/* 6. 底部时间 + 网站信息 */}

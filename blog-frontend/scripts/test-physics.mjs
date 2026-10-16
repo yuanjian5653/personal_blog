@@ -205,6 +205,79 @@ check("关掉碰撞后允许重叠（证明碰撞解算确实在做事）", () =
   assert.ok(isOverlapping(bodies[0], bodies[1]), "关闭碰撞后反而分开了？");
 });
 
+console.log("\n=== 拖拽（dragging 标记）===");
+check("拖动中的圆不会被摩擦力/扰动改变位置", () => {
+  const bodies = [
+    { id: 1, x: 300, y: 300, vx: 0, vy: 0, r: 40, mass: 1600, dragging: true },
+  ];
+  for (let i = 0; i < 60; i++) step(bodies, W, H);
+  assert.equal(bodies[0].x, 300, "拖动中的圆被物理移动了");
+  assert.equal(bodies[0].y, 300, "拖动中的圆被物理移动了");
+});
+
+check("拖动中的圆不会被边界夹走（位置由指针决定）", () => {
+  // 故意放在界外：拖动时应保持原地，否则会从指针下"滑走"
+  const bodies = [
+    { id: 1, x: -50, y: 300, vx: 0, vy: 0, r: 40, mass: 1600, dragging: true },
+  ];
+  step(bodies, W, H);
+  assert.equal(bodies[0].x, -50, "拖动中被边界夹住了");
+});
+
+check("拖动中的圆能把别的圆推开（碰撞仍生效）", () => {
+  const bodies = [
+    { id: 1, x: 300, y: 300, vx: 0, vy: 0, r: 40, mass: 1600, dragging: true },
+    { id: 2, x: 330, y: 300, vx: 0, vy: 0, r: 40, mass: 1600 }, // 重叠
+  ];
+  assert.ok(isOverlapping(bodies[0], bodies[1]), "前置条件：应当重叠");
+  step(bodies, W, H, { jitter: 0, friction: 1 });
+  assert.ok(!isOverlapping(bodies[0], bodies[1]), "拖动中的圆没能推开对方");
+  assert.equal(bodies[0].x, 300, "被拖动的圆自己动了（应由对方让位）");
+  assert.ok(bodies[1].x > 330, `对方没被推开: x=${bodies[1].x}`);
+});
+
+check("拖动会把动量传给对方", () => {
+  const bodies = [
+    { id: 1, x: 300, y: 300, vx: 5, vy: 0, r: 40, mass: 1600, dragging: true },
+    { id: 2, x: 370, y: 300, vx: 0, vy: 0, r: 40, mass: 1600 },
+  ];
+  const opts = { jitter: 0, friction: 1 };
+  for (let i = 0; i < 30; i++) step(bodies, W, H, opts);
+  assert.ok(bodies[1].vx > 0.5, `对方没获得速度: vx=${bodies[1].vx}`);
+});
+
+check("松手后恢复参与物理", () => {
+  const bodies = [
+    { id: 1, x: 300, y: 300, vx: 1.2, vy: 0, r: 40, mass: 1600, dragging: true },
+  ];
+  step(bodies, W, H, { jitter: 0, friction: 1 });
+  assert.equal(bodies[0].x, 300, "拖动中不该动");
+  bodies[0].dragging = false;
+  for (let i = 0; i < 10; i++) step(bodies, W, H, { jitter: 0, friction: 1 });
+  assert.ok(bodies[0].x > 300, "松手后没有继续运动");
+});
+
+check("两个都被拖时不会互相僵住", () => {
+  const bodies = [
+    { id: 1, x: 300, y: 300, vx: 0, vy: 0, r: 40, mass: 1600, dragging: true },
+    { id: 2, x: 310, y: 300, vx: 0, vy: 0, r: 40, mass: 1600, dragging: true },
+  ];
+  step(bodies, W, H, { jitter: 0, friction: 1 });
+  assert.ok(!isOverlapping(bodies[0], bodies[1]), "两个都被拖时没分开");
+  assert.ok(Number.isFinite(bodies[0].x) && Number.isFinite(bodies[1].x), "出现 NaN");
+});
+
+check("拖到角落里，其它圆仍不会出界", () => {
+  const bodies = initBodies(makeItems(10, 40), W, H);
+  bodies[0].dragging = true;
+  bodies[0].x = 40;
+  bodies[0].y = 40;
+  for (let i = 0; i < 200; i++) step(bodies, W, H);
+  const others = bodies.slice(1);
+  assert.ok(allInside(others, W, H), "有非拖动的圆出界了");
+  assert.equal(bodies[0].x, 40, "被拖的圆移动了");
+});
+
 console.log("\n=== 规模压力 ===");
 check("40 个卡片跑 300 帧仍然正常", () => {
   const bodies = initBodies(makeItems(40, 36), W, H);
