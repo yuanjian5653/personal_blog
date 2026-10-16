@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
@@ -188,7 +189,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!admin) return null;
 
-  return (
+  // ============================================================
+  // 关键：后台外壳用 createPortal 挂到 document.body
+  //
+  // 为什么必须这样：外壳是 `fixed inset-0`，本来应该铺满**视口**。
+  // 但只要祖先链上任何元素有 transform / filter / will-change，
+  // 它就会成为 position:fixed 的**包含块**，`inset-0` 于是变成
+  // "填满那个祖先"，而不是填满视口 —— 实测内容区被推到 top=1011px
+  // （在视口下方一整屏之外），表现就是"侧边栏和顶栏要滚下去才能看到、
+  // 内容区一片空白"。
+  //
+  // 挂到 body 就跳出了所有祖先，containing block 一定是初始包含块（视口）。
+  // 项目里其它浮层（文章灯箱、生活动态弹窗）也是这么做的。
+  //
+  // 注意：这里只有登录校验通过后才会渲染，也就是只在浏览器里跑，
+  // 所以 document 一定存在，不需要额外的 mounted 判断。
+  // ============================================================
+  const shell = (
     <div
       className={`admin-shell fixed inset-0 z-50${
         collapsed ? " is-collapsed" : ""
@@ -345,4 +362,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     </div>
   );
+
+  return createPortal(shell, document.body);
 }
