@@ -80,7 +80,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="px-3 py-1.5 rounded-lg text-xs border border-white/10 hover:bg-white/5"
+            className="admin-input"
           >
             {open ? "收起图库" : "从图库选择"}
           </button>
@@ -88,7 +88,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="px-3 py-1.5 rounded-lg text-xs border border-white/10 hover:bg-white/5 disabled:opacity-50"
+            className="admin-input"
           >
             {uploading ? "上传中..." : "上传新图"}
           </button>
@@ -114,7 +114,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
           value={value}
           placeholder="或直接填外部图片 URL：https://..."
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+          className="admin-input"
         />
       )}
 
@@ -145,7 +145,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
                     }}
                     className="relative aspect-video rounded-lg overflow-hidden border-2 transition-all"
                     style={{
-                      borderColor: selected ? "var(--accent)" : "transparent",
+                      borderColor: selected ? "var(--adm-blue)" : "transparent",
                     }}
                   >
                     <img
@@ -156,7 +156,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
                     {selected && (
                       <div
                         className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white"
-                        style={{ background: "var(--accent)" }}
+                        style={{ background: "var(--adm-blue)" }}
                       >
                         ✓
                       </div>

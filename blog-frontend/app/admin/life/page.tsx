@@ -115,7 +115,7 @@ export default function AdminLifePage() {
         <button
           onClick={openCreate}
           className="px-4 py-2 rounded-lg text-sm"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           + 新建动态
         </button>
@@ -247,7 +247,7 @@ export default function AdminLifePage() {
                 }
                 rows={5}
                 placeholder="说点什么……"
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-y"
+                className="admin-input"
               />
             </div>
 
@@ -283,7 +283,7 @@ export default function AdminLifePage() {
                   setEditing({ ...editing, location: e.target.value })
                 }
                 placeholder="南昌市 高新区"
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                className="admin-input"
               />
             </div>
 
@@ -291,7 +291,7 @@ export default function AdminLifePage() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setEditing(null)}
-                className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5"
+                className="admin-input"
               >
                 取消
               </button>
@@ -299,7 +299,7 @@ export default function AdminLifePage() {
                 onClick={handleSave}
                 disabled={saving}
                 className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--adm-blue)", color: "#fff" }}
               >
                 {saving ? "保存中..." : "保存"}
               </button>

@@ -628,8 +628,13 @@
   color: var(--adm-text-sub);
 }
 
+/* 注意：这里必须把 textarea 也写进去 —— 后台有 9 个 textarea，
+   漏掉的话它们在白底上既没有边框也看不出是输入区。 */
 .admin-shell .admin-field select,
-.admin-shell .admin-field input {
+.admin-shell .admin-field input,
+.admin-shell .admin-field textarea,
+.admin-shell .admin-input,
+.admin-shell .admin-textarea {
   font: inherit;
   font-size: 13px;
   padding: 8px 11px;
@@ -641,19 +646,39 @@
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
+.admin-shell .admin-field textarea,
+.admin-shell .admin-textarea {
+  /* 文本域默认会跟着行高走，给个最小高度更像"输入区"而不是一条线 */
+  min-height: 84px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
 .admin-shell .admin-field select option {
   background: #fff;
   color: var(--adm-text);
 }
 
 .admin-shell .admin-field select:focus,
-.admin-shell .admin-field input:focus {
+.admin-shell .admin-field input:focus,
+.admin-shell .admin-field textarea:focus,
+.admin-shell .admin-input:focus,
+.admin-shell .admin-textarea:focus {
   border-color: var(--adm-blue);
   box-shadow: 0 0 0 3px var(--adm-blue-soft);
 }
 
-.admin-shell .admin-field input::placeholder {
-  color: #b6bcc6;
+.admin-shell .admin-field input::placeholder,
+.admin-shell .admin-field textarea::placeholder,
+.admin-shell .admin-input::placeholder,
+.admin-shell .admin-textarea::placeholder {
+  color: #a9b0ba;
+}
+
+/* 复选框之类的：用后台蓝作为强调色 */
+.admin-shell input[type="checkbox"],
+.admin-shell input[type="radio"] {
+  accent-color: var(--adm-blue);
 }
 
 /* ---------- 按钮 ---------- */

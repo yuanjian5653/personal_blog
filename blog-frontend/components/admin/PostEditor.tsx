@@ -165,7 +165,7 @@ export default function ArticleEditor() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/admin/posts")}
-            className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5"
+            className="admin-input"
           >
             返回
           </button>
@@ -173,7 +173,7 @@ export default function ArticleEditor() {
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-            style={{ background: "var(--accent)", color: "#fff" }}
+            style={{ background: "var(--adm-blue)", color: "#fff" }}
           >
             {saving ? "保存中..." : "保存"}
           </button>
@@ -212,7 +212,7 @@ export default function ArticleEditor() {
             type="text"
             value={data.title}
             onChange={(e) => update("title", e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+            className="admin-input"
           />
         </div>
 
@@ -228,7 +228,7 @@ export default function ArticleEditor() {
             value={data.slug}
             onChange={(e) => update("slug", e.target.value)}
             placeholder="my-first-post"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+            className="admin-input"
           />
         </div>
 
@@ -243,7 +243,7 @@ export default function ArticleEditor() {
             value={data.excerpt}
             onChange={(e) => update("excerpt", e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-none"
+            className="admin-input"
           />
         </div>
 
@@ -260,7 +260,7 @@ export default function ArticleEditor() {
               value={data.category}
               onChange={(e) => update("category", e.target.value)}
               placeholder="技术 / 生活"
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+              className="admin-input"
             />
           </div>
           <div>
@@ -273,7 +273,7 @@ export default function ArticleEditor() {
             <select
               value={data.status}
               onChange={(e) => update("status", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+              className="admin-input"
             >
               <option value="published" style={{ background: "#171a21" }}>
                 已发布
@@ -289,7 +289,7 @@ export default function ArticleEditor() {
                 type="checkbox"
                 checked={data.is_pinned}
                 onChange={(e) => update("is_pinned", e.target.checked)}
-                className="accent-[var(--accent)]"
+                className="accent-[var(--adm-blue)]"
               />
               <span className="text-sm">置顶</span>
             </label>
@@ -308,7 +308,7 @@ export default function ArticleEditor() {
             value={data.tags}
             onChange={(e) => update("tags", e.target.value)}
             placeholder="react,fastapi"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+            className="admin-input"
           />
         </div>
 
@@ -335,7 +335,7 @@ export default function ArticleEditor() {
           onChange={(e) => update("content", e.target.value)}
           rows={25}
           placeholder="# 标题&#10;&#10;正文..."
-          className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-y"
+          className="admin-textarea"
           style={{
             fontFamily: "var(--font-geist-mono), monospace",
             lineHeight: 1.7,
@@ -348,7 +348,7 @@ export default function ArticleEditor() {
           onClick={handleSave}
           disabled={saving}
           className="px-6 py-2 rounded-lg text-sm disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           {saving ? "保存中..." : "保存"}
         </button>

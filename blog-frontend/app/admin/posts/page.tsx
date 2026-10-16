@@ -89,7 +89,7 @@ export default function AdminPostsPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="admin-input"
             title="导入 Word (.docx) 或 Markdown (.md) 文件，自动转成正文"
           >
             {importing ? "解析中..." : "📄 导入文档"}
@@ -109,7 +109,7 @@ export default function AdminPostsPage() {
           <Link
             href="/admin/posts/new"
             className="px-4 py-2 rounded-lg text-sm"
-            style={{ background: "var(--accent)", color: "#fff" }}
+            style={{ background: "var(--adm-blue)", color: "#fff" }}
           >
             + 新建文章
           </Link>
@@ -176,7 +176,7 @@ export default function AdminPostsPage() {
                   {a.is_pinned && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ background: "var(--accent)", color: "#fff" }}
+                      style={{ background: "var(--adm-blue)", color: "#fff" }}
                     >
                       置顶
                     </span>

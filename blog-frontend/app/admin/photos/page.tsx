@@ -76,7 +76,7 @@ export default function AdminPhotosPage() {
         <button
           onClick={() => setShowCreate(true)}
           className="px-4 py-2 rounded-lg text-sm"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           + 新建图片组
         </button>
@@ -103,7 +103,7 @@ export default function AdminPhotosPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                className="admin-input"
               />
             </div>
 
@@ -115,7 +115,7 @@ export default function AdminPhotosPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-none"
+                className="admin-input"
               />
             </div>
 
@@ -127,7 +127,7 @@ export default function AdminPhotosPage() {
                 type="text"
                 value={dateLabel}
                 onChange={(e) => setDateLabel(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                className="admin-input"
               />
             </div>
 
@@ -140,7 +140,7 @@ export default function AdminPhotosPage() {
             <div className="flex gap-3 justify-end pt-2">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5"
+                className="admin-input"
               >
                 取消
               </button>
@@ -148,7 +148,7 @@ export default function AdminPhotosPage() {
                 onClick={handleCreate}
                 disabled={creating}
                 className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--adm-blue)", color: "#fff" }}
               >
                 {creating ? "创建中..." : "创建"}
               </button>
@@ -189,7 +189,7 @@ export default function AdminPhotosPage() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold truncate">{album.name}</h3>
                   {album.date_label && (
-                    <span className="text-xs px-2 py-0.5 rounded flex-shrink-0" style={{ background: "rgba(124,92,255,0.15)", color: "var(--accent)" }}>
+                    <span className="text-xs px-2 py-0.5 rounded flex-shrink-0" style={{ background: "rgba(124,92,255,0.15)", color: "var(--adm-blue)" }}>
                       {album.date_label}
                     </span>
                   )}
@@ -204,7 +204,7 @@ export default function AdminPhotosPage() {
                 <div className="flex gap-2 pt-2">
                   <Link
                     href={`/admin/photos/${album.id}`}
-                    className="flex-1 text-center px-3 py-1.5 rounded text-xs border border-white/10 hover:bg-white/5"
+                    className="admin-input"
                   >
                     编辑
                   </Link>

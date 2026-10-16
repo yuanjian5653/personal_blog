@@ -137,7 +137,7 @@ export default function SiteConfigPage() {
           onClick={save}
           disabled={saving}
           className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           {saving ? "保存中..." : "保存"}
         </button>
@@ -186,7 +186,7 @@ export default function SiteConfigPage() {
                   value={configs[field.key] ?? ""}
                   placeholder={field.placeholder}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                  className="admin-input"
                 />
               ) : field.type === "textarea" ? (
                 /* ===== 多行文本 ===== */
@@ -194,7 +194,7 @@ export default function SiteConfigPage() {
                   value={configs[field.key] ?? ""}
                   rows={3}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-none"
+                  className="admin-input"
                 />
               ) : field.type === "color" ? (
                 /* ===== 颜色选择 ===== */
@@ -209,7 +209,7 @@ export default function SiteConfigPage() {
                     type="text"
                     value={configs[field.key] ?? ""}
                     onChange={(e) => update(field.key, e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm font-mono"
+                    className="admin-input"
                   />
                 </div>
               ) : field.type === "select" ? (
@@ -217,7 +217,7 @@ export default function SiteConfigPage() {
                 <select
                   value={configs[field.key] ?? ""}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                  className="admin-input"
                 >
                   {field.options?.map((o) => (
                     <option
@@ -239,7 +239,7 @@ export default function SiteConfigPage() {
                     step={field.step}
                     value={Number(configs[field.key] ?? 0)}
                     onChange={(e) => update(field.key, e.target.value)}
-                    className="flex-1 accent-[var(--accent)]"
+                    className="flex-1 accent-[var(--adm-blue)]"
                   />
                   <span
                     className="text-xs tabular-nums w-12 text-right"
@@ -253,7 +253,7 @@ export default function SiteConfigPage() {
                 <select
                   value={configs[field.key] ?? ""}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                  className="admin-input"
                 >
                   <option value="" style={{ background: "#171a21" }}>
                     默认（第一个相册）

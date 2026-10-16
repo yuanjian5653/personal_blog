@@ -41,7 +41,7 @@ export default function AdminEssaysPage() {
         <Link
           href="/admin/essays/new"
           className="px-4 py-2 rounded-lg text-sm"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           + 写说说
         </Link>
@@ -78,7 +78,7 @@ export default function AdminEssaysPage() {
                       className="text-[10px] px-1.5 py-0.5 rounded"
                       style={{
                         background: "rgba(124,92,255,0.15)",
-                        color: "var(--accent)",
+                        color: "var(--adm-blue)",
                       }}
                     >
                       🖼 {e.images.length}

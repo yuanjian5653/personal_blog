@@ -121,7 +121,7 @@ function LocalSection() {
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
           className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           {uploading ? "上传中..." : "+ 上传音乐"}
         </button>
@@ -139,7 +139,7 @@ function LocalSection() {
 
         <button
           onClick={handleScan}
-          className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5"
+          className="admin-input"
         >
           手动扫描目录
         </button>
@@ -149,7 +149,7 @@ function LocalSection() {
           placeholder="搜索歌曲..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          className="ml-auto w-64 h-9 px-3 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+          className="admin-input"
         />
       </div>
 
@@ -392,7 +392,7 @@ function NeteaseSection() {
           onChange={(e) => setCookieInput(e.target.value)}
           rows={3}
           placeholder="粘贴 MUSIC_U 的值（很长一串）"
-          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-none font-mono"
+          className="admin-input"
         />
 
         <div className="flex justify-end">
@@ -400,7 +400,7 @@ function NeteaseSection() {
             onClick={handleSaveCookie}
             disabled={savingCookie}
             className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-            style={{ background: "var(--accent)", color: "#fff" }}
+            style={{ background: "var(--adm-blue)", color: "#fff" }}
           >
             {savingCookie ? "验证中..." : "保存并验证"}
           </button>
@@ -428,7 +428,7 @@ function NeteaseSection() {
             <select
               value={configPlaylistId}
               onChange={(e) => setConfigPlaylistId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+              className="admin-input"
             >
               <option value="" style={{ background: "#171a21" }}>
                 不设置（显示全部）
@@ -445,7 +445,7 @@ function NeteaseSection() {
             </select>
 
             {configPlaylistName && (
-              <p className="text-xs" style={{ color: "var(--accent)" }}>
+              <p className="text-xs" style={{ color: "var(--adm-blue)" }}>
                 当前设置：{configPlaylistName}
               </p>
             )}
@@ -455,7 +455,7 @@ function NeteaseSection() {
                 onClick={handleSavePlaylist}
                 disabled={savingPlaylist}
                 className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--adm-blue)", color: "#fff" }}
               >
                 {savingPlaylist ? "保存中..." : "保存"}
               </button>

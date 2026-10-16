@@ -10,10 +10,38 @@ export interface AdminTab {
 
 const STORAGE_KEY = "admin_tabs";
 
-/** 路径 → 标签名的映射 */
+/**
+ * 路径 → 标签名的规则。
+ *
+ * 之前这里只有一张"精确匹配"的表，导致**没列进去的路由直接显示英文路径**
+ * （例如 /admin/comments、/admin/guestbook、/admin/posts/new），
+ * 用户看到的就是一串 URL。
+ *
+ * 现在按顺序匹配：先规则（动态路由、子页面），再前缀匹配到所属栏目，
+ * 最后才退回路径本身。
+ */
+const TAB_RULES: Array<{ test: (h: string) => boolean; label: (h: string) => string }> = [
+  // 图片组编辑页：/admin/photos/12
+  {
+    test: (h) => /^\/admin\/photos\/\d+$/.test(h),
+    label: (h) => `图片组 #${h.split("/").pop()}`,
+  },
+  // 新建 / 编辑文章：/admin/posts/new、/admin/posts/12
+  {
+    test: (h) => /^\/admin\/posts\/(new|\d+)$/.test(h),
+    label: (h) => (h.endsWith("/new") ? "新建文章" : "编辑文章"),
+  },
+  // 新建 / 编辑随笔
+  {
+    test: (h) => /^\/admin\/essays\/(new|\d+)$/.test(h),
+    label: (h) => (h.endsWith("/new") ? "新建随笔" : "编辑随笔"),
+  },
+];
+
+/** 路径 → 栏目标签（前缀匹配） */
 const PATH_LABELS: Record<string, string> = {
   "/admin/dashboard": "仪表盘",
-  "/admin/profile": "关于内容",   // ← 新增
+  "/admin/profile": "关于内容",
   "/admin/posts": "文章管理",
   "/admin/essays": "随笔管理",
   "/admin/life": "生活动态",
@@ -22,18 +50,28 @@ const PATH_LABELS: Record<string, string> = {
   "/admin/projects": "项目管理",
   "/admin/tools": "工具管理",
   "/admin/friends": "友链管理",
+  "/admin/comments": "评论管理",
+  "/admin/guestbook": "杂谈管理",
   "/admin/site": "站点配置",
   "/admin/logs": "操作日志",
 };
 
 /** 根据路径获取标签名 */
 export function getTabLabel(href: string): string {
-  // 图片组编辑页，附带组 ID
-  if (/^\/admin\/photos\/\d+$/.test(href)) {
-    const id = href.split("/").pop();
-    return `图片组 #${id}`;
+  for (const rule of TAB_RULES) {
+    if (rule.test(href)) return rule.label(href);
   }
-  return PATH_LABELS[href] || href;
+  // 精确命中
+  if (PATH_LABELS[href]) return PATH_LABELS[href];
+  // 前缀命中（子页面归到所属栏目，取最长的那个前缀）
+  let best = "";
+  for (const prefix of Object.keys(PATH_LABELS)) {
+    if (href.startsWith(prefix + "/") && prefix.length > best.length) {
+      best = prefix;
+    }
+  }
+  if (best) return PATH_LABELS[best];
+  return href;
 }
 
 /** 读取所有标签 */

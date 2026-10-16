@@ -100,7 +100,7 @@ export default function AdminProfilePage() {
           onClick={save}
           disabled={saving}
           className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           {saving ? "保存中..." : "保存"}
         </button>
@@ -158,7 +158,7 @@ export default function AdminProfilePage() {
                   rows={field.rows || 4}
                   placeholder={field.placeholder}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm resize-y"
+                  className="admin-input"
                   style={{ fontFamily: field.key.includes("content") ? "var(--font-geist-mono), monospace" : undefined }}
                 />
               ) : field.type === "color" ? (
@@ -173,7 +173,7 @@ export default function AdminProfilePage() {
                     type="text"
                     value={configs[field.key] ?? ""}
                     onChange={(e) => update(field.key, e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm font-mono"
+                    className="admin-input"
                   />
                 </div>
               ) : (
@@ -182,7 +182,7 @@ export default function AdminProfilePage() {
                   value={configs[field.key] ?? ""}
                   placeholder={field.placeholder}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
+                  className="admin-input"
                 />
               )}
             </div>
@@ -196,7 +196,7 @@ export default function AdminProfilePage() {
           onClick={save}
           disabled={saving}
           className="px-6 py-2 rounded-lg text-sm disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
+          style={{ background: "var(--adm-blue)", color: "#fff" }}
         >
           {saving ? "保存中..." : "保存"}
         </button>

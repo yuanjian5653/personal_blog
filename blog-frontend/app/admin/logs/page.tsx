@@ -91,7 +91,7 @@ export default function AdminLogsPage() {
           <select
             value={filterAction}
             onChange={(e) => changeFilter(setFilterAction)(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none"
+            className="admin-input"
           >
             <option value="" style={{ background: "#171a21" }}>
               全部动作
@@ -110,7 +110,7 @@ export default function AdminLogsPage() {
           <select
             value={filterTarget}
             onChange={(e) => changeFilter(setFilterTarget)(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none"
+            className="admin-input"
           >
             <option value="" style={{ background: "#171a21" }}>
               全部类型
@@ -203,7 +203,7 @@ export default function AdminLogsPage() {
                           {(isExpanded ? changesList : changesList.slice(0, 1)).map(
                             ([field, change]) => (
                               <div key={field} className="flex items-center gap-1.5">
-                                <span style={{ color: "var(--accent)" }}>{field}:</span>
+                                <span style={{ color: "var(--adm-blue)" }}>{field}:</span>
                                 <span className="truncate" style={{ maxWidth: 200 }}>
                                   {formatValue(change.old)}
                                 </span>

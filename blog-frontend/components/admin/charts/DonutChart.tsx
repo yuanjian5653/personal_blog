@@ -7,7 +7,7 @@ import type { DistributionSlice } from "@/lib/admin";
 interface Props {
   data: DistributionSlice[];
   size?: number;
-  /** 环的粗细 */
+  /** 环的粗细（静止态） */
   thickness?: number;
 }
 
@@ -23,6 +23,9 @@ const PALETTE = [
   "#64748b",
 ];
 
+/** 悬停时环加粗的幅度 */
+const HOVER_GROW = 5;
+
 /**
  * 环形图（纯 SVG，无第三方依赖）。
  *
@@ -30,27 +33,32 @@ const PALETTE = [
  * 每个扇区就是一段虚线，长度 = 占比 × 周长。
  *
  * 交互（鼠标）：
- * - 悬停扇区或图例项 → 该扇区**加粗放大**、其余变淡，中心显示它的名称/数量/占比
+ * - 悬停扇区或图例项 → 该扇区**加粗并向外扩张**、其余变淡，中心显示它的名称/数量/占比
  * - 移开 → 恢复显示总计
  * - 支持键盘：扇区可 Tab 聚焦，焦点等同悬停
  *
- * 交互状态用 selected 保存"当前高亮的索引"，扇区与图例共享同一个索引，
- * 所以鼠标放哪边都能联动。
+ * 关于"加粗会不会被裁掉/压到图例"：
+ * SVG 的 stroke 是沿路径**居中**绘制的，会向两侧各扩 thickness/2。
+ * 所以半径要按**最大**厚度来留白：r = (size - (thickness + HOVER_GROW)) / 2。
+ * 这样加粗时外缘最多正好顶到 viewBox 边缘，不会被裁，
+ * 也不会越出 SVG 盒子去压旁边的图例。
+ * （试过再加一个向内 translate，但那是多余的 —— 留白已经算进去了。）
  */
-export default function DonutChart({ data, size = 200, thickness = 26 }: Props) {
+export default function DonutChart({ data, size = 180, thickness = 24 }: Props) {
   const [active, setActive] = useState<number | null>(null);
 
   const total = data.reduce((n, d) => n + d.value, 0);
-  const r = (size - thickness) / 2;
+  const maxThickness = thickness + HOVER_GROW;
+
+  // 用最大厚度定半径，环整体往内收一点，加粗时不会越界
+  const r = (size - maxThickness) / 2;
   const cx = size / 2;
   const cy = size / 2;
   const circumference = 2 * Math.PI * r;
 
-  /** 悬停时环加粗一点，"被选中"的感觉更明显 */
-  const activeThickness = thickness + 6;
   const current = active !== null ? data[active] : null;
 
-  // 提前算好每段的起点偏移（渲染时还要用来叠加，所以先算一遍）
+  // 提前算好每段的起点偏移
   const segments: Array<{
     name: string;
     value: number;
@@ -102,19 +110,15 @@ export default function DonutChart({ data, size = 200, thickness = 26 }: Props) 
                   r={r}
                   fill="none"
                   stroke={s.color}
-                  strokeWidth={isActive ? activeThickness : thickness}
+                  strokeWidth={isActive ? maxThickness : thickness}
                   strokeDasharray={`${Math.max(s.len - gap, 0.001)} ${circumference}`}
                   strokeDashoffset={-s.offset}
                   // 从 12 点方向开始
                   transform={`rotate(-90 ${cx} ${cy})`}
                   strokeLinecap="butt"
-                  className={`donut-seg${isActive ? " is-active" : ""}${
-                    isDimmed ? " is-dimmed" : ""
-                  }`}
-                  // 鼠标
+                  className={`donut-seg${isDimmed ? " is-dimmed" : ""}`}
                   onMouseEnter={() => setActive(i)}
                   onMouseLeave={() => setActive(null)}
-                  // 键盘：可聚焦 + 回车/空格也算选中
                   tabIndex={0}
                   role="button"
                   aria-label={`${s.name}：${s.value}，占 ${Math.round(
@@ -162,9 +166,9 @@ export default function DonutChart({ data, size = 200, thickness = 26 }: Props) 
           data.map((d, i) => (
             <li
               key={d.name}
-              className={`donut-legend__item${
-                active === i ? " is-active" : ""
-              }${active !== null && active !== i ? " is-dimmed" : ""}`}
+              className={`donut-legend__item${active === i ? " is-active" : ""}${
+                active !== null && active !== i ? " is-dimmed" : ""
+              }`}
               onMouseEnter={() => setActive(i)}
               onMouseLeave={() => setActive(null)}
             >
