@@ -162,8 +162,12 @@ a.stat-card:hover {
   font-size: 12px;
   padding: 3px 9px;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--adm-text) 82%, transparent);
-  color: var(--adm-surface);
+  /* 用面板底色做底、正文色做字：浅色主题下是"白底深字"，
+     深色主题下自动变成"深底浅字"，两种都清楚 */
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  color: var(--adm-text);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }

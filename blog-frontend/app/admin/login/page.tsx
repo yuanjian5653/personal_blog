@@ -27,51 +27,41 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="glass p-8 w-full max-w-sm space-y-5">
-        <h1 className="text-xl font-bold text-center">管理员登录</h1>
+    <form onSubmit={handleSubmit} className="admin-login-card">
+      <h1>管理员登录</h1>
+      <p className="admin-login-card__sub">登录后进入后台管理</p>
 
-        <div>
-          <label className="block text-xs mb-2" style={{ color: "var(--text-secondary)" }}>
-            用户名
-          </label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
-          />
-        </div>
+      <div className="admin-login-field">
+        <label htmlFor="admin-username">用户名</label>
+        <input
+          id="admin-username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="请输入用户名"
+          autoComplete="username"
+          required
+        />
+      </div>
 
-        <div>
-          <label className="block text-xs mb-2" style={{ color: "var(--text-secondary)" }}>
-            密码
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-[var(--accent)] outline-none text-sm"
-          />
-        </div>
+      <div className="admin-login-field">
+        <label htmlFor="admin-password">密码</label>
+        <input
+          id="admin-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="请输入密码"
+          autoComplete="current-password"
+          required
+        />
+      </div>
 
-        {error && (
-          <div className="text-xs px-3 py-2 rounded" style={{ color: "#f87171", background: "rgba(248,113,113,0.1)" }}>
-            {error}
-          </div>
-        )}
+      {error && <div className="admin-login-error">{error}</div>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-          style={{ background: "var(--accent)", color: "#fff" }}
-        >
-          {loading ? "登录中..." : "登录"}
-        </button>
-      </form>
-    </div>
+      <button type="submit" disabled={loading} className="admin-login-submit">
+        {loading ? "登录中…" : "登录"}
+      </button>
+    </form>
   );
 }

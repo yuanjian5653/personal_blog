@@ -185,7 +185,7 @@ export default function AdminPostsPage() {
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded"
                       style={{
-                        background: "rgba(255,255,255,0.08)",
+                        background: "var(--adm-tag-bg)",
                         color: "var(--text-secondary)",
                       }}
                     >

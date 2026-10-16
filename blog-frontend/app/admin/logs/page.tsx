@@ -139,8 +139,8 @@ export default function AdminLogsPage() {
             <thead>
               <tr
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  borderBottom: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--adm-tag-bg)",
+                  borderBottom: "1px solid var(--adm-tag-bg)",
                 }}
               >
                 <th className="text-left px-4 py-3 font-medium" style={{ color: "var(--text-secondary)" }}>时间</th>
@@ -161,9 +161,9 @@ export default function AdminLogsPage() {
                   <tr
                     key={log.id}
                     onClick={() => setExpanded(isExpanded ? null : log.id)}
-                    className="cursor-pointer transition-colors hover:bg-white/[0.03]"
+                    className="cursor-pointer transition-colors hover:bg-[var(--adm-row-hover)]"
                     style={{
-                      borderBottom: "1px solid rgba(255,255,255,0.04)",
+                      borderBottom: "1px solid var(--adm-tag-bg)",
                     }}
                   >
                     <td

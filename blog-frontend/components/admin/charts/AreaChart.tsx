@@ -139,7 +139,8 @@ export default function AreaChart({ data, color = "#6366f1", height = 220 }: Pro
               cy={points[hover].y}
               r="4"
               fill={color}
-              stroke="#fff"
+              /* 圆点描边用面板底色变量：后台是白底，写死 #fff 在白底上会看不见 */
+              stroke="var(--adm-surface, #fff)"
               strokeWidth="2"
             />
           </g>

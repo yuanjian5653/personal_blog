@@ -47,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             className="text-center text-sm py-8"
             style={{ color: "var(--text-secondary)" }}
           >
-            © {new Date().getFullYear()} My Blog
+            © {new Date().getFullYear()} 我的一片天
           </footer>
           {/* 全局播放条，固定底部 */}
           <PlayerBar />

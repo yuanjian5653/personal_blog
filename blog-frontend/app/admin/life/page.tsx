@@ -203,7 +203,7 @@ export default function AdminLifePage() {
                     <div
                       className="w-16 h-16 rounded flex items-center justify-center text-xs"
                       style={{
-                        background: "rgba(255,255,255,0.05)",
+                        background: "var(--adm-tag-bg)",
                         color: "var(--text-secondary)",
                       }}
                     >

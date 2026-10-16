@@ -1,0 +1,890 @@
+/* ============================================
+   后台外壳：亮色（白色 / 简洁 / 明了）
+
+   为什么要单独一层 .admin-shell：
+   前台是深色站点（--bg-primary #0f1115、文字浅色），
+   而这一版要求后台整体改成**白色亮色**风格。两套配色必须能共存，
+   所以这里把后台用到的所有语义色**重新定义在 .admin-shell 作用域内**：
+
+     .admin-shell { --adm-surface: #fff; --adm-text: #1f2329; ... }
+
+   CSS 变量会沿 DOM 继承，所以后台里所有走 --adm-* 的组件
+   （面板 / 表格 / 按钮 / 图表 / 徽章…）自动变亮，
+   不需要逐个组件去改颜色。
+
+   .glass（前台用的毛玻璃卡片）在后台里也一并改成白卡，
+   因为多个后台页面直接用了 .glass。
+   ============================================ */
+
+/* 后台用到的所有亮色变量集中声明在**文件末尾**：
+   因为 admin-dashboard.css 里的 `html[data-card-style="black"]`
+   会改写 --adm-*，两者优先级相同，必须靠"后声明"取胜。
+   见文件末尾的「亮色变量（必须最后）」一节。 */
+
+/* ============================================
+   登录页 / 加载中：铺满一屏的居中容器
+   ============================================ */
+.admin-shell--plain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.admin-boot {
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--adm-text-sub);
+}
+
+.admin-boot__spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--adm-border);
+  border-top-color: var(--adm-blue);
+  animation: adminSpin 0.7s linear infinite;
+}
+
+@keyframes adminSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   侧边栏
+   ============================================ */
+.admin-side {
+  position: relative;
+  width: 216px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid var(--adm-border);
+  transition: width 0.22s ease;
+}
+
+.admin-shell.is-collapsed .admin-side {
+  width: 64px;
+}
+
+/* ---------- 品牌区 ---------- */
+.admin-side__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--adm-border);
+  overflow: hidden;
+}
+
+.admin-shell.is-collapsed .admin-side__brand {
+  padding: 0;
+  justify-content: center;
+}
+
+.admin-side__avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--adm-blue), #6aa8ff);
+}
+
+.admin-side__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.admin-side__brand-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--adm-text);
+  white-space: nowrap;
+}
+
+.admin-side__brand-text em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--adm-text-sub);
+  white-space: nowrap;
+}
+
+/* ---------- 折叠按钮（浮在右边缘） ---------- */
+.admin-side__toggle {
+  position: absolute;
+  top: 78px;
+  right: -11px;
+  z-index: 5;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--adm-border);
+  background: #fff;
+  color: var(--adm-text-sub);
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.1);
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.admin-side__toggle:hover {
+  color: var(--adm-blue);
+  border-color: var(--adm-blue);
+}
+
+/* ---------- 菜单 ---------- */
+.admin-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 10px 16px;
+}
+
+.admin-shell.is-collapsed .admin-nav {
+  padding: 10px 8px 16px;
+}
+
+.admin-nav__group + .admin-nav__group {
+  margin-top: 4px;
+}
+
+.admin-nav__title {
+  font-size: 11px;
+  color: #a8aeb8;
+  padding: 12px 10px 6px;
+  letter-spacing: 0.04em;
+}
+
+.admin-nav__divider {
+  display: block;
+  height: 1px;
+  margin: 10px 6px;
+  background: var(--adm-line);
+}
+
+.admin-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #4b5058;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.admin-shell.is-collapsed .admin-nav__link {
+  justify-content: center;
+  padding: 9px 0;
+}
+
+.admin-nav__link:hover {
+  background: #f4f6f8;
+  color: var(--adm-text);
+}
+
+/* 激活项：浅蓝底 + 蓝字 + 右侧一条蓝杠（参考图的样子） */
+.admin-nav__link.is-active {
+  background: var(--adm-blue-soft);
+  color: var(--adm-blue);
+  font-weight: 600;
+}
+
+.admin-nav__link.is-active::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 3px 0 0 3px;
+  background: var(--adm-blue);
+}
+
+.admin-shell.is-collapsed .admin-nav__link.is-active::after {
+  right: -8px;
+}
+
+.admin-nav__icon {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.admin-nav__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 底部操作 ---------- */
+.admin-side__foot {
+  padding: 10px;
+  border-top: 1px solid var(--adm-border);
+}
+
+.admin-nav__link--danger {
+  color: var(--adm-danger);
+}
+
+.admin-nav__link--danger:hover {
+  background: var(--adm-danger-bg);
+  color: var(--adm-danger);
+}
+
+/* ============================================
+   主区域
+   ============================================ */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--adm-canvas);
+}
+
+/* ---------- 顶栏 ---------- */
+.admin-topbar {
+  height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px 0 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.admin-topbar__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--adm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 搜索入口样式：看起来像输入框，但其实是链接（跳到评论管理） */
+.admin-topbar__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  margin-right: 6px;
+  border-radius: 8px;
+  background: #f4f6f8;
+  color: var(--adm-text-sub);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.admin-topbar__search:hover {
+  background: #edf1f5;
+  color: var(--adm-text);
+}
+
+.admin-topbar__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--adm-text-sub);
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.admin-topbar__icon:hover {
+  background: #f4f6f8;
+  color: var(--adm-blue);
+}
+
+.admin-topbar__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 8px;
+  padding-left: 14px;
+  border-left: 1px solid var(--adm-border);
+  font-size: 13px;
+  color: var(--adm-text);
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.admin-topbar__user-avatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--adm-blue), #6aa8ff);
+}
+
+/* ---------- 标签栏 ---------- */
+.admin-tabs {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 42px;
+  padding: 0 20px;
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.admin-tabs__empty {
+  font-size: 12px;
+  color: var(--adm-text-sub);
+}
+
+.admin-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--adm-text-sub);
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.admin-tab:hover {
+  background: #f4f6f8;
+  color: var(--adm-text);
+}
+
+/* 当前页：浅蓝底 + 蓝字（和侧边栏激活项呼应） */
+.admin-tab.is-active {
+  background: var(--adm-blue-soft);
+  color: var(--adm-blue);
+  font-weight: 500;
+}
+
+.admin-tab__close {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.16s ease, background 0.16s ease;
+}
+
+.admin-tab:hover .admin-tab__close,
+.admin-tab.is-active .admin-tab__close {
+  opacity: 0.75;
+}
+
+.admin-tab__close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+}
+
+/* ---------- 内容区 ---------- */
+.admin-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 24px 40px;
+}
+
+/* ============================================
+   登录页
+   ============================================ */
+.admin-login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 32px 28px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--adm-border);
+  box-shadow: 0 6px 24px -8px rgba(16, 24, 40, 0.12);
+}
+
+.admin-login-card h1 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--adm-text);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.admin-login-card__sub {
+  font-size: 12.5px;
+  color: var(--adm-text-sub);
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.admin-login-field {
+  margin-bottom: 14px;
+}
+
+.admin-login-field label {
+  display: block;
+  font-size: 12px;
+  color: var(--adm-text-sub);
+  margin-bottom: 6px;
+}
+
+.admin-login-field input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+  background: #fff;
+  color: var(--adm-text);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-login-field input::placeholder {
+  color: #b6bcc6;
+}
+
+.admin-login-field input:focus {
+  border-color: var(--adm-blue);
+  box-shadow: 0 0 0 3px var(--adm-blue-soft);
+}
+
+.admin-login-error {
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  color: var(--adm-danger);
+  background: var(--adm-danger-bg);
+  border: 1px solid color-mix(in srgb, var(--adm-danger) 24%, transparent);
+}
+
+.admin-login-submit {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--adm-blue);
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.admin-login-submit:hover:not(:disabled) {
+  background: #0e5fd8;
+}
+
+.admin-login-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ============================================
+   把后台内部组件统一到亮色简约风
+
+   下面这些只调"外观"（圆角、边框、留白、阴影、字重），
+   颜色继续走 --adm-* 变量 —— 所以不会影响任何交互与功能。
+   ============================================ */
+
+/* ---------- 面板 / 表格容器 ---------- */
+.admin-shell .admin-panel {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 18px 20px;
+}
+
+.admin-shell .admin-panel--flush {
+  padding: 0;
+}
+
+.admin-shell .admin-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--adm-text);
+  margin-bottom: 14px;
+}
+
+/* ---------- 统计卡片 ---------- */
+.admin-shell .stat-card {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 16px 18px;
+}
+
+.admin-shell .stat-card__icon {
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.admin-shell .stat-card__value {
+  font-size: 23px;
+}
+
+.admin-shell a.stat-card:hover {
+  transform: translateY(-2px);
+  background: var(--adm-surface);
+  border-color: color-mix(in srgb, var(--adm-blue) 40%, var(--adm-border));
+  box-shadow: 0 6px 18px -6px rgba(16, 24, 40, 0.14);
+}
+
+/* ---------- 表单控件 ---------- */
+.admin-shell .admin-field {
+  font-size: 12px;
+  color: var(--adm-text-sub);
+}
+
+.admin-shell .admin-field select,
+.admin-shell .admin-field input {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+  background: #fff;
+  color: var(--adm-text);
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-shell .admin-field select option {
+  background: #fff;
+  color: var(--adm-text);
+}
+
+.admin-shell .admin-field select:focus,
+.admin-shell .admin-field input:focus {
+  border-color: var(--adm-blue);
+  box-shadow: 0 0 0 3px var(--adm-blue-soft);
+}
+
+.admin-shell .admin-field input::placeholder {
+  color: #b6bcc6;
+}
+
+/* ---------- 按钮 ---------- */
+.admin-shell .admin-btn {
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--adm-blue);
+  color: #fff;
+  border: 1px solid transparent;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.admin-shell .admin-btn:hover:not(:disabled) {
+  background: #0e5fd8;
+  opacity: 1;
+}
+
+.admin-shell .admin-btn--ghost {
+  background: #fff;
+  border-color: var(--adm-border);
+  color: var(--adm-text-sub);
+}
+
+.admin-shell .admin-btn--ghost:hover:not(:disabled) {
+  background: #f7f8fa;
+  border-color: #d8dce2;
+  color: var(--adm-text);
+  opacity: 1;
+}
+
+/* ---------- 表格 ---------- */
+.admin-shell .admin-table thead th {
+  background: var(--adm-head-bg);
+  font-weight: 600;
+  padding: 11px 14px;
+}
+
+.admin-shell .admin-table tbody td {
+  padding: 12px 14px;
+}
+
+/* ---------- 提示 / 徽章 ---------- */
+.admin-shell .admin-error {
+  border-radius: 8px;
+}
+
+.admin-shell .admin-ok {
+  border-radius: 8px;
+  background: var(--adm-ok-bg);
+  border-color: color-mix(in srgb, var(--adm-ok) 24%, transparent);
+}
+
+.admin-shell .admin-badge {
+  border-radius: 6px;
+}
+
+.admin-shell .admin-tag {
+  background: var(--adm-tag-bg);
+  color: #5b6270;
+}
+
+/* ---------- 展开的回复区 ---------- */
+.admin-shell .admin-replies {
+  border-left-color: color-mix(in srgb, var(--adm-blue) 32%, transparent);
+}
+
+.admin-shell .admin-replies-row > td {
+  background: #fafbfc;
+}
+
+/* ---------- 链接型操作 ---------- */
+.admin-shell .admin-link {
+  color: var(--adm-blue);
+}
+
+.admin-shell .admin-link--warn {
+  color: var(--adm-warn);
+}
+
+.admin-shell .admin-link--danger {
+  color: var(--adm-danger);
+}
+
+.admin-shell .admin-user__name:hover {
+  color: var(--adm-blue);
+}
+
+/* ---------- 图片上传器（admin.css 里写死的深色） ---------- */
+.admin-shell .img-uploader-item {
+  border-color: var(--adm-border);
+}
+
+.admin-shell .img-uploader-add {
+  border-color: #d8dce2;
+  color: var(--adm-text-sub);
+  background: #fafbfc;
+}
+
+.admin-shell .img-uploader-add:hover:not(:disabled) {
+  border-color: var(--adm-blue);
+  color: var(--adm-blue);
+}
+
+.admin-shell .img-uploader-manual input {
+  background: #fff;
+  border-color: var(--adm-border);
+  color: var(--adm-text);
+}
+
+.admin-shell .img-uploader-manual button {
+  border-color: var(--adm-border);
+  color: var(--adm-text-sub);
+  background: #fff;
+}
+
+.admin-shell .img-uploader-manual button:hover {
+  border-color: var(--adm-blue);
+  color: var(--adm-blue);
+}
+
+/* ---------- 图表 ---------- */
+.admin-shell .chart-svg {
+  color: var(--adm-text);
+}
+
+.admin-shell .chart-tick {
+  fill: var(--adm-text-sub);
+}
+
+/* 图表里的网格线用 currentColor，透明度固定的那条线在浅底上仍然可见 */
+.admin-shell .donut-sub,
+.admin-shell .donut-legend__name,
+.admin-shell .donut-legend__pct,
+.admin-shell .donut-legend__empty {
+  color: var(--adm-text-sub);
+  fill: var(--adm-text-sub);
+}
+
+.admin-shell .donut-total {
+  fill: var(--adm-text);
+}
+
+.admin-shell .donut-legend__value {
+  color: var(--adm-text);
+}
+
+/* ============================================
+   小屏：侧边栏自动收起为图标条
+   ============================================ */
+@media (max-width: 820px) {
+  .admin-side {
+    width: 64px;
+  }
+  .admin-side__brand {
+    padding: 0;
+    justify-content: center;
+  }
+  .admin-side__brand-text,
+  .admin-nav__label,
+  .admin-nav__title {
+    display: none;
+  }
+  .admin-nav__link {
+    justify-content: center;
+    padding: 9px 0;
+  }
+  .admin-nav__divider {
+    display: block;
+  }
+  .admin-side__toggle {
+    display: none;
+  }
+  .admin-topbar__search span:last-child {
+    display: none;
+  }
+  .admin-content {
+    padding: 16px 14px 32px;
+  }
+}
+
+/* ---------- 减少动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-side,
+  .admin-nav__link,
+  .admin-tab,
+  .admin-topbar__icon,
+  .admin-topbar__search {
+    transition: none !important;
+  }
+  .admin-boot__spinner {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   ⚠️ 亮色变量（必须留在文件最后）
+
+   admin-dashboard.css 里有 `html[data-card-style="black"] { --adm-ok: … }`
+   这类深色改写。它与 `.admin-shell` 的优先级相同（都是 0-1-0），
+   所以**谁在后面谁生效**。admin-shell.css 整体在 admin-dashboard.css 之后加载，
+   因此这里把亮色变量声明一遍，确保后台永远是亮色，
+   不受前台"黑色卡片"开关影响。
+   ============================================================ */
+.admin-shell {
+  --adm-surface: #ffffff;
+  --adm-surface-hover: #f7f8fa;
+  --adm-border: #e6e8eb;
+  --adm-text: #1f2329;
+  --adm-text-sub: #8a9099;
+  --adm-head-bg: #fafbfc;
+  --adm-row-hover: #f6f8fb;
+  --adm-line: #eef0f3;
+  --adm-tag-bg: #f2f4f7;
+  --adm-icon-bg: color-mix(in srgb, var(--accent, #7c5cff) 12%, transparent);
+  --adm-ok: #16a34a;
+  --adm-ok-bg: #eaf7ee;
+  --adm-danger: #dc2626;
+  --adm-danger-bg: #fdeced;
+  --adm-warn: #b45309;
+  --adm-warn-bg: #fef4e6;
+  --adm-canvas: #f4f6f8;
+  --adm-blue: #1677ff;
+  --adm-blue-soft: #e8f2ff;
+  --card-bg: #ffffff;
+  --card-bg-hover: #f7f8fa;
+  --card-border: #e6e8eb;
+  --card-text: #1f2329;
+  --card-text-sub: #8a9099;
+  --card-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+  --text-primary: #1f2329;
+  --text-secondary: #8a9099;
+  color: var(--adm-text);
+  background: var(--adm-canvas);
+}
+
+/* 后台里的毛玻璃卡片 → 白色卡片 */
+.admin-shell .glass {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--adm-text);
+}
+
+/* 后台里前台那套"悬浮上浮"效果不需要 */
+.admin-shell .card-lift:hover {
+  transform: none;
+}
+
