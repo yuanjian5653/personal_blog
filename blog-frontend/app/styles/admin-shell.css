@@ -870,6 +870,15 @@
   --text-secondary: #8a9099;
   color: var(--adm-text);
   background: var(--adm-canvas);
+
+  /* ⚠️ 这两条是布局的基础，别删：
+     外壳是 fixed inset-0，必须自己 flex，侧边栏与主区域才会**左右并排**。
+     少了 display: flex，两者会变成上下堆叠 —— 主区域被挤到侧边栏下面，
+     整体高出视口一整屏，表现就是"只有侧边栏、右侧空白"
+     （实测 getComputedStyle(shell).display 变成了 block）。 */
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 /* 后台里的毛玻璃卡片 → 白色卡片 */
