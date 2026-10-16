@@ -70,3 +70,58 @@ def guard(script_name: str | None = None) -> None:
     print("      或设置环境变量 ALLOW_TEST_ON_PRODUCTION=1")
     print("=" * 68)
     sys.exit(2)
+
+
+# ============================================================
+# 数据库查询辅助
+# ============================================================
+
+def _unwrap(v):
+    """把查询结果 unwrap 成标量（兼容多种返回形态）。
+
+    本项目的 SQLModel 版本在不同写法下会返回不同东西，实测：
+        db.exec(select(Admin)).first()     -> Row（不是 Admin 实例）
+        db.exec(select(Admin.id)).first()  -> Row，形如 (1,)
+        db.exec(select(Admin.id)).one_or_none() -> ScalarResult（没有 .scalars()）
+    为了避免依赖具体形态，这里统一处理：
+        None / 标量      -> 原样返回
+        单元素 tuple/Row -> 取第 0 个
+    """
+    if v is None:
+        return None
+    if isinstance(v, (int, str, float, bool)):
+        return v
+    try:
+        if len(v) == 1:          # tuple / Row / list
+            return v[0]
+    except TypeError:
+        pass
+    return v
+
+
+def admin_id_of(db, AdminModel) -> int | None:
+    """取第一个管理员的 id（一定返回标量 int 或 None）。
+
+    背景：这个项目的 SQLModel/SQLAlchemy 组合下，
+    `db.exec(select(Admin.id)).first()` 拿到的是 Row 而不是 int，
+    直接当 admin_id 用会往数据库里写 (1,) 这种值（MySQL 报 1366）。
+    """
+    from sqlmodel import select
+
+    return _unwrap(db.exec(select(AdminModel.id)).first())
+
+
+def ids_of(db, stmt) -> list:
+    """执行"只查主键"的语句并返回 id 列表（每项都是标量）。
+
+    用它是为了安全地删除：`db.exec(select(Model)).all()` 返回 Row，
+    Row 不是映射对象，直接 db.delete(row) 会抛 UnmappedInstanceError。
+    """
+    out = []
+    for row in db.exec(stmt).all():
+        v = _unwrap(row)
+        if v is not None:
+            out.append(v)
+    return out
+
+

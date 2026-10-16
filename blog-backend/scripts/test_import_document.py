@@ -14,6 +14,7 @@
 """
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
@@ -22,13 +23,15 @@ from sqlmodel import Session
 BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 
+# test_guard：安全护栏 + 查询辅助（admin_id_of / ids_of）
+from test_guard import admin_id_of, ids_of, guard  # noqa: E402
+
 from app.config import settings  # noqa: E402
 from app.deps import get_current_admin  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Admin  # noqa: E402
 
 # 安全护栏：默认拒绝在非测试库上运行（这类脚本会连 .env 里的库）
-from test_guard import guard  # noqa: E402
 
 guard("test_import_document.py")
 
@@ -69,12 +72,14 @@ def expect_raises(label, fn, status_code):
 
 
 with Session(engine) as db:
-    admin = db.exec(select(Admin)).first()
-if admin is None:
+    # 用 test_guard 里的辅助函数取标量 id
+    # （本版本 db.exec(select(...)).first() 返回的是 Row）
+    admin_id = admin_id_of(db, Admin)
+if admin_id is None:
     print("没有管理员账号，跳过")
     raise SystemExit(0)
 
-app.dependency_overrides[get_current_admin] = lambda: admin
+app.dependency_overrides[get_current_admin] = lambda: SimpleNamespace(id=admin_id)
 client = TestClient(app)
 
 MD = """# 我的第一篇文章

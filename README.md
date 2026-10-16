@@ -18,6 +18,7 @@
 | 评论 | **访客用 GitHub 登录后**在「说说」和「生活动态」下评论 / 一级回复 / 点赞；也可给说说点赞。数据存 MySQL，登录态与管理员完全隔离 |
 | 生活动态 | 图文动态、地点标记、瀑布流卡片 + 详情弹窗 / 图片灯箱 |
 | 相册 | 相册分组、批量上传自动压缩、自动生成缩略图、灯箱浏览 |
+| 友链 | 圆形卡片按**权重**决定大小与光晕，入场像流星飞入（回弹 + 拖尾），之后自由流动并相互碰撞，点击卡片弹出气泡详情；后台可设网址/名称/类型/简介/封面/权重 |
 | 音乐 | 扫描 `media/music/` 自动提取 mp3/m4a 标签与内嵌封面、歌词（LRC）、歌单、播放队列、频谱动画 |
 | 网易云 | 通过 Cookie 代理搜索 / 歌单 / 歌词 / 音频流 |
 | 站点配置 | 站点标题、主题色、背景（纯色/图片+模糊+遮罩）、卡片风格、社交链接、ICP 备案等，全部后台可改 |
@@ -221,7 +222,7 @@ personal_blog/
 │
 ├── blog-frontend/                # Next.js 前端
 │   ├── app/                      # 页面（App Router）
-│   │   ├── articles/ essays/ life/ music/ photos/ about/
+│   │   ├── articles/ essays/ life/ music/ photos/ about/ friends/
 │   │   ├── admin/                # 后台
 │   │   └── styles/               # 拆分的 CSS
 │   ├── components/               # 组件
@@ -231,10 +232,14 @@ personal_blog/
 │   │   ├── format.ts             # 日期/时间格式化
 │   │   ├── tags.ts               # 标签字符串解析
 │   │   ├── lrc.ts                # LRC 歌词解析
+│   │   ├── physics.ts            # 友链卡片的 2D 物理（纯函数，可测）
 │   │   ├── types.ts              # 类型 + 播放地址构造
 │   │   └── useCachedFetch.ts     # 带 sessionStorage 缓存的请求 Hook
 │   ├── scripts/
-│   │   └── test_shared.mjs       # 共享模块断言测试
+│   │   ├── test_shared.mjs       # 共享模块断言测试
+│   │   ├── test_typewriter.mjs   # 打字机状态机
+│   │   ├── test-physics.mjs      # 友链物理
+│   │   └── test-dom-nesting.mjs  # 检查 a/Link 嵌套
 │   └── .env.example
 │
 ├── start.bat / start.sh          # 一键启动
@@ -259,6 +264,13 @@ cd blog-backend
 # 共享逻辑测试（不需要数据库）
 ..\.venv\Scripts\python.exe scripts\test_shared.py
 
+# 接口测试（会写入并清理测试数据，默认拒绝在生产库上跑）
+..\.venv\Scripts\python.exe scripts\test_comments.py
+..\.venv\Scripts\python.exe scripts\test_admin_api.py
+..\.venv\Scripts\python.exe scripts\test_friend_links.py
+..\.venv\Scripts\python.exe scripts\test_import_document.py
+# 确实要在当前库上跑时：加 --allow-production-db
+
 # 查看数据库现状（表、行数、占用空间）
 ..\.venv\Scripts\python.exe scripts\db_info.py
 
@@ -275,8 +287,11 @@ pnpm dev            # 开发服务器
 pnpm build          # 生产构建
 pnpm lint           # ESLint
 
-# 共享模块断言测试（49 项，不需要浏览器）
-node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/test_shared.mjs
+# 纯逻辑断言测试（不需要浏览器）
+node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/test_shared.mjs      # 共享模块 49 项
+node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/test_typewriter.mjs # 打字机 16 项
+node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/test-physics.mjs    # 友链物理 20 项
+node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs scripts/test-dom-nesting.mjs # 标签嵌套检查
 ```
 
 ---
@@ -463,6 +478,50 @@ ALLOWED_ORIGINS=https://你的前端域名
 
 审核状态说明：`rejected` 的评论**不在前台展示**（公开接口只返回 `approved`），
 但记录保留，可以随时改回 `approved`。
+
+### 友链管理
+
+后台侧栏「内容」分组下的 **友链管理**（`/admin/friends`）。每条友链有六个字段：
+
+| 字段 | 说明 |
+|---|---|
+| 名称 | 站点名（必填） |
+| 网址 | 必填。**不写 `https://` 会自动补**，避免填成相对路径结果跳到自己站内 |
+| 类型 | 例如 技术 / 设计 / 生活，前台显示为卡片上的小标签 |
+| 简介 | 一句话介绍，显示在气泡详情里 |
+| 封面 | 可上传（≤5MB）或直接粘图片地址；没有封面时用名称首字做占位 |
+| 权重 | **决定前台的突出程度**；另有一个「排序」用于同权重时的先后 |
+
+另外有「显示 / 隐藏」开关：隐藏的友链不出现在前台，但记录保留。
+
+权重不必纠结填多大 —— 前台会按**当前列表内的 min/max 归一化**再映射到
+卡片尺寸（96~200px），所以填 0~10 和填 0~1000 的视觉效果是一样的。
+
+### 友链页的动效是怎么做的
+
+前台 `/friends` 的卡片是**圆**而不是矩形，因为圆形没有方向感，自由流动时更自然，
+而且大小对比更直觉 —— 正好用来表达权重。
+
+三件事分别的实现方式：
+
+1. **流星飞入（回弹 + 拖尾）**：每张卡片从画面外斜向飞来，用 `easeOutBack`
+   缓动 —— 它会**冲过目标再回弹**，这就是回弹感的来源（普通 ease-out 落位很平）。
+   拖尾是一层沿速度方向旋转、拉伸的渐变，飞入时最亮最长，落位后淡出。
+2. **随机排布**：初始位置用「网格 + 格内抖动」，并保证**格子边长 ≥ 卡片直径**，
+   所以从数学上不会一开局就重叠。位置用 `id` 做种子生成，因此每次刷新一致，
+   不会闪来闪去。
+3. **自由流动 + 碰撞**：`lib/physics.ts` 是一个纯函数 2D 物理（圆-圆弹性碰撞 +
+   边界反弹 + 微小随机扰动）。物理每帧只改 DOM 的 `transform`，**不触发 React
+   重渲染**，所以几十张卡片也很流畅。质量按半径平方算，大的更"沉"、被撞动更少。
+
+物理逻辑单独抽成模块并配了测试（`scripts/test-physics.mjs`，20 项断言）——
+因为"越界 / 挤成一团 / 速度发散"这类问题肉眼看动画很难发现，用数值断言一测就出来
+（开发时确实抓到了初始布局会重叠的 bug）。
+
+已适配 `prefers-reduced-motion`：系统开了"减少动效"时，不做飞入也不做物理，
+改成静态网格排布，避免这类用户被满屏乱动的东西打扰。
+
+---
 
 ### 文章导入（Word / Markdown）
 

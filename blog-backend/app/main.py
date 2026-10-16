@@ -15,6 +15,7 @@ from app.routers import (
     auth,
     comments,
     essay,
+    friendlink,
     life,
     log,
     music,
@@ -92,6 +93,7 @@ app.include_router(life.router)
 app.include_router(upload.router)
 app.include_router(comments.router)
 app.include_router(admin.router)
+app.include_router(friendlink.router)
 
 @app.get("/")
 def root():

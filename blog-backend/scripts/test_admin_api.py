@@ -8,6 +8,7 @@
 """
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -15,6 +16,9 @@ from sqlmodel import Session, select
 
 BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
+
+# test_guard：安全护栏 + 查询辅助（admin_id_of / ids_of）
+from test_guard import admin_id_of, ids_of, guard  # noqa: E402
 
 from app.config import settings  # noqa: E402
 from app.database import get_session  # noqa: E402
@@ -44,8 +48,10 @@ def check_true(label, cond, extra=""):
 
 # ---- 替换管理员登录依赖 ----
 with Session(engine) as db:
-    admin = db.exec(select(Admin)).first()
-if admin is None:
+    # 用 test_guard 里的辅助函数取标量 id
+    # （本版本 db.exec(select(...)).first() 返回的是 Row）
+    admin_id = admin_id_of(db, Admin)
+if admin_id is None:
     print("数据库里没有管理员，无法测试")
     raise SystemExit(0)
 
@@ -53,7 +59,7 @@ if admin is None:
 # 依赖覆盖是挂在 app 上的**全局**状态，覆盖之后再建 client 也会是已登录的。
 anon = TestClient(app)
 
-app.dependency_overrides[get_current_admin] = lambda: admin
+app.dependency_overrides[get_current_admin] = lambda: SimpleNamespace(id=admin_id)
 client = TestClient(app)
 
 TEST_LOGINS = ["__admin_test_x"]
@@ -272,8 +278,6 @@ check_true("记录了浏览器", bool(rows[0].browser), rows[0].browser)
 print("\n=== 9. 后台删除评论（连带回复与点赞）===")
 from app.models import Commenter  # noqa: E402
 
-# 安全护栏：默认拒绝在非测试库上运行（这些脚本会插入并清理数据）
-from test_guard import guard  # noqa: E402
 
 guard("test_admin_api.py")
 
