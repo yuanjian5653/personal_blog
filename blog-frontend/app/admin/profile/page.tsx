@@ -87,7 +87,7 @@ export default function AdminProfilePage() {
   if (loading) return <div>加载中...</div>;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       {/* 顶部 */}
       <div className="flex items-center justify-between">
         <div>

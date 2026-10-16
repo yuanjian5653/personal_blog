@@ -474,7 +474,7 @@ export default function AdminMusicPage() {
   const [tab, setTab] = useState<TabKey>("local");
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold">音乐管理</h1>
 

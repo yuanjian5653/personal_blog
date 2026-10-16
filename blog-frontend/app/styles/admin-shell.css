@@ -241,10 +241,14 @@
 }
 
 .admin-nav__icon {
+  /* 固定宽高 + flex 居中：图标现在是 SVG，用 flex 比 text-align 稳 */
   width: 18px;
-  text-align: center;
-  font-size: 14px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  font-size: 14px;
 }
 
 .admin-nav__label {
@@ -591,6 +595,20 @@
 .admin-shell .stat-card__icon {
   border-radius: 10px;
   font-size: 18px;
+  /* 里面现在是 SVG 图标（lucide + MorphIcon），不再是 emoji，
+     所以要自己居中并给颜色 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--adm-blue);
+}
+
+/* 导航图标同理：SVG 用 currentColor，跟随条目文字色与被选中状态 */
+.admin-shell .admin-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
 }
 
 .admin-shell .stat-card__value {
@@ -766,17 +784,19 @@
   fill: var(--adm-text-sub);
 }
 
-/* 图表里的网格线用 currentColor，透明度固定的那条线在浅底上仍然可见 */
+/* 图表里的网格线用 currentColor，浅底上仍然可见。
+   注意：环形图的中心文字与图例现在是 **HTML**（不再是 SVG <text>），
+   所以用 color 而不是 fill —— 之前这里写的是 fill，改结构后会失效。 */
 .admin-shell .donut-sub,
+.admin-shell .donut-center__name,
 .admin-shell .donut-legend__name,
 .admin-shell .donut-legend__pct,
 .admin-shell .donut-legend__empty {
   color: var(--adm-text-sub);
-  fill: var(--adm-text-sub);
 }
 
 .admin-shell .donut-total {
-  fill: var(--adm-text);
+  color: var(--adm-text);
 }
 
 .admin-shell .donut-legend__value {

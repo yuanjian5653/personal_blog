@@ -184,15 +184,86 @@ a.stat-card:hover {
   flex-shrink: 0;
 }
 
+/* 圆环 + 中心文字的定位容器 */
+.donut-svg-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* 中心文字叠在 SVG 上（原来是画在 SVG 里的 <text>，
+   改成 HTML 是为了能做"悬停切换内容"而不必重算 SVG 布局） */
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 18px;
+}
+
+.donut-center__name {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--adm-text-sub);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 扇区交互 ---------- */
+.donut-seg {
+  cursor: pointer;
+  transition: stroke-width 0.18s ease, opacity 0.18s ease;
+}
+
+.donut-seg:focus {
+  outline: none;
+}
+
+/* 聚焦时给个可见提示（键盘用户） */
+.donut-seg:focus-visible {
+  outline: 2px solid var(--adm-blue);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* 未选中的扇区变淡，让选中的那段跳出来 */
+.donut-seg.is-dimmed {
+  opacity: 0.28;
+}
+
+.donut-legend__item {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: 0 -6px;
+  transition: background 0.16s ease, opacity 0.16s ease;
+}
+
+.donut-legend__item:hover,
+.donut-legend__item.is-active {
+  background: var(--adm-row-hover);
+}
+
+.donut-legend__item.is-dimmed {
+  opacity: 0.45;
+}
+
 .donut-total {
   font-size: 22px;
   font-weight: 700;
-  fill: var(--adm-text);
+  line-height: 1.1;
+  color: var(--adm-text);
 }
 
 .donut-sub {
   font-size: 10px;
-  fill: var(--adm-text-sub);
+  color: var(--adm-text-sub);
 }
 
 .donut-legend {

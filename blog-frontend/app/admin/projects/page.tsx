@@ -133,7 +133,7 @@ export default function AdminProjectsPage() {
   const noUsername = config !== null && !config.username;
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">项目管理</h1>
         <div className="flex items-center gap-3">

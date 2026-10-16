@@ -98,7 +98,7 @@ export default function EssayEditor() {
   if (loading) return <div>加载中...</div>;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           {id ? "编辑说说" : "新建说说"}

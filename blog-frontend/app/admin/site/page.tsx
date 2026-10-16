@@ -130,7 +130,7 @@ export default function SiteConfigPage() {
   const isError = msg?.startsWith("保存失败") || msg?.startsWith("加载失败");
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">站点配置</h1>
         <button

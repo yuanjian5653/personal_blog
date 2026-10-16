@@ -1,6 +1,6 @@
 export default function AdminToolsPage() {
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">工具管理</h1>
       <div
         className="glass p-16 text-center text-sm"

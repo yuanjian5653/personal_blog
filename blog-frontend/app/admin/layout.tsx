@@ -4,6 +4,26 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  BookUser,
+  Clock,
+  ExternalLink,
+  FileText,
+  FolderGit2,
+  Image as ImageIcon,
+  Inbox,
+  LayoutDashboard,
+  Link2,
+  LogOut,
+  MessageSquare,
+  Music,
+  NotebookPen,
+  Search,
+  Settings,
+  Wrench,
+  type IconNode,
+} from "lucide";
+import { MorphIcon } from "morphicons/react";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
 import type { AdminInfo } from "@/lib/types";
 import {
@@ -14,47 +34,41 @@ import {
   saveTabs,
 } from "@/lib/adminTabs";
 
-// 侧边栏菜单分组
-const MENU_GROUPS: Array<{
-  title?: string;
-  items: Array<{ href: string; label: string; icon: string }>;
-}> = [
-  {
-    items: [{ href: "/admin/dashboard", label: "仪表盘", icon: "🏠" }],
-  },
-  {
-    title: "内容",
-    items: [
-      { href: "/admin/profile", label: "关于内容", icon: "👤" },
-      { href: "/admin/posts", label: "文章管理", icon: "📝" },
-      { href: "/admin/essays", label: "随笔管理", icon: "✍️" },
-      { href: "/admin/life", label: "生活动态", icon: "☕" },
-      { href: "/admin/music", label: "音乐管理", icon: "🎵" },
-      { href: "/admin/photos", label: "图片管理", icon: "🖼️" },
-    ],
-  },
-  {
-    title: "互动",
-    items: [
-      { href: "/admin/comments", label: "评论管理", icon: "💬" },
-      { href: "/admin/guestbook", label: "杂谈管理", icon: "📮" },
-    ],
-  },
-  {
-    title: "扩展",
-    items: [
-      { href: "/admin/projects", label: "项目管理", icon: "📦" },
-      { href: "/admin/tools", label: "工具管理", icon: "🔧" },
-      { href: "/admin/friends", label: "友链管理", icon: "🔗" },
-    ],
-  },
-  {
-    title: "系统",
-    items: [
-      { href: "/admin/site", label: "站点配置", icon: "⚙️" },
-      { href: "/admin/logs", label: "操作日志", icon: "📋" },
-    ],
-  },
+/**
+ * 侧边栏菜单（扁平列表，不再按"内容/互动/扩展/系统"分组）。
+ *
+ * 顺序按使用频率与相关性排：
+ *   总览 → 写作 → 展示 → 互动 → 站点
+ *
+ * 图标统一用 lucide-react（项目已有依赖），不再用 emoji ——
+ * emoji 的字体、颜色、基线在各系统上都不一样，放进导航很难对齐。
+ */
+const MENU: Array<{ href: string; label: string; icon: IconNode }> = [
+  // 总览
+  { href: "/admin/dashboard", label: "仪表盘", icon: LayoutDashboard },
+
+  // 写作与内容
+  { href: "/admin/posts", label: "文章管理", icon: FileText },
+  { href: "/admin/essays", label: "随笔管理", icon: NotebookPen },
+  { href: "/admin/life", label: "生活动态", icon: Inbox },
+  { href: "/admin/profile", label: "关于内容", icon: BookUser },
+
+  // 媒体
+  { href: "/admin/photos", label: "图片管理", icon: ImageIcon },
+  { href: "/admin/music", label: "音乐管理", icon: Music },
+
+  // 互动
+  { href: "/admin/comments", label: "评论管理", icon: MessageSquare },
+  { href: "/admin/guestbook", label: "杂谈管理", icon: Inbox },
+
+  // 展示与扩展
+  { href: "/admin/projects", label: "项目管理", icon: FolderGit2 },
+  { href: "/admin/friends", label: "友链管理", icon: Link2 },
+  { href: "/admin/tools", label: "工具管理", icon: Wrench },
+
+  // 系统
+  { href: "/admin/site", label: "站点配置", icon: Settings },
+  { href: "/admin/logs", label: "操作日志", icon: Clock },
 ];
 
 /** 路径 → 顶栏标题。用最长前缀匹配，子页面（如 /admin/posts/new）也能拿到标题。 */
@@ -238,38 +252,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {collapsed ? "›" : "‹"}
         </button>
 
-        {/* 菜单 */}
+        {/* 菜单（扁平列表，无分组标题） */}
         <nav className="admin-nav">
-          {MENU_GROUPS.map((group, gi) => (
-            <div className="admin-nav__group" key={gi}>
-              {group.title &&
-                (collapsed ? (
-                  // 折叠时分组标题没地方放，用一条细分隔线代替
-                  <span className="admin-nav__divider" aria-hidden="true" />
-                ) : (
-                  <div className="admin-nav__title">{group.title}</div>
-                ))}
-              <ul>
-                {group.items.map((item) => {
-                  const active = pathname.startsWith(item.href);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className={`admin-nav__link${active ? " is-active" : ""}`}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <span className="admin-nav__icon">{item.icon}</span>
-                        {!collapsed && (
-                          <span className="admin-nav__label">{item.label}</span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          <ul>
+            {MENU.map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`admin-nav__link${active ? " is-active" : ""}`}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <span className="admin-nav__icon" aria-hidden="true">
+                      <MorphIcon icon={item.icon} size={17} strokeWidth={1.9} />
+                    </span>
+                    {!collapsed && (
+                      <span className="admin-nav__label">{item.label}</span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
         {/* 底部操作 */}
@@ -279,7 +284,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="admin-nav__link"
             title={collapsed ? "返回前台" : undefined}
           >
-            <span className="admin-nav__icon">←</span>
+            <span className="admin-nav__icon" aria-hidden="true">
+              <MorphIcon icon={ExternalLink} size={17} strokeWidth={1.9} />
+            </span>
             {!collapsed && <span className="admin-nav__label">返回前台</span>}
           </Link>
           <button
@@ -288,7 +295,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="admin-nav__link admin-nav__link--danger"
             title={collapsed ? "登出" : undefined}
           >
-            <span className="admin-nav__icon">⏻</span>
+            <span className="admin-nav__icon" aria-hidden="true">
+              <MorphIcon icon={LogOut} size={17} strokeWidth={1.9} />
+            </span>
             {!collapsed && <span className="admin-nav__label">登出</span>}
           </button>
         </div>
@@ -303,18 +312,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="admin-topbar__right">
             {/* 搜索入口：真实的入口（跳到评论管理），不是假的输入框 */}
             <Link className="admin-topbar__search" href="/admin/comments">
-              <span aria-hidden="true">🔍</span>
+              <MorphIcon icon={Search} size={14} strokeWidth={2} />
               <span>搜索评论…</span>
             </Link>
 
             <TopIcon href="/admin/logs" title="操作日志">
-              🕘
+              <MorphIcon icon={Clock} size={16} strokeWidth={1.9} />
             </TopIcon>
             <TopIcon href="/admin/comments" title="评论管理">
-              💬
+              <MorphIcon icon={MessageSquare} size={16} strokeWidth={1.9} />
             </TopIcon>
-            <TopIcon href="/admin/dashboard" title="全屏看板">
-              ⤢
+            <TopIcon href="/admin/dashboard" title="仪表盘">
+              <MorphIcon icon={LayoutDashboard} size={16} strokeWidth={1.9} />
             </TopIcon>
 
             <span className="admin-topbar__user" title={admin.username}>

@@ -2,6 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  BarChart3,
+  Eye,
+  FileText,
+  FolderTree,
+  MessageSquare,
+  PenLine,
+  Tags,
+  type IconNode,
+} from "lucide";
+import { MorphIcon } from "morphicons/react";
 
 import {
   fetchDashboardStats,
@@ -11,14 +22,18 @@ import {
 import AreaChart from "@/components/admin/charts/AreaChart";
 import DonutChart from "@/components/admin/charts/DonutChart";
 
-/** 卡片图标（用 emoji，和后台其他页面保持一致的轻量风格） */
-const CARD_ICONS: Record<string, string> = {
-  published: "📄",
-  drafts: "✏️",
-  categories: "🗂️",
-  tags: "🏷️",
-  comments: "💬",
-  visitors: "👤",
+/**
+ * 卡片图标。
+ * 用 lucide 图标（配合 MorphIcon 渲染），不再用 emoji ——
+ * emoji 的字体、颜色和基线在各系统上都不一样，和侧边栏的图标风格也不统一。
+ */
+const CARD_ICONS: Record<string, IconNode> = {
+  published: FileText,
+  drafts: PenLine,
+  categories: FolderTree,
+  tags: Tags,
+  comments: MessageSquare,
+  visitors: Eye,
 };
 
 /** 卡片点击后跳哪里（有对应管理页的才给链接） */
@@ -37,7 +52,13 @@ function StatCards({ cards }: { cards: StatCard[] }) {
         const href = CARD_LINKS[c.key];
         const inner = (
           <>
-            <div className="stat-card__icon">{CARD_ICONS[c.key] ?? "📊"}</div>
+            <div className="stat-card__icon">
+              <MorphIcon
+                icon={CARD_ICONS[c.key] ?? BarChart3}
+                size={19}
+                strokeWidth={1.9}
+              />
+            </div>
             <div className="stat-card__body">
               <div className="stat-card__label">{c.label}</div>
               <div className="stat-card__value">{c.value}</div>

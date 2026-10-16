@@ -155,7 +155,7 @@ export default function AdminFriendsPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-5xl">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">友链管理</h1>
         {links && <span className="admin-muted text-xs">共 {links.length} 条</span>}

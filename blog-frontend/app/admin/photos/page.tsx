@@ -70,7 +70,7 @@ export default function AdminPhotosPage() {
   if (loading) return <div>加载中...</div>;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">图片组管理</h1>
         <button

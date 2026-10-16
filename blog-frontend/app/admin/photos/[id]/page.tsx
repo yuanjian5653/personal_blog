@@ -110,7 +110,7 @@ export default function AdminAlbumEditPage() {
   if (!album) return <div>图片组不存在</div>;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* 顶部：返回 + 标题 */}
       <div className="flex items-center gap-4">
         <button

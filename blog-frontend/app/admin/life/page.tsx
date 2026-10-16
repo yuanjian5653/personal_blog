@@ -108,7 +108,7 @@ export default function AdminLifePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* 头部 */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">生活动态</h1>
