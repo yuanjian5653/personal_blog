@@ -77,7 +77,7 @@ def _ssl_context() -> ssl.SSLContext:
     return ctx
 
 
-def _client(**kwargs) -> httpx.AsyncClient:
+def _client(no_proxy: bool = False, **kwargs) -> httpx.AsyncClient:
     """统一的 httpx 客户端。
 
     环境相关的两个坑：
@@ -91,12 +91,15 @@ def _client(**kwargs) -> httpx.AsyncClient:
          · 或设环境变量 HTTPS_PROXY，并配 NO_PROXY=localhost,127.0.0.1
            （不配 NO_PROXY 会把本机请求也塞进代理）
     2. **证书**：见 _ssl_context()，已自动兼容代理的中间人证书。
+
+    参数 no_proxy=True 表示本次**强制直连**，忽略 GITHUB_PROXY。
+    （prompt 需要它做兜底重试：api.github.com 常常直连可用但走代理失败。）
     """
     verify = _ssl_context()
     return httpx.AsyncClient(
         timeout=settings.GITHUB_TIMEOUT,
         verify=verify,
-        proxy=settings.GITHUB_PROXY,
+        proxy=None if no_proxy else settings.GITHUB_PROXY,
         **kwargs,
     )
 

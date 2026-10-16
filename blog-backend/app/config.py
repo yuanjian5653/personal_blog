@@ -59,6 +59,20 @@ class Settings:
     # 访问 GitHub 的超时（秒）
     GITHUB_TIMEOUT: float = float(os.getenv("GITHUB_TIMEOUT", "20"))
 
+    # ---- GitHub 项目展示（/projects 页面）----
+    # 展示哪个账号的仓库。留空则项目页显示"未配置"提示。
+    GITHUB_USERNAME: str = os.getenv("GITHUB_USERNAME", "")
+    # 可选的只读 token：不填也能用（公开仓库走匿名接口），
+    # 但匿名每小时只有 60 次请求，填了可以到 5000 次 —— 建议填。
+    # 只需要 public_repo 读取权限（classic token 不勾任何 scope 即可读公开仓库）。
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    # 只展示这些语言（逗号分隔，空 = 不限制）。例如：Python,TypeScript
+    GITHUB_REPO_LANGUAGES: str = os.getenv("GITHUB_REPO_LANGUAGES", "")
+    # 是否把 fork 的仓库也展示出来。
+    # 默认不展示：fork 通常不是"自己的项目"，混在一起会显得很水。
+    # 如果你的好项目里有 fork（比如基于别人的模板改的），可以设 true。
+    GITHUB_REPO_INCLUDE_FORKS: bool = _env_bool("GITHUB_REPO_INCLUDE_FORKS", False)
+
     # ---- Cookie 安全策略 ----
     # 本地开发是 http://localhost 跨端口，属于同站，用 lax 即可；
     # 生产若前后端不同域，需要 COOKIE_SAMESITE=none 且 COOKIE_SECURE=true。

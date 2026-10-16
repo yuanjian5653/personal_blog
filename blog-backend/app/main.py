@@ -21,6 +21,7 @@ from app.routers import (
     music,
     netease,
     playlist,
+    project,
     site_config,
     upload,
 )
@@ -94,6 +95,7 @@ app.include_router(upload.router)
 app.include_router(comments.router)
 app.include_router(admin.router)
 app.include_router(friendlink.router)
+app.include_router(project.router)
 
 @app.get("/")
 def root():

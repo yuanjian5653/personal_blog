@@ -1,0 +1,433 @@
+/* ============================================
+   项目页（/projects）与工具页（/tools）
+
+   两套卡片风格都要照顾：
+     · 默认 / data-card-style="glass" —— 半透明毛玻璃
+     · html[data-card-style="black"]     —— 纯黑不透明
+   颜色统一走 --card-* 变量（见 base.css），这样两种风格自动都成立；
+   只有"黑色模式下不需要模糊"这点单独覆盖。
+   ============================================ */
+
+.projects-page,
+.tools-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ---------- 页头 ---------- */
+.projects-hero,
+.tools-hero {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.projects-hero__title,
+.tools-hero__title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.projects-hero__sub,
+.tools-hero__sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.projects-error {
+  margin: 0 auto 16px;
+  max-width: 460px;
+  text-align: center;
+  font-size: 13px;
+  color: #f87171;
+}
+
+.projects-empty {
+  text-align: center;
+  padding: 56px 20px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+  border-radius: 16px;
+  border: 1px dashed var(--card-border);
+}
+
+.projects-empty__hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* ---------- 网格 ---------- */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- 项目卡片 ---------- */
+.project-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  min-height: 172px;
+
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  color: var(--card-text);
+
+  transition:
+    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--card-border));
+  box-shadow:
+    0 18px 42px -18px rgba(0, 0, 0, 0.7),
+    0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* 置顶：左侧加一条主题色竖条，比整体高亮更克制 */
+.project-card.is-pinned {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--card-border));
+}
+
+.project-card.is-pinned::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.project-card__pin {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* 骨架屏：和真实卡片同样的盒子，避免加载完成时跳动 */
+.project-card--skeleton {
+  background: color-mix(in srgb, var(--card-text) 6%, transparent);
+  border-color: transparent;
+  animation: projectPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes projectPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+
+/* ---------- 卡片内容 ---------- */
+.project-card__head {
+  position: relative;
+  z-index: 2; /* 压在整卡覆盖层之上，文字才能选中 */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  /* 让出右上角置顶图标的位置 */
+  padding-right: 22px;
+}
+
+.project-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--card-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-card__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--card-text-sub);
+}
+
+.project-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.project-card__desc,
+.project-card__topics,
+.project-card__foot {
+  /* 压在整卡覆盖层（z-index:1）之上，否则文字会被盖住、无法选中 */
+  position: relative;
+  z-index: 2;
+}
+
+.project-card__desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--card-text-sub);
+  /* 描述最多 3 行，避免长短不一导致卡片高度差太多 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* 把底部内容推下去，让不同长度的卡片的 footer 对齐 */
+  flex: 1;
+}
+
+.project-card__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-card__topic {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.project-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--card-text) 10%, transparent);
+}
+
+.project-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--card-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-card__links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.project-card__link {
+  position: relative;
+  z-index: 3; /* 高于整卡覆盖层，否则点不到 */
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--card-text-sub);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.project-card__link:hover {
+  color: var(--accent);
+}
+
+.project-card__link--primary {
+  color: var(--accent);
+}
+
+/* 整卡可点：铺一层透明的链接盖住卡片。
+   注意不能把 <a> 套在卡片外——卡片里还有别的 <a>，嵌套会 hydration 报错。 */
+.project-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* ---------- 黑色卡片模式下不需要毛玻璃 ---------- */
+html[data-card-style="black"] .project-card {
+  background: var(--card-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-card-style="black"] .projects-empty {
+  border-color: var(--card-border);
+}
+
+/* ============================================
+   工具页：开发中
+   ============================================ */
+.tools-wip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 64px 24px 72px;
+  border-radius: 18px;
+
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
+  color: var(--card-text);
+}
+
+html[data-card-style="black"] .tools-wip {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 纯 CSS 的"施工中"图标：一个锥形桶 + 三条横杆 */
+.tools-wip__icon {
+  position: relative;
+  width: 74px;
+  height: 68px;
+  margin-bottom: 4px;
+}
+
+.tools-wip__cone {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 25px solid transparent;
+  border-right: 25px solid transparent;
+  border-bottom: 62px solid color-mix(in srgb, var(--accent) 78%, transparent);
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
+.tools-wip__bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 7px;
+  border-radius: 2px;
+  background: #f8fafc;
+  opacity: 0.92;
+}
+
+.tools-wip__bar:nth-child(2) { bottom: 16px; width: 42px; }
+.tools-wip__bar:nth-child(3) { bottom: 30px; width: 30px; }
+.tools-wip__bar:nth-child(4) { bottom: 44px; width: 18px; }
+
+.tools-wip__title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--card-text);
+}
+
+.tools-wip__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--card-text-sub);
+}
+
+.tools-wip__back {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.tools-wip__back:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 尊重"减少动效"偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .project-card,
+  .project-card--skeleton {
+    transition: none !important;
+    animation: none !important;
+  }
+  .project-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+  .project-card__foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ============================================
+   后台：项目管理
+   ============================================ */
+
+.admin-proj-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12.5px;
+  color: var(--adm-text-sub, #9ca3af);
+}
+
+.admin-proj-config strong {
+  color: var(--adm-danger, #f87171);
+}
+
+/* 表格里的仓库地址与描述：可能很长，限制宽度并换行 */
+.admin-proj-url {
+  display: block;
+  max-width: 300px;
+  word-break: break-all;
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-proj-url:hover {
+  color: var(--accent);
+}
+
+.admin-proj-desc {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-proj-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-proj-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+

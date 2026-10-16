@@ -17,6 +17,7 @@ from app.models.comment import (
 )
 from app.models.pageview import PageView
 from app.models.friendlink import FriendLink
+from app.models.project import Project
 
 __all__ = [
     "Admin",
@@ -38,4 +39,5 @@ __all__ = [
     "EssayLike",
     "PageView",
     "FriendLink",
+    "Project",
 ]

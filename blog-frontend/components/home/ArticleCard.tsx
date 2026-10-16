@@ -7,7 +7,7 @@ import type { ArticleListItem } from "@/lib/types";
 import { resolveImageUrl } from "@/lib/url";
 import { parseTags } from "@/lib/tags";
 
-export default function ArticleCard({ height = 300 }: { height?: number }) {
+export default function ArticleCard({ height = 220 }: { height?: number }) {
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);

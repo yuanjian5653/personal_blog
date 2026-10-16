@@ -41,29 +41,20 @@ export default function HomePage() {
           </div>
       </div>
 
-      {/* 5. 预留功能卡片（加上浮）；友链已实现，直接跳过去 */}
+      {/* 5. 功能入口卡片（加上浮） */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { name: "项目", href: null },
-          { name: "工具", href: null },
-          { name: "友链", href: "/friends" },
-        ].map(({ name, href }) =>
-          href ? (
-            <Link key={name} href={href} className="glass p-5 card-lift">
-              <h2 className="text-base font-semibold mb-1">{name} →</h2>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                去看看我的朋友们
-              </p>
-            </Link>
-          ) : (
-            <div key={name} className="glass p-5 card-lift">
-              <h2 className="text-base font-semibold mb-1">{name}</h2>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                敬请期待
-              </p>
-            </div>
-          )
-        )}
+          { name: "项目", href: "/projects", desc: "我在 GitHub 上写的东西" },
+          { name: "工具", href: "/tools", desc: "自用的小工具（开发中）" },
+          { name: "友链", href: "/friends", desc: "去看看我的朋友们" },
+        ].map(({ name, href, desc }) => (
+          <Link key={name} href={href} className="glass p-5 card-lift">
+            <h2 className="text-base font-semibold mb-1">{name} →</h2>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              {desc}
+            </p>
+          </Link>
+        ))}
       </div>
 
       {/* 6. 底部时间 + 网站信息 */}
