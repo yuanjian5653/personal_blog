@@ -107,7 +107,12 @@ export function initialOf(name: string): string {
   return /[a-zA-Z]/.test(s[0]) ? s[0].toUpperCase() : s[0];
 }
 
-/** 由 id 生成稳定的伪随机数（0..1），用于随机初始位置而不破坏 hydration */
+/**
+ * 由 id 生成稳定的伪随机数（0..1）。
+ * 用 id 当种子而不是 Math.random：位置/偏移每次渲染都一致，
+ * 否则服务端与客户端算出的值不同会造成 hydration 不一致。
+ * 生活动态的卡片旋转角也用它。
+ */
 export function seededRandom(id: number, salt = 0): number {
   const x = Math.sin(id * 12.9898 + salt * 78.233) * 43758.5453;
   return x - Math.floor(x);

@@ -91,9 +91,7 @@
   z-index: 2;
   /* transform 每帧变，加 will-change 让浏览器提前提升图层 */
   will-change: transform;
-  /* 只过渡透明度，位置由 JS 每帧直接写，不能加 transition 否则会打架 */
-  transition: opacity 0.25s ease;
-  /* 拖动的卡片抬到最上 */
+  /* 位置完全由 JS 每帧写入，这里不要加 transition，否则会互相打架 */
   touch-action: none;
 }
 
@@ -106,50 +104,7 @@
   z-index: 10;
 }
 
-/* ---------- 拖尾（流星尾巴） ---------- */
-/* 只在飞入与拖拽时出现：JS 把 --fc-trail-alpha 设成 0 就没有尾巴，
-   并且用 transition 做淡出，避免停下来时"啪"地消失 */
-.fc-slot::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--fc-trail-len, 0px);
-  height: 55%;
-  transform-origin: left center;
-  /* 沿速度方向反向延伸 */
-  transform: translate(0, -50%) rotate(calc(var(--fc-trail-angle, 0deg) + 180deg));
-  background: linear-gradient(
-    to left,
-    color-mix(in srgb, var(--accent) 85%, transparent),
-    transparent 85%
-  );
-  opacity: var(--fc-trail-alpha, 0);
-  filter: blur(6px);
-  border-radius: 9999px;
-  pointer-events: none;
-  z-index: -1;
-  transition: opacity 0.22s ease, width 0.22s ease;
-}
-
-/* 飞入阶段：整颗流星更亮一点。
-   用 class 而不是属性选择器 —— style.setProperty 写入自定义属性后，
-   内联 style 字符串的格式不能保证，[style*="--fc-meteor: 1"] 会不可靠。 */
-.fc-slot.is-flying::after {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--accent) 40%, transparent),
-    transparent 70%
-  );
-  pointer-events: none;
-  z-index: -2;
-}
-
-/* 拖动时也加一层柔光，让它明显"被抓住了" */
+/* 拖动时加一层柔光，让它明显"被抓住了" */
 .fc-slot.is-dragging::after {
   content: "";
   position: absolute;
@@ -161,7 +116,7 @@
     transparent 72%
   );
   pointer-events: none;
-  z-index: -2;
+  z-index: -1;
 }
 
 /* ---------- 圆形卡片本体 ---------- */
@@ -299,11 +254,13 @@
   text-align: left;
   pointer-events: auto;
   color: var(--card-text);
-  background: color-mix(in srgb, var(--card-bg) 88%, rgba(10, 12, 18, 0.9));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--card-border));
-  box-shadow: 0 18px 46px -16px rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(18px) saturate(170%);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  /* 气泡要能看清：底色接近不透明（之前用 88% 透明叠加，压在彩色卡片上太透字都糊了） */
+  background: #171a22;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, #2a2f3a);
+  box-shadow: 0 18px 46px -14px rgba(0, 0, 0, 0.85);
+  /* 只留一点点模糊做边缘质感，不再依赖它提供不透明度 */
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
   /* 弹出：轻微回弹。
      只用 opacity/scale 做动画 —— 不能在 keyframes 里动 transform，
      否则会覆盖上面 translateX(-50%) 的水平居中定位。 */
@@ -338,7 +295,8 @@
   }
 }
 
-/* 小三角，指向卡片（默认在气泡下方 = 卡片在下面） */
+/* 小三角，指向卡片（默认在气泡下方 = 卡片在下面）。
+   用和气泡相同的实色，避免 inherit 在翻转后露出接缝 */
 .fc-bubble__arrow {
   position: absolute;
   bottom: -6px;
@@ -346,9 +304,9 @@
   width: 12px;
   height: 12px;
   transform: translateX(-50%) rotate(45deg);
-  background: inherit;
-  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, var(--card-border));
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, var(--card-border));
+  background: #171a22;
+  border-right: 1px solid color-mix(in srgb, var(--accent) 45%, #2a2f3a);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, #2a2f3a);
 }
 
 .fc-bubble-layer.is-below .fc-bubble__arrow {
@@ -356,8 +314,8 @@
   top: -6px;
   border-right: none;
   border-bottom: none;
-  border-left: 1px solid color-mix(in srgb, var(--accent) 40%, var(--card-border));
-  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, var(--card-border));
+  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, #2a2f3a);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 45%, #2a2f3a);
 }
 
 .fc-bubble__head {

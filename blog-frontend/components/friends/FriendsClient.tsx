@@ -7,56 +7,30 @@ import {
   hostOf,
   initialOf,
   scaleToDiameter,
-  seededRandom,
   weightToScale,
   type FriendLink,
 } from "@/lib/friendlinks";
-import { initBodies, step, type PhysicsBody } from "@/lib/physics";
+import { initBodies, isSettled, step, type PhysicsBody } from "@/lib/physics";
 import FriendCard from "@/components/friends/FriendCard";
 
-/** 流星飞入耗时（毫秒） */
-const FLY_IN_MS = 900;
-/** 飞入时从多远处飞来（相对容器尺寸的倍数） */
-const FLY_DISTANCE = 1.15;
-/** 拖拽时拖尾的强度上限 */
-const DRAG_TRAIL_ALPHA = 0.5;
+/**
+ * 落下节奏：每张卡片错开一点时间依次落下，
+ * 像往瓶子里一颗一颗放玻璃球，而不是一起倒进去。
+ */
+const DROP_STAGGER_MS = 140;
 /** 指针移动多少像素才算"拖动"而不是"点击" */
 const DRAG_THRESHOLD = 4;
-
-/**
- * 流星飞入的缓动：先冲过头一点再回弹（back-out）。
- * 这是"回弹效果"的来源 —— 普通 ease-out 落位会很平。
- */
-function easeOutBack(t: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-interface FlightState {
-  /** 起始偏移（相对最终位置） */
-  dx: number;
-  dy: number;
-  start: number;
-  /** 每张卡片错开出场，营造"一颗接一颗划过"的感觉 */
-  delay: number;
-  duration: number;
-}
+/** 松手时的最大抛出速度（跟物理的 maxSpeed 对齐） */
+const THROW_CAP = 12;
 
 interface DragState {
   id: number;
   /** 指针与卡片中心的差值，避免按下瞬间卡片"跳"到指针位置 */
   offsetX: number;
   offsetY: number;
-  /** 指针起点，用来区分点击与拖动 */
   startX: number;
   startY: number;
   moved: boolean;
-  /** 最近一次移动的位置与时间，用于松手时计算抛出速度 */
   lastX: number;
   lastY: number;
   lastT: number;
@@ -77,13 +51,17 @@ export default function FriendsClient() {
   /** 每张卡片的 DOM 节点；动画循环直接改 transform（不走 React，避免每帧重渲染） */
   const nodesRef = useRef<Map<number, HTMLDivElement>>(new Map());
   const bodiesRef = useRef<PhysicsBody[]>([]);
-  const flightsRef = useRef<Map<number, FlightState>>(new Map());
+  /**
+   * 每张卡片的"允许下落时间"。到点之前把它按在容器上方不动 ——
+   * 这样它们是一个接一个掉进来，而不是同时落下。
+   */
+  const releaseRef = useRef<Map<number, number>>(new Map());
   const dragRef = useRef<DragState | null>(null);
   const activeIdRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const sizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
-  /** 指针停在卡片上时暂停流动，方便点开气泡阅读 */
-  const pausedRef = useRef(false);
+  /** 全部静止后就不再推进物理（省 CPU，也避免残余抖动） */
+  const settledRef = useRef(false);
 
   useEffect(() => {
     activeIdRef.current = activeId;
@@ -122,7 +100,7 @@ export default function FriendsClient() {
     visualsRef.current = visuals;
   }, [visuals]);
 
-  /** 尊重"减少动效"偏好：这类用户不该被满屏乱飞的东西打扰 */
+  /** 尊重"减少动效"偏好：这类用户不该被满屏乱动的东西打扰 */
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(mq.matches);
@@ -131,7 +109,7 @@ export default function FriendsClient() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
-  /** 初始化物理体 + 流星起点 */
+  /** 初始化物理体（都排在容器上方）与下落时间表 */
   const setup = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -141,120 +119,40 @@ export default function FriendsClient() {
 
     sizeRef.current = { w, h };
 
-    // reduced-motion：不做物理、不做飞入，交给 CSS 静态网格排布
+    // reduced-motion：不做物理，交给 CSS 静态网格排布
     if (reducedMotion) {
       bodiesRef.current = [];
-      flightsRef.current.clear();
+      releaseRef.current.clear();
       return;
     }
 
-    // 保留正在拖动的状态（窗口尺寸变化时不该把拖拽打断）
-    const draggingId = dragRef.current?.id ?? null;
-
     const vs = visualsRef.current;
-    const bodies = initBodies(
+    bodiesRef.current = initBodies(
       vs.map((v) => ({ id: v.id, r: v.size / 2 })),
-      w,
-      h
+      w
     );
-    if (draggingId !== null) {
-      const old = bodiesRef.current.find((b) => b.id === draggingId);
-      const nr = bodies.find((b) => b.id === draggingId);
-      if (old && nr) {
-        nr.x = old.x;
-        nr.y = old.y;
-        nr.dragging = true;
-      }
-    }
-    bodiesRef.current = bodies;
 
+    // 依次释放：第一个立刻落，后面每个晚一点
     const now = performance.now();
-    flightsRef.current.clear();
-    bodies.forEach((b, i) => {
-      // 从容器外某处斜向飞来；角度与距离用 id 做种子，保证每次刷新一致
-      const ang = seededRandom(b.id, 7) * Math.PI * 2 - Math.PI;
-      const dist =
-        Math.max(w, h) * FLY_DISTANCE * (0.7 + seededRandom(b.id, 8) * 0.6);
-      flightsRef.current.set(b.id, {
-        dx: Math.cos(ang) * dist,
-        dy: Math.sin(ang) * dist,
-        start: now,
-        delay: i * 70 + seededRandom(b.id, 9) * 120,
-        duration: FLY_IN_MS + seededRandom(b.id, 10) * 350,
-      });
+    const release = new Map<number, number>();
+    bodiesRef.current.forEach((b, i) => {
+      release.set(b.id, now + i * DROP_STAGGER_MS);
     });
+    releaseRef.current = release;
+    settledRef.current = false;
   }, [reducedMotion]);
 
   /** 把物理状态写到 DOM */
   const paint = useCallback(() => {
     const bodies = bodiesRef.current;
-    const flights = flightsRef.current;
     const drag = dragRef.current;
-    const now = performance.now();
 
     for (const b of bodies) {
       const node = nodesRef.current.get(b.id);
       if (!node) continue;
-
-      const f = flights.get(b.id);
-      const dragging = drag?.id === b.id;
-      let dx = 0;
-      let dy = 0;
-      let flying = false;
-      let flyProgress = 0;
-
-      if (f) {
-        const t = (now - f.start - f.delay) / f.duration;
-        if (t <= 0) {
-          // 还没轮到它出场：藏在起点，完全透明
-          node.style.opacity = "0";
-          node.style.transform = `translate3d(${b.x - b.r + f.dx}px, ${
-            b.y - b.r + f.dy
-          }px, 0)`;
-          continue;
-        }
-        if (t < 1) {
-          flying = true;
-          flyProgress = t;
-          // 位置：从起点滑向目标，用回弹缓动
-          const e = easeOutBack(t);
-          dx = f.dx * (1 - e);
-          dy = f.dy * (1 - e);
-          // 透明度用更"直"的曲线，避免回弹段又变透明
-          node.style.opacity = String(Math.min(1, easeOutCubic(t * 1.6)));
-        } else {
-          flights.delete(b.id);
-          node.style.opacity = "1";
-        }
-      }
-
       // 位移用 transform，交给合成器，避免触发布局
-      node.style.transform = `translate3d(${b.x - b.r + dx}px, ${
-        b.y - b.r + dy
-      }px, 0)`;
-
-      // ---- 拖尾 ----
-      // 只在「飞入」和「被手拖动」时出现。
-      // 自由流动时**不画尾迹** —— 那是持续的缓慢漂移，一直拖着尾巴会显得很脏。
-      const speed = Math.hypot(b.vx, b.vy);
-      const ang = (Math.atan2(b.vy, b.vx) * 180) / Math.PI;
-      let alpha = 0;
-      let len = 0;
-
-      if (flying) {
-        alpha = 0.55 * Math.max(0, 1 - flyProgress * 1.15);
-        len = 90 + (1 - flyProgress) * 160;
-      } else if (dragging) {
-        // 拖得越快，尾巴越长越亮
-        alpha = DRAG_TRAIL_ALPHA * Math.min(1, 0.4 + speed * 0.55);
-        len = 70 + Math.min(240, speed * 90);
-      }
-
-      node.style.setProperty("--fc-trail-angle", `${ang}deg`);
-      node.style.setProperty("--fc-trail-len", `${len}px`);
-      node.style.setProperty("--fc-trail-alpha", String(alpha));
-      node.classList.toggle("is-flying", flying);
-      node.classList.toggle("is-dragging", dragging);
+      node.style.transform = `translate3d(${b.x - b.r}px, ${b.y - b.r}px, 0)`;
+      node.classList.toggle("is-dragging", drag?.id === b.id);
     }
 
     // ---- 气泡跟随卡片 ----
@@ -267,15 +165,12 @@ export default function FriendsClient() {
       const node = nodesRef.current.get(aid);
       if (b && node) {
         const { w, h } = sizeRef.current;
-        // 拖动中卡片位置已经写进 body，直接用它
-        const cx = b.x;
-        const cy = b.y;
-        bubble.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+        bubble.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)`;
         // 上方空间不够就翻到下面；左右贴边时把气泡往内推
-        bubble.classList.toggle("is-below", cy < b.r + 170);
-        bubble.classList.toggle("is-near-left", cx < 150);
-        bubble.classList.toggle("is-near-right", cx > w - 150);
-        bubble.classList.toggle("is-near-bottom", cy > h - 120);
+        bubble.classList.toggle("is-below", b.y < b.r + 170);
+        bubble.classList.toggle("is-near-left", b.x < 150);
+        bubble.classList.toggle("is-near-right", b.x > w - 150);
+        bubble.classList.toggle("is-near-bottom", b.y > h - 120);
       }
     }
   }, []);
@@ -288,19 +183,33 @@ export default function FriendsClient() {
   const loopRef = useRef<(now: number) => void>(() => {});
 
   useEffect(() => {
-    loopRef.current = () => {
+    loopRef.current = (now: number) => {
       const { w, h } = sizeRef.current;
-      // 有卡片还在飞入时不推进物理 —— 否则"落点"一直移动，落位看起来在抖
-      const flying = flightsRef.current.size > 0;
-      if (!flying && w > 0 && h > 0) {
-        // 拖动中也要跑 step：拖动的圆会把其它圆推开（碰撞），
-        // 只是它自己不参与积分（见 physics.ts 里的 dragging 分支）
-        if (dragRef.current !== null) {
-          step(bodiesRef.current, w, h);
-        } else if (!pausedRef.current) {
-          step(bodiesRef.current, w, h);
+      const bodies = bodiesRef.current;
+
+      if (w > 0 && h > 0 && bodies.length > 0) {
+        // 还没到下落时间的卡片：按在容器上方不动
+        const release = releaseRef.current;
+        for (const b of bodies) {
+          const at = release.get(b.id);
+          if (at === undefined) continue;
+          if (now < at) {
+            b.vx = 0;
+            b.vy = 0;
+          } else {
+            release.delete(b.id); // 到点了，交给物理
+          }
+        }
+
+        // 全部静止后就不再推进（拖动时例外）
+        if (!settledRef.current || dragRef.current !== null) {
+          step(bodies, w, h);
+          if (releaseRef.current.size === 0 && isSettled(bodies)) {
+            settledRef.current = true;
+          }
         }
       }
+
       paint();
       rafRef.current = requestAnimationFrame((t) => loopRef.current(t));
     };
@@ -334,7 +243,7 @@ export default function FriendsClient() {
   }, [setup]);
 
   // ---------------------------------------------------------------
-  // 拖拽：长按拖动卡片，可把别的卡片撞开，拖动时有拖尾
+  // 拖拽：长按拖动卡片，可把别的卡片撞开
   // ---------------------------------------------------------------
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -343,6 +252,10 @@ export default function FriendsClient() {
     const rect = el.getBoundingClientRect();
     const px = e.clientX - rect.left;
     const py = e.clientY - rect.top;
+
+    // 气泡内的点击（例如"访问站点"链接）不触发拖动
+    const target = e.target as HTMLElement;
+    if (target.closest(".fc-bubble")) return;
 
     // 找出指针下"最上层"的卡片：后画的在上面，所以从后往前找
     const bodies = bodiesRef.current;
@@ -356,9 +269,8 @@ export default function FriendsClient() {
     }
     if (!hit) return;
 
-    // 气泡内的点击（例如"访问站点"链接）不触发拖动
-    const target = e.target as HTMLElement;
-    if (target.closest(".fc-bubble")) return;
+    // 抓住就把"已静止"解除，物理重新跑起来
+    settledRef.current = false;
 
     dragRef.current = {
       id: hit.id,
@@ -373,8 +285,8 @@ export default function FriendsClient() {
       vx: 0,
       vy: 0,
     };
-    // 指针捕获加在舞台上（而不是卡片按钮上）：卡片的位置在移动，
-    // 捕获在舞台上能让拖动更稳，也不会干扰气泡里的链接点击
+    // 指针捕获加在舞台上（而不是卡片上）：卡片位置在移动，
+    // 捕在舞台上拖动更稳，也不会干扰气泡里的链接点击
     try {
       el.setPointerCapture(e.pointerId);
     } catch {
@@ -392,7 +304,7 @@ export default function FriendsClient() {
 
     if (!drag.moved) {
       const dist = Math.hypot(px - drag.startX, py - drag.startY);
-      if (dist < DRAG_THRESHOLD) return; // 还没到阈值，不算拖动（保留点击语义）
+      if (dist < DRAG_THRESHOLD) return; // 还没到阈值，保留点击语义
       drag.moved = true;
       const body = bodiesRef.current.find((b) => b.id === drag.id);
       if (body) body.dragging = true;
@@ -413,7 +325,7 @@ export default function FriendsClient() {
     drag.lastY = py;
     drag.lastT = now;
 
-    // 直接给位置（拖动中的圆不参与积分，所以这里是唯一的位置来源）
+    // 直接给位置（拖动中的圆不参与积分，这里是唯一的位置来源）
     body.x = px - drag.offsetX;
     body.y = py - drag.offsetY;
     body.vx = drag.vx;
@@ -429,12 +341,11 @@ export default function FriendsClient() {
     const body = bodiesRef.current.find((b) => b.id === drag.id);
     if (body) {
       body.dragging = false;
-      // 抛出：速度上限跟物理的 maxSpeed 对齐，避免松手后瞬移
+      // 抛出：速度超过上限就夹到上限，避免松手后瞬移
       const sp = Math.hypot(drag.vx, drag.vy);
-      const cap = 1.6;
-      if (sp > cap) {
-        body.vx = (drag.vx / sp) * cap;
-        body.vy = (drag.vy / sp) * cap;
+      if (sp > THROW_CAP) {
+        body.vx = (drag.vx / sp) * THROW_CAP;
+        body.vy = (drag.vy / sp) * THROW_CAP;
       } else {
         body.vx = drag.vx;
         body.vy = drag.vy;
@@ -472,7 +383,7 @@ export default function FriendsClient() {
 
       {error && <p className="friends-error">加载失败：{error}</p>}
 
-      {/* 舞台：卡片在这里自由流动、也可被拖动 */}
+      {/* 舞台：卡片从上方落入、落定后静止；也可以被拖动 */}
       <div
         ref={containerRef}
         className={`friends-stage${reducedMotion ? " is-static" : ""}`}
@@ -496,29 +407,16 @@ export default function FriendsClient() {
                 if (el) nodesRef.current.set(link.id, el);
                 else nodesRef.current.delete(link.id);
               }}
-              onPointerEnter={() => {
-                pausedRef.current = true;
-              }}
-              onPointerLeave={() => {
-                pausedRef.current = false;
-              }}
             >
-              <FriendCard
-                link={link}
-                visual={v}
-                active={activeId === link.id}
-              />
+              <FriendCard link={link} visual={v} active={activeId === link.id} />
             </div>
           );
         })}
 
-        {/* 气泡层：放在舞台里，但用 fixed 定位 + 高层级，
-            避免被舞台的 overflow:hidden 以及其它卡片挡住 */}
+        {/* 气泡层：独立一层，避免被舞台的 overflow:hidden 和其它卡片裁掉/盖住 */}
         <div
           ref={bubbleRef}
-          className={`fc-bubble-layer${
-            activeId === null ? " is-hidden" : ""
-          }`}
+          className={`fc-bubble-layer${activeId === null ? " is-hidden" : ""}`}
         >
           {activeLink && <FriendBubble link={activeLink} />}
         </div>
