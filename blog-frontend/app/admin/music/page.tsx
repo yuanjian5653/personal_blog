@@ -149,7 +149,7 @@ function LocalSection() {
           placeholder="搜索歌曲..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          className="admin-input"
+          className="admin-input admin-input--compact"
         />
       </div>
 
@@ -392,7 +392,7 @@ function NeteaseSection() {
           onChange={(e) => setCookieInput(e.target.value)}
           rows={3}
           placeholder="粘贴 MUSIC_U 的值（很长一串）"
-          className="admin-input"
+          className="admin-textarea"
         />
 
         <div className="flex justify-end">

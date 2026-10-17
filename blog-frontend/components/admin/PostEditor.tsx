@@ -243,7 +243,7 @@ export default function ArticleEditor() {
             value={data.excerpt}
             onChange={(e) => update("excerpt", e.target.value)}
             rows={3}
-            className="admin-input"
+            className="admin-textarea"
           />
         </div>
 

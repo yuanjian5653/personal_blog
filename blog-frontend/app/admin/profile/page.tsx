@@ -158,7 +158,7 @@ export default function AdminProfilePage() {
                   rows={field.rows || 4}
                   placeholder={field.placeholder}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="admin-input"
+                  className="admin-textarea"
                   style={{ fontFamily: field.key.includes("content") ? "var(--font-geist-mono), monospace" : undefined }}
                 />
               ) : field.type === "color" ? (
@@ -173,7 +173,7 @@ export default function AdminProfilePage() {
                     type="text"
                     value={configs[field.key] ?? ""}
                     onChange={(e) => update(field.key, e.target.value)}
-                    className="admin-input"
+                    className="admin-input admin-input--grow"
                   />
                 </div>
               ) : (

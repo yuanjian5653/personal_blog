@@ -157,7 +157,7 @@ export default function AdminAlbumEditPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="admin-input"
+            className="admin-textarea"
           />
         </div>
 

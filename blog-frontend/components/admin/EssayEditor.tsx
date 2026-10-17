@@ -166,7 +166,7 @@ export default function EssayEditor() {
             onChange={(e) => update("content", e.target.value)}
             rows={8}
             placeholder="随手写点什么..."
-            className="admin-input"
+            className="admin-textarea"
             style={{ lineHeight: 1.7 }}
           />
         </div>

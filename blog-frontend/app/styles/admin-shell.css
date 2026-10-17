@@ -644,6 +644,27 @@
   color: var(--adm-text);
   outline: none;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  /* 关键：admin-input 取代了原来的 Tailwind w-full。
+     input 的默认宽度只有约 20 个字符，不显式给宽度就会变得极窄
+     （编辑文章的摘要/正文输入框就是因为这个变窄的）。
+     box-sizing 让 padding 算进 100%，避免撑出父容器。 */
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* 与同一行的其它控件并排时用这个（原来是 flex-1）：
+   不能写 100%，否则会把同行控件挤走，交给 flex 均分。 */
+.admin-shell .admin-input--grow {
+  width: auto;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* 固定窄宽（原来是 ml-auto w-64），例如列表页右上角的搜索框 */
+.admin-shell .admin-input--compact {
+  width: 16rem;
+  margin-left: auto;
 }
 
 .admin-shell .admin-field textarea,

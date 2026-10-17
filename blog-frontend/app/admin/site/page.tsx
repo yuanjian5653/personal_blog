@@ -194,7 +194,7 @@ export default function SiteConfigPage() {
                   value={configs[field.key] ?? ""}
                   rows={3}
                   onChange={(e) => update(field.key, e.target.value)}
-                  className="admin-input"
+                  className="admin-textarea"
                 />
               ) : field.type === "color" ? (
                 /* ===== 颜色选择 ===== */
@@ -209,7 +209,7 @@ export default function SiteConfigPage() {
                     type="text"
                     value={configs[field.key] ?? ""}
                     onChange={(e) => update(field.key, e.target.value)}
-                    className="admin-input"
+                    className="admin-input admin-input--grow"
                   />
                 </div>
               ) : field.type === "select" ? (
