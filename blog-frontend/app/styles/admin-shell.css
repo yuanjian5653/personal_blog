@@ -711,6 +711,12 @@
   color: #fff;
   border: 1px solid transparent;
   transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  /* 按钮文字一律不换行：否则在 flex 行里被挤窄时会变成"一字一行"的竖排
+     （"新建文章"按钮被挤扁就是这个样子）。白空间不允许换行，
+     宽度不够时宁可让父容器换行（配合 flex-wrap）。 */
+  white-space: nowrap;
+  /* 按钮不参与 flex 收缩，避免被同行的输入框或长文本压扁 */
+  flex-shrink: 0;
 }
 
 .admin-shell .admin-btn:hover:not(:disabled) {
@@ -729,6 +735,15 @@
   border-color: #d8dce2;
   color: var(--adm-text);
   opacity: 1;
+}
+
+/* 后台所有按钮一律不换行。
+   保底措施：有些按钮是内联样式写的（background: var(--adm-blue)），
+   没走 .admin-btn。一旦同一行有元素被撑宽，它们会被压到只剩几像素，
+   文字就变成"一字一行"的竖排。nowrap 让按钮的 min-content 宽度
+   等于文字宽度，flex 也就没法把它压得更窄。 */
+.admin-shell button {
+  white-space: nowrap;
 }
 
 /* ---------- 表格 ---------- */

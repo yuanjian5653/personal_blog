@@ -89,7 +89,7 @@ export default function AdminPostsPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="admin-input"
+            className="admin-btn admin-btn--ghost"
             title="导入 Word (.docx) 或 Markdown (.md) 文件，自动转成正文"
           >
             {importing ? "解析中..." : "📄 导入文档"}

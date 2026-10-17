@@ -140,7 +140,7 @@ export default function AdminPhotosPage() {
             <div className="flex gap-3 justify-end pt-2">
               <button
                 onClick={() => setShowCreate(false)}
-                className="admin-input"
+                className="admin-btn admin-btn--ghost"
               >
                 取消
               </button>
@@ -204,7 +204,7 @@ export default function AdminPhotosPage() {
                 <div className="flex gap-2 pt-2">
                   <Link
                     href={`/admin/photos/${album.id}`}
-                    className="admin-input"
+                    className="admin-btn admin-btn--ghost"
                   >
                     编辑
                   </Link>

@@ -80,7 +80,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="admin-input"
+            className="admin-btn admin-btn--ghost"
           >
             {open ? "收起图库" : "从图库选择"}
           </button>
@@ -88,7 +88,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="admin-input"
+            className="admin-btn admin-btn--ghost"
           >
             {uploading ? "上传中..." : "上传新图"}
           </button>

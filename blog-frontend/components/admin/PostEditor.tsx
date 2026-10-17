@@ -165,7 +165,7 @@ export default function ArticleEditor() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/admin/posts")}
-            className="admin-input"
+            className="admin-btn admin-btn--ghost"
           >
             返回
           </button>

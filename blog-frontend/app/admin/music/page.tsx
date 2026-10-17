@@ -139,7 +139,7 @@ function LocalSection() {
 
         <button
           onClick={handleScan}
-          className="admin-input"
+          className="admin-btn admin-btn--ghost"
         >
           手动扫描目录
         </button>

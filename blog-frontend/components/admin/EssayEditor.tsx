@@ -106,7 +106,7 @@ export default function EssayEditor() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/admin/essays")}
-            className="admin-input"
+            className="admin-btn admin-btn--ghost"
           >
             返回
           </button>

@@ -291,7 +291,7 @@ export default function AdminLifePage() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setEditing(null)}
-                className="admin-input"
+                className="admin-btn admin-btn--ghost"
               >
                 取消
               </button>
