@@ -4,14 +4,13 @@
 import logging
 import os
 import re
-import tempfile
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session, func, select
 
-from app.constants import DOCUMENT_EXTENSIONS, MARKDOWN_EXTENSIONS
+from app.constants import MARKDOWN_EXTENSIONS
 from app.database import get_session
 from app.deps import get_current_admin
 from app.models import Admin, Article
@@ -287,9 +286,9 @@ def delete_article(
     db.commit()
     return {"message": "已删除"}
 
-# ==================== Word 导入 ====================
+# ==================== Markdown 导入 ====================
 
-MAX_WORD_SIZE = 20 * 1024 * 1024  # 20MB
+MAX_DOCUMENT_SIZE = 20 * 1024 * 1024  # 20MB
 
 
 def _decode_text(raw: bytes) -> str:
@@ -359,11 +358,10 @@ async def parse_document(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """
-    上传文档并转成 Markdown 正文。
+    上传 Markdown 文档并转成文章正文。
 
-    支持：
-      · .md / .markdown —— 本身就是 Markdown，直接读文本（不做任何改写）
-      · .docx          —— 用 MarkItDown 转成 Markdown
+    只支持 .md / .markdown —— 它本身就是编辑器使用的格式，直接读文本，
+    不做任何改写、不加任何依赖。
 
     返回 {title, content, filename}，**不写数据库**，
     由前端填入编辑器、确认分类标签后再保存。
@@ -373,66 +371,30 @@ async def parse_document(
     original = Path(file.filename or "")
     ext = original.suffix.lower()
 
-    if ext not in DOCUMENT_EXTENSIONS:
+    if ext not in MARKDOWN_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"仅支持 {', '.join(sorted(DOCUMENT_EXTENSIONS))} 格式",
+            detail=f"仅支持 {', '.join(sorted(MARKDOWN_EXTENSIONS))} 格式",
         )
 
     raw = await file.read()
-    if len(raw) > MAX_WORD_SIZE:
+    if len(raw) > MAX_DOCUMENT_SIZE:
         raise HTTPException(status_code=400, detail="文件过大（>20MB）")
     if not raw:
         raise HTTPException(status_code=400, detail="文件是空的")
 
     fallback_title = original.stem or "未命名文章"
 
-    # ---------- Markdown：直接当正文 ----------
-    if ext in MARKDOWN_EXTENSIONS:
-        text = _decode_text(raw)
-        if not text.strip():
-            raise HTTPException(status_code=400, detail="文件内容为空")
+    text = _decode_text(raw)
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="文件内容为空")
 
-        # 原样返回，不做任何格式转换或清理 ——
-        # 用户写好的 Markdown 不该被我们改写。
-        content = text.replace("\r\n", "\n")
-        return {
-            "title": _title_from_markdown(content, fallback_title),
-            "content": content,
-            "filename": original.name,
-            "source": "markdown",
-        }
-
-    # ---------- Word：交给 markitdown ----------
-    from markitdown import MarkItDown
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-        tmp.write(raw)
-        tmp_path = Path(tmp.name)
-
-    try:
-        result = MarkItDown().convert(str(tmp_path))
-
-        # markitdown 版本不同，字段名不同
-        markdown = getattr(result, "text_content", None) or getattr(
-            result, "markdown", ""
-        )
-
-        if not markdown.strip():
-            raise HTTPException(status_code=400, detail="文档内容为空")
-
-        return {
-            "title": fallback_title,
-            "content": markdown,
-            "filename": original.name,
-            "source": "word",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("[文档导入] 解析失败：%s", original.name)
-        raise HTTPException(status_code=500, detail=f"解析失败：{e}")
-    finally:
-        # 清理临时文件（不存在也不报错）
-        tmp_path.unlink(missing_ok=True)
+    # 原样返回，不做任何格式转换或清理 ——
+    # 用户写好的 Markdown 不该被我们改写；只统一换行符。
+    content = text.replace("\r\n", "\n")
+    return {
+        "title": _title_from_markdown(content, fallback_title),
+        "content": content,
+        "filename": original.name,
+        "source": "markdown",
+    }

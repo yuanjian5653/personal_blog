@@ -10,7 +10,7 @@ import { resolveImageUrl } from "@/lib/url";
 import { useRouter } from "next/navigation";
 
 export default function AdminPostsPage() {
-  // Word 导入相关
+  // Markdown 导入相关
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function AdminPostsPage() {
     load();
   }, []);
 
-    // 处理文档导入（Word .docx 或 Markdown .md）
+    // 处理 Markdown 导入（.md / .markdown）
   const handleWordImport = async (file: File) => {
     setImporting(true);
     setImportError(null);
@@ -85,19 +85,19 @@ export default function AdminPostsPage() {
         <h1 className="text-2xl font-bold">文章管理</h1>
 
         <div className="flex items-center gap-3">
-          {/* 导入文档：Word / Markdown 都转成 Markdown 正文 */}
+          {/* 导入 Markdown：读 .md 原文填进编辑器（Word 请先另存为 .md） */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
             className="admin-btn admin-btn--ghost"
-            title="导入 Word (.docx) 或 Markdown (.md) 文件，自动转成正文"
+            title="导入 Markdown (.md / .markdown) 文件，自动填入正文。Word 文档请先在 Word/WPS 里另存为 .md"
           >
-            {importing ? "解析中..." : "📄 导入文档"}
+            {importing ? "解析中..." : "📄 导入 Markdown"}
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".docx,.md,.markdown"
+            accept=".md,.markdown"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

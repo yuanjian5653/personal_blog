@@ -58,7 +58,7 @@ export default function Navbar() {
           className="text-lg font-bold tracking-wide flex-shrink-0"
           id="site-logo"
         >
-          我的一片天
+          远见YuanJian
         </Link>
 
         {/* 右：导航 + 主题切换 */}

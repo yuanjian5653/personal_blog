@@ -146,6 +146,9 @@ for label, raw in encodings:
 print("\n=== 4. 扩展名白名单 ===")
 for name, ok in [
     ("a.md", True), ("a.markdown", True), ("a.MD", True),
+    # Word 导入已移除（markitdown 会拖 150MB 间接依赖），必须被拒绝：
+    # 需要 Word 时先在 Word/WPS 里另存为 .md。
+    ("a.docx", False), ("a.doc", False),
     ("a.txt", False), ("a.pdf", False), ("a.exe", False),
 ]:
     r = client.post(

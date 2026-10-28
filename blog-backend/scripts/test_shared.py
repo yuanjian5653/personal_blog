@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.constants import (  # noqa: E402
     AUDIO_EXTENSIONS,
     IMAGE_EXTENSIONS,
+    MARKDOWN_EXTENSIONS,
     SUPPORTED_AUDIO_EXTENSIONS,
-    WORD_EXTENSIONS,
 )
 from app.routers.article import calc_stats, make_slug  # noqa: E402
 from app.services.log_service import (  # noqa: E402
@@ -122,7 +122,8 @@ check("音频只收 mp3/m4a（与 metadata 解析能力一致）",
       sorted(SUPPORTED_AUDIO_EXTENSIONS), [".m4a", ".mp3"])
 check("图片含 bmp（upload.py 原本就收）", ".bmp" in IMAGE_EXTENSIONS, True)
 check("图片含 avif", ".avif" in IMAGE_EXTENSIONS, True)
-check("Word 只收 docx", sorted(WORD_EXTENSIONS), [".docx"])
+# 文章导入只支持 Markdown（Word/.docx 已移除，见 app/constants.py 的说明）
+check("文档导入只收 Markdown", sorted(MARKDOWN_EXTENSIONS), [".markdown", ".md"])
 
 print()
 if FAILURES:

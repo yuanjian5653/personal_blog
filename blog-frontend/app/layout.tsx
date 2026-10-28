@@ -39,7 +39,7 @@ const geistMono = Geist_Mono({
  *   个人博客没必要，这里取简单方案。）
  */
 export const metadata: Metadata = {
-  title: "我的一片天",
+  title: "远见YuanJian",
   description: "个人博客 · 音乐 · 文章 · 图片",
 };
 
@@ -63,7 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             className="text-center text-sm py-8"
             style={{ color: "var(--text-secondary)" }}
           >
-            © {new Date().getFullYear()} 我的一片天
+            © {new Date().getFullYear()} 远见YuanJian
           </footer>
           {/* 全局播放条，固定底部 */}
           <PlayerBar />

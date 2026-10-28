@@ -11,6 +11,7 @@ import {
 import type { Song } from "@/lib/types";
 import { getCoverUrl, getStreamUrl } from "@/lib/types";
 import type { APlayerInstance } from "@/lib/aplayer";
+import { api } from "@/lib/api";
 
 export type PlayMode = "order" | "loop" | "single";
 
@@ -87,36 +88,62 @@ function toAPlayerAudio(song: Song) {
   // 所以这里 lrc 固定为空，也不再计算 lrc 地址。
 }
 
-/* ============ sessionStorage 持久化 ============ */
-const PLAYER_STATE_KEY = "player_state_v1";
+/* ============ 播放状态持久化 ============ */
+//
+// 用 localStorage 而不是 sessionStorage：
+//   sessionStorage 的作用域是**单个标签页**，关掉浏览器/标签就没了，
+//   所以以前每次重新进入网站播放器都会重置（歌单空、回到"点击音乐页开始播放"）。
+//   localStorage 跨会话保留，再配合下面保存的 currentTime，
+//   下次打开能接着上次的位置继续。
+//
+// 版本号 v2：数据结构和 v1 不兼容（新增 currentTime / playMode），
+// 换 key 可以避免读到旧结构导致异常。
+const PLAYER_STATE_KEY = "player_state_v2";
 
-function savePlayerState(
-  playlist: Song[],
-  currentIndex: number,
-  currentSong: Song | null
-) {
-  if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(
-      PLAYER_STATE_KEY,
-      JSON.stringify({ playlist, currentIndex, currentSong })
-    );
-  } catch {}
-}
-
-function loadPlayerState(): {
+/** 一次播放会话的完整快照 */
+interface SavedPlayerState {
   playlist: Song[];
   currentIndex: number;
   currentSong: Song | null;
-} | null {
+  /** 上次播放到的秒数，用于恢复进度 */
+  currentTime: number;
+  playMode: PlayMode;
+}
+
+function savePlayerState(state: SavedPlayerState) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // 隐私模式 / 配额满：忽略，不影响播放
+  }
+}
+
+function loadPlayerState(): SavedPlayerState | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(PLAYER_STATE_KEY);
+    const raw = localStorage.getItem(PLAYER_STATE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Partial<SavedPlayerState>;
+    if (!Array.isArray(parsed.playlist) || parsed.playlist.length === 0) {
+      return null;
+    }
+    return {
+      playlist: parsed.playlist,
+      currentIndex: parsed.currentIndex ?? 0,
+      currentSong: parsed.currentSong ?? null,
+      currentTime: typeof parsed.currentTime === "number" ? parsed.currentTime : 0,
+      playMode: parsed.playMode ?? "order",
+    };
   } catch {
     return null;
   }
+}
+
+/** 同一首歌才恢复进度：按 source + id 判断 */
+function sameSong(a: Song | null | undefined, b: Song | null | undefined) {
+  if (!a || !b) return false;
+  return a.id === b.id && (a.source ?? "local") === (b.source ?? "local");
 }
 
 /* ============ Provider ============ */
@@ -144,12 +171,51 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const playlistRef = useRef<Song[]>([]);
   const playModeRef = useRef<PlayMode>("order");
 
+  /** 最近一次已知的播放进度（秒），用于节流写盘和恢复 */
+  const currentTimeRef = useRef(0);
+  /** 需要在音频元数据就绪后跳转到的位置（恢复上次进度） */
+  const pendingSeekRef = useRef(0);
+  /** 上次把进度写进 localStorage 的时间戳，用来节流 */
+  const lastSaveAtRef = useRef(0);
+  /** 供卸载时移除 pagehide 监听（需要在 IIFE 外持有引用） */
+  const flushStateRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     playlistRef.current = playlist;
   }, [playlist]);
   useEffect(() => {
     playModeRef.current = playMode;
   }, [playMode]);
+
+  /* ---------- 首次进入：用本地音乐填充播放器 ---------- */
+  //
+  // 目标：一进站首页音乐卡片就显示播放器（有封面/标题/进度条），
+  // 而不是"点击音乐页开始播放"的空状态。
+  //
+  // 只取本地音乐（/api/music/songs），不掺网易云 —— 本地曲目稳定可播，
+  // 不依赖 MUSIC_U Cookie，也不会因为 VIP/版权限制一进来就报错。
+  //
+  // 不自动播放：浏览器会拦截未经用户交互的带声音播放。
+  // 用户点一下播放按钮即可，且下次进入会接着上次的进度。
+  async function loadLocalSongsAsDefault(ap: APlayerInstance) {
+    try {
+      const songs = await api.get<Song[]>("/api/music/songs");
+      if (!Array.isArray(songs) || songs.length === 0) return; // 本地库为空 → 保持空状态
+      // 先同步 ref，listswitch 回调要靠它取列表
+      playlistRef.current = songs;
+      setPlaylist(songs);
+      for (const s of songs) {
+        ap.list.add(toAPlayerAudio(s));
+      }
+      try {
+        ap.list.switch(0);
+      } catch {}
+      setCurrentIndex(0);
+      setCurrentSong(songs[0]);
+    } catch {
+      // 取不到就保持空状态，不影响其它功能
+    }
+  }
 
   /* ---------- 初始化 APlayer ---------- */
   useEffect(() => {
@@ -200,17 +266,51 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setVolumeState(v);
       }
 
-      // ===== 恢复上次播放状态 =====
+      // ===== 恢复上次播放状态，没有历史则默认加载本地音乐 =====
       const saved = loadPlayerState();
-      if (saved && saved.playlist && saved.playlist.length > 0) {
+      if (saved) {
+        // —— 有历史：恢复歌单、当前曲、进度、播放模式 ——
         for (const s of saved.playlist) {
           ap.list.add(toAPlayerAudio(s));
         }
         playlistRef.current = saved.playlist;
         setPlaylist(saved.playlist);
-        setCurrentIndex(saved.currentIndex ?? 0);
-        setCurrentSong(saved.currentSong ?? saved.playlist[0]);
-        // 不自动播放（浏览器策略）
+
+        // 定位到上次那首歌：优先用保存的 currentSong，找不到就退回索引
+        const savedIdx = saved.currentSong
+          ? saved.playlist.findIndex((s) => sameSong(s, saved.currentSong))
+          : -1;
+        const idx =
+          savedIdx >= 0
+            ? savedIdx
+            : Math.min(Math.max(saved.currentIndex, 0), saved.playlist.length - 1);
+
+        const mode = saved.playMode ?? "order";
+        setPlayModeState(mode);
+        playModeRef.current = mode;
+
+        setCurrentIndex(idx);
+        setCurrentSong(saved.playlist[idx]);
+
+        // 只有确实是同一首歌，才恢复播放进度
+        if (sameSong(saved.playlist[idx], saved.currentSong) && saved.currentTime > 0) {
+          pendingSeekRef.current = saved.currentTime;
+          currentTimeRef.current = saved.currentTime;
+          setCurrentTime(saved.currentTime);
+        }
+
+        // 让 APlayer 内部索引与 React 状态对齐。
+        // （以前只 setState 不同步 APlayer，导致"恢复后点下一首会跳错歌"）
+        try {
+          ap.list.switch(idx);
+        } catch {}
+
+        // 注意：不自动播放 —— 浏览器会拦截"未经用户交互的带声音播放"。
+        // 播放器会显示出来并停在上次的位置，用户点一下播放即可继续。
+      } else {
+        // —— 首次进入：默认把本地音乐填进播放器 ——
+        // 这样首页音乐卡片一进站就显示播放器，而不是"点击音乐页开始播放"。
+        await loadLocalSongsAsDefault(ap);
       }
 
       // ===== 事件监听 =====
@@ -219,15 +319,58 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         // 能播起来了就清掉上一次的失败提示
         setPlayError(null);
       });
-      ap.on("pause", () => setIsPlaying(false));
 
       ap.on("timeupdate", () => {
-        setCurrentTime(ap.audio?.currentTime || 0);
+        const t = ap.audio?.currentTime || 0;
+        currentTimeRef.current = t;
+        setCurrentTime(t);
+
+        // 节流写盘：每 5 秒存一次进度。
+        // 不做节流的话 timeupdate 大约每 250ms 触发一次，
+        // localStorage 是同步写，频繁写会拖慢主线程。
+        const now = Date.now();
+        if (now - lastSaveAtRef.current >= 5000) {
+          lastSaveAtRef.current = now;
+          savePlayerState({
+            playlist: playlistRef.current,
+            currentIndex: ap.list.index,
+            currentSong: currentSongRef.current,
+            currentTime: t,
+            playMode: playModeRef.current,
+          });
+        }
       });
 
       ap.on("loadedmetadata", () => {
         setDuration(ap.audio?.duration || 0);
+        // 恢复上次进度：必须等元数据就绪后才能 seek，
+        // 否则 currentTime 赋值会被浏览器忽略。
+        const pending = pendingSeekRef.current;
+        if (pending > 0) {
+          pendingSeekRef.current = 0;
+          try {
+            ap.seek(pending);
+          } catch {}
+        }
       });
+
+      // 暂停 / 页面隐藏时立刻把进度落盘，避免"关页面丢掉最后几秒"
+      const flushState = () => {
+        if (playlistRef.current.length === 0) return;
+        savePlayerState({
+          playlist: playlistRef.current,
+          currentIndex: ap.list.index,
+          currentSong: currentSongRef.current,
+          currentTime: currentTimeRef.current,
+          playMode: playModeRef.current,
+        });
+      };
+      flushStateRef.current = flushState;
+      ap.on("pause", () => {
+        setIsPlaying(false);
+        flushState();
+      });
+      window.addEventListener("pagehide", flushState);
 
       // APlayer 内部切歌（用户点下一首 / 播完自动下一首 / 播放失败的自动跳过）
       //
@@ -274,6 +417,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      // 先移除监听，再清引用（顺序反了就移除不掉）
+      if (flushStateRef.current) {
+        window.removeEventListener("pagehide", flushStateRef.current);
+        flushStateRef.current = null;
+      }
       if (aplayerRef.current) {
         try {
           aplayerRef.current.destroy();
@@ -290,10 +438,19 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /* ---------- 持久化播放状态 ---------- */
+  //
+  // 歌单 / 当前曲 / 播放模式变化时立即存一次；
+  // 进度由 timeupdate 里的节流逻辑单独负责（每 5 秒）。
   useEffect(() => {
     if (playlist.length === 0) return;
-    savePlayerState(playlist, currentIndex, currentSong);
-  }, [playlist, currentIndex, currentSong]);
+    savePlayerState({
+      playlist,
+      currentIndex,
+      currentSong,
+      currentTime: currentTimeRef.current,
+      playMode,
+    });
+  }, [playlist, currentIndex, currentSong, playMode]);
 
     /* ---------- 播放指定歌曲 ---------- */
   const play = useCallback((song: Song, list?: Song[]) => {
@@ -375,6 +532,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   /* ---------- 进度跳转 ---------- */
   const seek = useCallback((time: number) => {
     aplayerRef.current?.seek(time);
+    // 同步 ref，避免"刚拖完进度条就关页面"时存的是旧位置
+    currentTimeRef.current = time;
     setCurrentTime(time);
   }, []);
 
@@ -452,7 +611,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setCurrentIndex(-1);
     setCurrentTime(0);
     setDuration(0);
-    sessionStorage.removeItem(PLAYER_STATE_KEY);
+    currentTimeRef.current = 0;
+    pendingSeekRef.current = 0;
+    localStorage.removeItem(PLAYER_STATE_KEY);
   }, []);
 
     /* ---------- 频谱数据（供 TextCard 波频条用）---------- */

@@ -10,7 +10,9 @@ from app.models import SiteConfig
 # 默认配置：新增配置项只需在这里加一行
 DEFAULT_CONFIG: dict[str, str] = {
     # ---- 站点信息 ----
-    "site_title": "My Blog",
+    # 必须和前端 app/layout.tsx 的静态 metadata.title、
+    # 以及 Navbar 的 Logo 文字保持一致，否则首屏标题会闪（见 layout.tsx 注释）。
+    "site_title": "远见YuanJian",
     "site_subtitle": "个人博客 · 音乐 · 文章 · 图片",
     # ---- 作者信息 ----
     "author_name": "博主",
