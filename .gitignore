@@ -54,6 +54,10 @@ desktop.ini
 # 应用启动时会自动创建这些目录；部署时另行上传媒体文件。
 # 如需在本地保留，删除下面这段即可。
 blog-backend/media/
+# 打包上传用的压缩包（几十 MB，不要入库）
+blog-backend/*.zip
+blog-frontend/*.zip
+*.tar.gz
 
 # ---------- 一次性数据操作的结构备份（本机记录，不需要入库）----------
 blog-backend/backups/

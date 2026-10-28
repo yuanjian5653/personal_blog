@@ -50,13 +50,15 @@ export default function Navbar() {
       }}
     >
       <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-        {/* 左：Logo */}
+        {/* 左：Logo
+            这里的文字是首屏占位，必须和后台 site_title 的默认值一致，
+            否则会在 SiteConfigLoader 拉到配置前闪一下（见 app/layout.tsx 的说明）。 */}
         <Link
           href="/"
           className="text-lg font-bold tracking-wide flex-shrink-0"
           id="site-logo"
         >
-          My Blog
+          我的一片天
         </Link>
 
         {/* 右：导航 + 主题切换 */}
