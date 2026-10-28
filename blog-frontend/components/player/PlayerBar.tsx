@@ -7,6 +7,30 @@ import { usePlayer } from "./PlayerProvider";
 import { formatTime } from "@/lib/format";
 import { getCoverUrl } from "@/lib/types";
 
+/**
+ * 播放条折叠状态的存储 key。
+ *
+ * 值： "1" 收起 / "0" 展开 / 不存在 = 默认收起。
+ *
+ * 用 localStorage 而不是 sessionStorage：折叠/展开是用户的长期偏好，
+ * 应该跨会话保留。之前用 sessionStorage，关掉标签页就忘了，
+ * 每次进来又变回占满底部一整条的形态。
+ */
+const MINIMIZED_KEY = "player_bar_collapsed";
+
+/** 读取用户上次的选择；没记录过 = 默认收起 */
+function readMinimized(): boolean {
+  // 服务端渲染时没有 localStorage，按"收起"处理。
+  // 这里不会造成水合不一致：currentSong 在首帧一定是 null，
+  // 组件直接 return null，两侧输出都是空。
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(MINIMIZED_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
 export default function PlayerBar() {
   const {
     currentSong,
@@ -24,17 +48,17 @@ export default function PlayerBar() {
   } = usePlayer();
 
   const pathname = usePathname();
-  // 从 sessionStorage 读取最小化状态，切页面保持
-const [minimized, setMinimized] = useState(() => {
-  if (typeof window === "undefined") return false;
-  return sessionStorage.getItem("player_minimized") === "1";
-});
 
-// 切换最小化时写入 sessionStorage
-const toggleMinimized = (v: boolean) => {
-  setMinimized(v);
-  sessionStorage.setItem("player_minimized", v ? "1" : "0");
-};
+  // 默认收起：右下角只留一个小胶囊（封面 + 播放键 + 展开箭头），
+  // 不再默认占满屏幕底部一整条。
+  const [minimized, setMinimized] = useState(readMinimized);
+
+  const toggleMinimized = (v: boolean) => {
+    setMinimized(v);
+    try {
+      localStorage.setItem(MINIMIZED_KEY, v ? "1" : "0");
+    } catch {}
+  };
 
   if (pathname.startsWith("/admin")) return null;
   if (!currentSong) return null;
