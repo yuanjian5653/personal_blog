@@ -69,3 +69,11 @@ _*.txt
 # 排查问题时临时写的探针/调试脚本（约定以 _ 开头，用完即删）
 blog-backend/scripts/_*.py
 blog-frontend/scripts/_*
+
+# ---------- 服务器/本地操作留下的备份与日志 ----------
+# 改 .env、my.cnf 等配置时习惯性打的备份，含明文凭据，绝不能入库
+*.bak
+*.bak.*
+# 部署时用 nohup 重定向出来的构建日志
+build.log
+*.build.log
