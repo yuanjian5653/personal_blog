@@ -8,8 +8,7 @@ from sqlmodel import Session, select
 from app.models import SiteConfig
 
 # 默认配置：新增配置项只需在这里加一行
-DEFAULT_CONFIG: dict[str, str] = {
-    # ---- 站点信息 ----
+DEFAULT_CONFIG: dict[str, str] = {    # ---- 站点信息 ----
     # 必须和前端 app/layout.tsx 的静态 metadata.title、
     # 以及 Navbar 的 Logo 文字保持一致，否则首屏标题会闪（见 layout.tsx 注释）。
     "site_title": "远见YuanJian",
@@ -89,15 +88,35 @@ DEFAULT_CONFIG: dict[str, str] = {
 }
 
 
+# 绝不能出现在公开响应里的配置项 —— 它们等同于账号凭据。
+#
+# netease_music_u 是网易云的 MUSIC_U Cookie，拿到它就等于登录了站长的网易云账号。
+# GET /api/site-config 是**匿名可访问**的（前台要用它渲染主题、站点名等），
+# 所以必须在这里剔除，只对已登录的管理员返回（后台站点配置页要能看到和编辑它）。
+SECRET_CONFIG_KEYS: frozenset[str] = frozenset({"netease_music_u"})
+
+
 def get_all_configs(db: Session) -> dict[str, str]:
     """
     读取所有配置，与默认值合并。
     数据库里没存过的 key，用默认值补齐。
+
+    注意：这里返回**完整**配置（含密钥），调用方负责按访问者身份裁剪。
+    公开接口请用 public_configs()。
     """
     rows = db.exec(select(SiteConfig)).all()
     stored = {row.config_key: row.config_value for row in rows}
     # 默认值 + 已存值（已存值覆盖默认）
     return {**DEFAULT_CONFIG, **stored}
+
+
+def public_configs(db: Session) -> dict[str, str]:
+    """给匿名访客看的配置：剔除密钥类字段。"""
+    return {
+        k: v
+        for k, v in get_all_configs(db).items()
+        if k not in SECRET_CONFIG_KEYS
+    }
 
 
 def update_configs(db: Session, updates: dict[str, str]) -> dict[str, str]:

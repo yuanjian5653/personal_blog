@@ -12,7 +12,7 @@ from sqlmodel import Session, func, select
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import get_current_admin, get_current_admin_optional
 from app.models import Admin, Album, Article, Essay, Photo, Song
 from app.schemas.site_config import (
     SiteConfigResponse,
@@ -20,15 +20,26 @@ from app.schemas.site_config import (
     SiteStats,
 )
 from app.services.log_service import log_operation
-from app.services.site_config import get_all_configs, update_configs
+from app.services.site_config import get_all_configs, public_configs, update_configs
 
 router = APIRouter(prefix="/api/site-config", tags=["站点配置"])
 
 
 @router.get("", response_model=SiteConfigResponse)
-def read_configs(db: Session = Depends(get_session)):
-    """读取全部站点配置（公开）"""
-    return SiteConfigResponse(configs=get_all_configs(db))
+def read_configs(
+    db: Session = Depends(get_session),
+    admin: Admin | None = Depends(get_current_admin_optional),
+):
+    """
+    读取站点配置（公开）。
+
+    ⚠️ 匿名访问会剔除密钥类字段（见 SECRET_CONFIG_KEYS）：
+    这个接口无需登录就能调，之前把整表都返回了，导致网易云 MUSIC_U
+    （等同账号登录凭据）对任何访问者可见。现在只有已登录管理员能拿到它
+    —— 后台站点配置页需要显示和编辑该 Cookie。
+    """
+    configs = get_all_configs(db) if admin else public_configs(db)
+    return SiteConfigResponse(configs=configs)
 
 
 @router.get("/stats", response_model=SiteStats)

@@ -81,3 +81,23 @@ def get_current_admin(
         )
 
     return admin
+
+
+def get_current_admin_optional(
+    session_token: str | None = Cookie(default=None, alias="session_token"),
+    db: Session = Depends(get_session),
+) -> Admin | None:
+    """
+    和 get_current_admin 一样校验 Session，但**未登录不报错**，只返回 None。
+
+    用途：既要对公众开放、又要对管理员多返回一些字段的接口。
+    例如 GET /api/site-config —— 普通访客拿主题色、站点名等公开配置，
+    管理员额外能看到密钥类配置（网易云 MUSIC_U）。
+
+    实现上直接复用 get_current_admin 再吞掉 401，
+    这样 Cookie 解析、过期清理、错误文案都只有一份，不会出现两套判定逻辑。
+    """
+    try:
+        return get_current_admin(session_token=session_token, db=db)
+    except HTTPException:
+        return None
