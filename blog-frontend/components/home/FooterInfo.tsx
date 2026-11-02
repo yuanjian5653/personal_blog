@@ -7,7 +7,6 @@ import { formatClock } from "@/lib/format";
 export default function FooterInfo() {
   const [time, setTime] = useState("");
   const [uptime, setUptime] = useState("");
-  const [icp, setIcp] = useState("");
   const [startedAt, setStartedAt] = useState<string>("");
 
   // 时钟
@@ -42,7 +41,6 @@ export default function FooterInfo() {
     api
       .get<{ configs: Record<string, string> }>("/api/site-config")
       .then((d) => {
-        setIcp(d.configs.icp_number || "");
         setStartedAt(d.configs.site_started_at || "");
       })
       .catch(() => {});
@@ -96,8 +94,10 @@ export default function FooterInfo() {
         </span>
       </div>
 
-      {/* 备案号 */}
-      {icp && <div className="footer-info-icp">{icp}</div>}
+      {/*
+        备案号不在这里渲染 —— 已统一放到 app/layout.tsx 的全局页脚，
+        由 SiteConfigLoader 填充，这样每一页都能看到，首页也不会重复。
+      */}
     </div>
   );
 }

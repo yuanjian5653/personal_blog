@@ -56,6 +56,31 @@ export default function SiteConfigLoader() {
           const logoEl = document.getElementById("site-logo");
           if (logoEl) logoEl.textContent = configs.site_title;
         }
+
+        // ---- 备案信息（ICP 备案号 / 公网安备号）----
+        //
+        // 号码来自后台「站点配置」，写进全局页脚，所以改号码不需要重新构建。
+        // 没配置的那一项隐藏；两个都没配时整块不占位。
+        //
+        // 链接 href 写死在 layout.tsx 里（工信部/公安部备案系统），
+        // 不从配置读取，避免这里被填成任意链接。
+        const icp = (configs.icp_number || "").trim();
+        const mps = (configs.public_security_number || "").trim();
+        const filingEl = document.getElementById("footer-filing");
+        const icpEl = document.getElementById("footer-icp");
+        const icpLink = document.getElementById("footer-icp-link");
+        const mpsEl = document.getElementById("footer-mps");
+        const mpsLink = document.getElementById("footer-mps-link");
+
+        if (icpEl) icpEl.textContent = icp;
+        if (mpsEl) mpsEl.textContent = mps;
+        if (icpLink) icpLink.hidden = !icp;
+        if (mpsLink) mpsLink.hidden = !mps;
+        if (filingEl) {
+          // 显隐用 style.display：容器上带着 flex 类，
+          // 用 hidden 属性会被 Tailwind 的 display:flex 覆盖掉。
+          filingEl.style.display = icp || mps ? "flex" : "none";
+        }
       })
       .catch(() => {});
     // pathname 变化时重新拉取，这样从后台返回前台能立即生效

@@ -63,7 +63,43 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             className="text-center text-sm py-8"
             style={{ color: "var(--text-secondary)" }}
           >
-            © {new Date().getFullYear()} 远见YuanJian
+            <div>© {new Date().getFullYear()} 远见YuanJian</div>
+
+            {/*
+              备案信息（ICP 备案号 + 公网安备号）。
+              号码来自后台「站点配置」，由 SiteConfigLoader 在拉取配置后填入，
+              所以改号码不需要重新构建前端。
+
+              默认 display:none —— 没配置号码时整块不占位。
+              （不能用 hidden 属性配合 flex 类，那会被 Tailwind 的
+                display:flex 覆盖掉，所以用内联 style 控制显隐。）
+            */}
+            <div
+              id="footer-filing"
+              className="mt-2 items-center justify-center gap-3 text-xs"
+              style={{ display: "none" }}
+            >
+              <a
+                id="footer-icp-link"
+                href="https://beian.miit.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+                hidden
+              >
+                <span id="footer-icp" />
+              </a>
+              <a
+                id="footer-mps-link"
+                href="https://beian.mps.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+                hidden
+              >
+                <span id="footer-mps" />
+              </a>
+            </div>
           </footer>
           {/* 全局播放条，固定底部 */}
           <PlayerBar />
