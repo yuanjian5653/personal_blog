@@ -71,7 +71,7 @@ export default function FooterInfo() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <path d="M11.214 12.6c0 3.6-2.214 5.414-5.4 5.414-3.6 0-5.4-2.014-5.4-5.4v-6.6h1.886v6.6c0 2.4 1.014 3.6 3.514 3.6s3.514-1.2 3.514-3.6v-6.6h1.886v6.586zM17.786 18h-1.886V6h1.886v12z" />
           </svg>
-          Next.js 15
+          Next.js 16
         </span>
 
         <span className="footer-info-tag">
