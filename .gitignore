@@ -58,6 +58,7 @@ blog-backend/media/
 blog-backend/*.zip
 blog-frontend/*.zip
 *.tar.gz
+*.tgz
 
 # ---------- 一次性数据操作的结构备份（本机记录，不需要入库）----------
 blog-backend/backups/
