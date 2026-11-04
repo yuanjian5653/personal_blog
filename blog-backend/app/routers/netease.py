@@ -18,7 +18,7 @@ from app.services.netease import (
 from pydantic import BaseModel
 from app.database import get_session
 from sqlmodel import Session
-from app.services.site_config import update_configs
+from app.services.site_config import get_all_configs, update_configs
 from app.services.netease import verify_music_u
 
 router = APIRouter(prefix="/api/netease", tags=["网易云"])
@@ -32,6 +32,46 @@ async def api_search(
 ):
     """搜索网易云歌曲"""
     return await search_songs(keyword, limit)
+
+
+@router.get("/public-playlist")
+async def api_public_playlist(db: Session = Depends(get_session)):
+    """
+    站点配置里那张网易云歌单（**公开**，不需要管理员登录）。
+
+    为什么需要它：
+    前台音乐页要把「本地歌曲」和「网易云歌单」合并成一个播放列表展示，
+    而 /playlist/{id}/songs 是管理员接口 —— 访客没有会话，调不动。
+    如果没有这个接口，合并列表对访客等于只有本地歌曲。
+
+    为什么只返回"已配置的那一张"、不接受任意 playlist_id：
+    参数化会让它变成一个可以刷任意歌单的通用代理，
+    既浪费服务器出口带宽，也可能被用来抓别人的歌单。
+    """
+    cfg = get_all_configs(db)
+    raw = (cfg.get("netease_playlist_id") or "").strip()
+    configured_name = (cfg.get("netease_playlist_name") or "").strip()
+
+    if not raw.isdigit():
+        return {
+            "configured": False,
+            "playlist_id": None,
+            "name": configured_name,
+            "songs": [],
+        }
+
+    playlist_id = int(raw)
+    pl = await get_playlist(playlist_id)
+    if not pl.get("id"):
+        raise HTTPException(status_code=502, detail="网易云歌单读取失败")
+
+    songs = await get_song_detail(pl.get("track_ids") or [])
+    return {
+        "configured": True,
+        "playlist_id": playlist_id,
+        "name": (pl.get("name") or configured_name),
+        "songs": songs,
+    }
 
 
 @router.get("/playlist/{playlist_id}")

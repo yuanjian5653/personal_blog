@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { MorphIcon } from "morphicons/react";
-import {
-  MessageSquare,
-  Image as ImageIcon,
-  Heart,
-  ChevronRight,
-} from "lucide";
+import { MessageSquare, Image as ImageIcon, Heart, ChevronRight } from "lucide";
 import { api } from "@/lib/api";
 import type { Essay } from "@/lib/types";
 import { relativeTime } from "@/lib/format";
@@ -20,25 +15,27 @@ const CARD_HEIGHT = 200;
 const FETCH_LIMIT = 8;
 
 /**
- * 卡片本体（只有展示，不含轮播逻辑）。
+ * 卡片外观（只有展示，不含轮播逻辑）。
  *
- * 抽出来是因为轮播需要同时存在两张：正在离开的和正在进入的。
- * 卡片自己保留原有的悬停效果（.essay-card:hover，见 home-cards.css），
- * 轮播的旋转发生在外层 .essay-switch__pane 上，两者互不覆盖。
+ * 为什么卡片是 <div> 而不是 <a>：
+ *   切换按钮必须能"跟着卡片"——既跟着轮播的旋转，也跟着悬停时的斜飞。
+ *   要做到这点，按钮必须是卡片的子元素。而 <button> 嵌在 <a> 里是无效 HTML
+ *   （交互元素不能嵌套），所以卡片改成 <div>，再用一个铺满的
+ *   <Link class="essay-card__hit"> 承担整卡点击。
+ *   悬停效果仍是 .essay-card:hover（见 home-cards.css），未做改动。
  */
 function EssayFace({
   essay,
-  withSwitch,
+  controls,
 }: {
   essay: Essay;
-  withSwitch: boolean;
+  controls?: React.ReactNode;
 }) {
   const images = essay.images || [];
 
   return (
-    <Link
-      href="/essays"
-      className={`essay-card glass${withSwitch ? " essay-card--has-switch" : ""}`}
+    <div
+      className={`essay-card glass${controls ? " essay-card--has-switch" : ""}`}
       style={{ height: CARD_HEIGHT }}
     >
       {/* 星光装饰层 */}
@@ -95,7 +92,17 @@ function EssayFace({
           )}
         </div>
       </div>
-    </Link>
+
+      {/* 整卡点击层：放在内容之上（z-index 2），按钮之下（z-index 3） */}
+      <Link
+        href="/essays"
+        className="essay-card__hit"
+        aria-label="查看全部说说"
+      />
+
+      {/* 切换控件：作为卡片子元素，跟随旋转与悬停 */}
+      {controls}
+    </div>
   );
 }
 
@@ -104,7 +111,7 @@ function EssayFace({
  *
  * 切换动画：以卡片**左上角**为轴顺时针旋转，带多段回弹
  * （关键帧见 app/styles/essay-switch.css 的 essaySwingIn / essaySwingOut）。
- * 悬停效果由 .essay-card 自己负责，不受影响。
+ * 切换按钮在卡片内部，所以会跟着卡片一起转。
  */
 export default function EssayCard() {
   const [items, setItems] = useState<Essay[]>([]);
@@ -153,18 +160,15 @@ export default function EssayCard() {
 
   if (items.length === 0) {
     return (
-      <Link
-        href="/essays"
-        className="essay-card glass"
-        style={{ height: CARD_HEIGHT }}
-      >
+      <div className="essay-card glass" style={{ height: CARD_HEIGHT }}>
         <div className="essay-card__content">
           <div className="essay-card__head">
             <span className="essay-card__tag">说说</span>
           </div>
           <p className="essay-card__text">还没有说说</p>
         </div>
-      </Link>
+        <Link href="/essays" className="essay-card__hit" aria-label="查看全部说说" />
+      </div>
     );
   }
 
@@ -173,10 +177,28 @@ export default function EssayCard() {
   const outgoing =
     step > 0 ? items[(index - 1 + items.length) % items.length] : null;
 
+  const controls = canSwitch ? (
+    <div className="essay-switch__nav">
+      <span className="essay-switch__counter">
+        {index + 1}/{items.length}
+      </span>
+      <button
+        type="button"
+        className="essay-switch__next"
+        onClick={goNext}
+        onKeyDown={onKeyDown}
+        aria-label="换一条说说"
+        title="换一条说说"
+      >
+        <MorphIcon icon={ChevronRight} size={12} />
+      </button>
+    </div>
+  ) : null;
+
   return (
     <div className="essay-switch" style={{ height: CARD_HEIGHT }}>
       <div className="essay-switch__stage">
-        {/* 正在离开（上层是进入的，所以它压在上面） */}
+        {/* 正在离开的卡片（不带控件，避免出现两个按钮） */}
         {outgoing && leavingVisible && (
           <div
             key={`out-${step}`}
@@ -187,7 +209,7 @@ export default function EssayCard() {
               if (e.target === e.currentTarget) setLeavingVisible(false);
             }}
           >
-            <EssayFace essay={outgoing} withSwitch={canSwitch} />
+            <EssayFace essay={outgoing} />
           </div>
         )}
 
@@ -196,35 +218,17 @@ export default function EssayCard() {
           key={`in-${step}`}
           className={`essay-switch__pane${step > 0 ? " is-entering" : ""}`}
         >
-          <EssayFace essay={current} withSwitch={canSwitch} />
+          <EssayFace essay={current} controls={controls} />
         </div>
       </div>
 
       {/* 切换瞬间的光扫 */}
       {step > 0 && (
-        <span key={`flare-${step}`} className="essay-switch__flare" aria-hidden="true" />
-      )}
-
-      {/* 位置圆点已移除：右下角的计数已经表达了进度，
-          而左下角会和卡片的缩略图重叠。 */}
-
-      {/* 右下角：计数 + 换一条 */}
-      {canSwitch && (
-        <div className="essay-switch__nav">
-          <span className="essay-switch__counter">
-            {index + 1}/{items.length}
-          </span>
-          <button
-            type="button"
-            className="essay-switch__next"
-            onClick={goNext}
-            onKeyDown={onKeyDown}
-            aria-label="换一条说说"
-            title="换一条说说"
-          >
-            <MorphIcon icon={ChevronRight} size={12} />
-          </button>
-        </div>
+        <span
+          key={`flare-${step}`}
+          className="essay-switch__flare"
+          aria-hidden="true"
+        />
       )}
 
       {/* 无障碍：切换后播报当前内容摘要 */}

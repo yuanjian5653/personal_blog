@@ -24,6 +24,9 @@
 /* ---- 通用交互组件 ---- */
 @import "./styles/ui-widgets.css";    /* 相册堆叠、返回按钮、标签切换、波频条、昼夜开关（原 components.css） */
 
+/* ---- 音乐页（黑胶唱片 + 奶油面板）---- */
+@import "./styles/music-page.css";
+
 /* ---- 页面级 ---- */
 @import "./styles/article.css";
 @import "./styles/article-card.css";

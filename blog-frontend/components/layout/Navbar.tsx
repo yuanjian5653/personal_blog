@@ -40,15 +40,20 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+/** 连接桥的存在时长：略短于胶囊的滑动时长（620ms），收尾时自然消失 */
+const BRIDGE_MS = 540;
+
 /**
  * 悬浮「液态玻璃岛」导航栏。
  *
  * 结构说明见 app/styles/navbar.css 顶部注释。要点：
- * - 岛是悬浮胶囊，不是通栏：玻璃底只有 .nav-island__glass 一层做 backdrop-filter，
- *   这样液体指示器的 SVG gooey 滤镜不会被祖先的 backdrop-filter 吞掉。
- * - 活动指示器是一个胶囊，位置靠测量当前项得出（--liq-x / --liq-w），
- *   另有一个延迟跟随的"拖尾"块，两者被 gooey 滤镜焊在一起 →
- *   切换时呈现拉丝、分裂、合并的液体观感。切换瞬间再叠一层涟漪。
+ * - 岛是悬浮胶囊，不是通栏：玻璃底只有 .nav-island__glass 一层做 backdrop-filter。
+ * - 活动指示器是一个玻璃胶囊，位置靠测量当前项得出（--liq-x / --liq-w）。
+ * - 液态观感由三层叠加，全部是 DOM + CSS 变量，不用 SVG/WebGL 滤镜：
+ *     1) 滞后跟随的模糊光晕 → 滑动时拖出"水尾"
+ *     2) 跨栏位移时铺一条连接桥（.nav-island__bridge）→ 水滴被拉长再收回
+ *     3) 到位时一圈涟漪（.nav-island__ripple）
+ * - 鼠标在岛上移动时，光标位置会带起一个"弯月面"高光（.nav-island__meniscus）。
  * - ≥1200px 直接平铺全部栏目；更窄时收进汉堡 → 玻璃面板网格。
  */
 export default function Navbar() {
@@ -57,7 +62,15 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   // 当前活动项的几何信息；null 表示还没量到（此时指示器隐藏，避免从左上角飞入）
   const [liq, setLiq] = useState<{ x: number; w: number } | null>(null);
+  // 跨栏位移时的"液体连接桥"几何；null 表示当前没有过渡
+  const [bridge, setBridge] = useState<{ x: number; w: number } | null>(null);
+  // 光标在导航轨道内的横坐标（弯月面高光的位置）；null 表示指针不在岛上
+  const [meniscusX, setMeniscusX] = useState<number | null>(null);
   const trackRef = useRef<HTMLUListElement | null>(null);
+  const navRef = useRef<HTMLDivElement | null>(null);
+  // 上一帧的指示器几何：用来判断这次是不是"跨栏位移"
+  const liqRef = useRef<{ x: number; w: number } | null>(null);
+  const bridgeTimer = useRef<number | null>(null);
 
   // 后台页面不显示前台导航
   const hidden = pathname.startsWith("/admin");
@@ -66,7 +79,21 @@ export default function Navbar() {
     // "量哪个元素"的逻辑抽在 lib/navGeometry.ts —— 那里踩过一个坑：
     // 量 <a> 会恒得 offsetLeft=0（<a> 的 offsetParent 是它自己的 <li>），
     // 抽成纯函数后可以用假对象做无浏览器的回归测试。
-    setLiq(resolveLiquidGeometry(trackRef.current));
+    const next = resolveLiquidGeometry(trackRef.current);
+    const prev = liqRef.current;
+    liqRef.current = next;
+    setLiq(next);
+
+    // 跨栏位移时铺一条"液体连接桥"：从旧位置一直盖到新位置，
+    // 视觉上就是水滴被拉长、然后在新位置收回来（参考稿的核心手感）。
+    // 位移太小（同栏重排）就不铺，避免闪一下。
+    if (prev && next && Math.abs(prev.x - next.x) > 8) {
+      const left = Math.min(prev.x, next.x);
+      const right = Math.max(prev.x + prev.w, next.x + next.w);
+      setBridge({ x: left, w: right - left });
+      if (bridgeTimer.current) window.clearTimeout(bridgeTimer.current);
+      bridgeTimer.current = window.setTimeout(() => setBridge(null), BRIDGE_MS);
+    }
   }, []);
 
   // 量位置必须在浏览器完成布局之后。用 useEffect（而非 useLayoutEffect）
@@ -124,6 +151,23 @@ export default function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // 卸载时清掉连接桥的定时器，避免对已卸载组件 setState
+  useEffect(() => {
+    return () => {
+      if (bridgeTimer.current) window.clearTimeout(bridgeTimer.current);
+    };
+  }, []);
+
+  // 弯月面高光：跟着鼠标在轨道内的横坐标走。
+  // 触屏（pointerType !== "mouse"）不启用，否则点击后会留下一个残影。
+  const onNavPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    const box = navRef.current?.getBoundingClientRect();
+    if (!box) return;
+    setMeniscusX(Math.round(e.clientX - box.left));
+  };
+  const onNavPointerLeave = () => setMeniscusX(null);
+
   if (hidden) return null;
 
   const current = NAV_ITEMS.find((i) => isActive(pathname, i.href));
@@ -159,19 +203,42 @@ export default function Navbar() {
         {/* 移动端：当前栏目名 */}
         <span className="nav-island__current">{current?.label ?? ""}</span>
 
-        {/* 桌面端：全部栏目 */}
-        {/* 液体指示器放在 <ul> 外面：<ul> 里只能有 <li>，
-            <div>/<span> 直接挂进去是无效 HTML（浏览器会容忍，但语义不对）。 */}
-        <div className="nav-island__nav" style={liquidVars}>
+        {/* 桌面端：全部栏目。
+            液体层放在 <ul> 外面：<ul> 里只能有 <li>。 */}
+        <div
+          className="nav-island__nav"
+          ref={navRef}
+          style={liquidVars}
+          onPointerMove={onNavPointerMove}
+          onPointerLeave={onNavPointerLeave}
+        >
           <div className="nav-island__liquid-wrap" aria-hidden="true">
             {liq && (
               <>
                 <span className="nav-island__liquid-glow" />
                 <span className="nav-island__liquid" />
+                {bridge && (
+                  <span
+                    key={`bridge-${bridge.x}-${bridge.w}`}
+                    className="nav-island__bridge"
+                    style={
+                      {
+                        "--bridge-x": `${bridge.x}px`,
+                        "--bridge-w": `${bridge.w}px`,
+                      } as React.CSSProperties
+                    }
+                  />
+                )}
+                <span
+                  className={`nav-island__meniscus${
+                    meniscusX === null ? "" : " is-on"
+                  }`}
+                  style={
+                    { "--men-x": `${meniscusX ?? 0}px` } as React.CSSProperties
+                  }
+                />
+                <span key={pathname} className="nav-island__ripple" />
               </>
-            )}
-            {liq && (
-              <span key={pathname} className="nav-island__ripple" />
             )}
           </div>
 

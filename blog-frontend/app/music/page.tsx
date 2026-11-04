@@ -1,77 +1,70 @@
 "use client";
 
-import { useState } from "react";
-
 import { usePlayer } from "@/components/player/PlayerProvider";
-import {
-  LyricsTab,
-  LocalTab,
-  NeteaseTab,
-  NowPlayingCard,
-  QueueTab,
-} from "@/components/music";
+import MusicConsole from "@/components/music/MusicConsole";
+import MusicTransport from "@/components/music/MusicTransport";
+import VinylDeck from "@/components/music/VinylDeck";
+import { useMergedPlaylist } from "@/components/music/useMergedPlaylist";
+import type { Song } from "@/lib/types";
 
-type TabKey = "local" | "netease" | "queue" | "lyrics";
-
-const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  { key: "lyrics", label: "歌词", icon: "♪" },
-  { key: "local", label: "本地", icon: "💾" },
-  { key: "netease", label: "网易云", icon: "☁️" },
-  { key: "queue", label: "播放列表", icon: "☰" },
-];
-
+/**
+ * 音乐页：左边唱片机，右边歌词/播放列表 + 控制条。
+ *
+ * 「本地」和「网易云」不再是两个标签，而是合并成同一份播放列表
+ * （useMergedPlaylist 负责拉取与合并）。点任意一首播放时，
+ * 把整份合并列表交给播放器，上一首/下一首即可在两个来源间连续。
+ */
 export default function MusicPage() {
-  const [tab, setTab] = useState<TabKey>("lyrics");
-  const { isPlaying, currentSong } = usePlayer();
+  const { songs, loading, playlistName, neteaseNote, neteaseFailed, reload } =
+    useMergedPlaylist();
+  const { currentSong, isPlaying, volume, setVolume, play } = usePlayer();
+
+  const handlePick = (song: Song) => {
+    play(song, songs);
+  };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pt-2">
-      <NowPlayingCard />
+    <div className="music-page">
+      <div className="music-page__inner">
+        <VinylDeck
+          song={currentSong}
+          playing={isPlaying}
+          volume={volume}
+          onVolumeChange={setVolume}
+        />
 
-      <div className="tab-switch">
-        {TABS.map((t) => {
-          const active = tab === t.key;
-          // 正在播放时给「歌词」标签加一圈微光，提示有内容
-          const glow = t.key === "lyrics" && currentSong && isPlaying;
-          return (
-            <div
-              key={t.key}
-              className={`tab ${active ? "active" : ""}`}
-              onClick={() => setTab(t.key)}
-            >
-              <div
-                className="name"
-                style={{
-                  boxShadow:
-                    glow && !active
-                      ? "inset 0 0 0 1px rgba(124,92,255,0.4)"
-                      : undefined,
-                }}
-              >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
-              </div>
-            </div>
-          );
-        })}
+        <div className="music-page__side">
+          <MusicConsole
+            songs={songs}
+            loading={loading}
+            playlistName={playlistName}
+            note={neteaseNote}
+            onPick={handlePick}
+          />
+          <MusicTransport />
+        </div>
       </div>
 
-      {/* 四个标签全部渲染，用 display 切换：避免切标签时组件重新挂载、
-          丢失各标签内部的滚动位置与已加载的数据 */}
-      <div>
-        <div style={{ display: tab === "lyrics" ? "block" : "none" }}>
-          <LyricsTab />
-        </div>
-        <div style={{ display: tab === "local" ? "block" : "none" }}>
-          <LocalTab />
-        </div>
-        <div style={{ display: tab === "netease" ? "block" : "none" }}>
-          <NeteaseTab />
-        </div>
-        <div style={{ display: tab === "queue" ? "block" : "none" }}>
-          <QueueTab />
-        </div>
-      </div>
+      {/* 仅当网易云确实拉取失败时给重试入口；"还没配置歌单"不算失败 */}
+      {neteaseFailed && !loading && (
+        <button
+          type="button"
+          onClick={reload}
+          style={{
+            display: "block",
+            margin: "0 auto 12px",
+            padding: "4px 14px",
+            borderRadius: 9999,
+            border: "1px solid rgba(61,52,42,0.15)",
+            background: "rgba(255,255,255,0.6)",
+            color: "#8d8477",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          重新加载列表
+        </button>
+      )}
     </div>
   );
 }

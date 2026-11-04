@@ -139,13 +139,29 @@
   }
 }
 
-/* ---------------- 右下角控制条 ---------------- */
+/* ---------------- 整卡点击层 ----------------
+   卡片本身从 <a> 换成了 <div>（为了让 <button> 能作为合法子元素，
+   从而跟着卡片一起旋转、一起悬停），整卡点击由这层铺满的链接承担。
+   z-index 关系：内容 1 < 点击层 2 < 切换控件 3 */
+.essay-card__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+}
+.essay-card__hit:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 80%, #fff 20%);
+  outline-offset: -3px;
+}
 
+/* ---------------- 右下角控制条 ----------------
+   注意：它现在是 .essay-card 的子元素（不再是卡片的兄弟节点），
+   定位基准变成卡片自己 —— 这样才能跟着卡片旋转和悬停位移。 */
 .essay-switch__nav {
   position: absolute;
   right: 10px;
   bottom: 9px;
-  z-index: 4;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 2px;

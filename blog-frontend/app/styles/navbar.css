@@ -247,6 +247,73 @@
     opacity 0.3s ease;
 }
 
+/* 液体连接桥：跨栏位移时从旧位置一直盖到新位置。
+   比胶囊矮（24px vs 40px）且带模糊，看起来像被拉长的水柱；
+   animation 负责"拉长 → 保持 → 收细并淡出"，读起来就是水被吸回胶囊。 */
+.nav-island__bridge {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 24px;
+  width: var(--bridge-w, 0px);
+  border-radius: 9999px;
+  transform-origin: center;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.22) 60%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  filter: blur(2px);
+  animation: navBridge 0.54s cubic-bezier(0.4, 0, 0.2, 1) both;
+  will-change: transform, opacity;
+}
+@keyframes navBridge {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--bridge-x, 0px), -50%, 0) scaleY(0.55);
+  }
+  22% {
+    opacity: 0.9;
+    transform: translate3d(var(--bridge-x, 0px), -50%, 0) scaleY(1);
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--bridge-x, 0px), -50%, 0) scaleY(0.4);
+  }
+}
+
+/* 弯月面：鼠标在岛上移动时，被指针顶起来的一小片水面高光 */
+.nav-island__meniscus {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 54px;
+  height: 30px;
+  margin-left: -27px;
+  border-radius: 9999px;
+  transform: translate3d(var(--men-x, 0px), -50%, 0);
+  background: radial-gradient(
+    52% 62% at 50% 42%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.34) 52%,
+    rgba(255, 255, 255, 0) 78%
+  );
+  filter: blur(3px);
+  opacity: 0;
+  transition:
+    opacity 0.26s ease,
+    transform 0.16s cubic-bezier(0.33, 1, 0.68, 1);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.nav-island__meniscus.is-on {
+  opacity: 0.9;
+}
+
 /* 切换瞬间的涟漪：以指示器为中心向外扩散 */
 .nav-island__ripple {
   position: absolute;
@@ -326,6 +393,21 @@
 }
 .nav-island__link.is-active .nav-island__icon {
   transform: scale(1.06);
+  /* 变成活动项时图标"落定"一下：先缩、再弹过头、最后归位。
+     不加 fill-mode，动画结束后交还给上面的悬停规则。 */
+  animation: navIconSettle 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes navIconSettle {
+  0% {
+    transform: scale(0.8) rotate(-10deg);
+  }
+  58% {
+    transform: scale(1.18) rotate(4deg);
+  }
+  100% {
+    transform: scale(1.06) rotate(0deg);
+  }
 }
 
 /* 激活项上的一道细高光，让文字像浮在液面上 */
