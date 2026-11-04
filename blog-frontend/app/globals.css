@@ -11,8 +11,12 @@
 @import "./styles/base.css";
 @import "./styles/animations.css";
 
+/* ---- 顶部导航（悬浮液态玻璃岛）---- */
+@import "./styles/navbar.css";
+
 /* ---- 首页 ---- */
 @import "./styles/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
+@import "./styles/essay-switch.css";     /* 说说卡片的顺时针旋转轮播（覆盖在 home-cards 之上） */
 @import "./styles/home-widgets.css";    /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
 @import "./styles/profile-socials.css"; /* 个人卡片的社交按钮 */
 @import "./styles/music-card.css";      /* 音乐卡片稳定高度 */

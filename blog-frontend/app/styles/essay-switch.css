@@ -1,0 +1,225 @@
+/* ============================================================
+   首页「说说」卡片的轮播切换
+   ------------------------------------------------------------
+   需求：沿卡片**左上角**固定为轴，**顺时针**旋转切换，带回弹。
+   同时保留 .essay-card 原有的悬停效果（斜飞 + 缩放，见 home-cards.css）。
+
+   为什么不能直接把旋转写在 .essay-card 上：
+   悬停效果用的是 .essay-card:hover 的 transform，同一个元素上
+   两套 transform 会互相覆盖。所以旋转放在外层 .essay-switch__pane，
+   卡片自己继续负责悬停。
+
+   结构：
+     .essay-switch                    相对定位、固定高度
+       .essay-switch__stage          透视容器
+         .essay-switch__pane         ← 旋转层（transform-origin: 左上角）
+           a.essay-card              ← 原有卡片，悬停效果不变
+       .essay-switch__flare          切换瞬间的光扫
+       .essay-switch__nav            右下角 计数 + 换一条 按钮
+   ============================================================ */
+
+.essay-switch {
+  position: relative;
+  /* 高度由内联 style 给（和原来的 CARD_HEIGHT 一致） */
+}
+
+.essay-switch__stage {
+  position: absolute;
+  inset: 0;
+  /* 轻微透视，让旋转更有体积感；不影响平面观感 */
+  perspective: 1000px;
+  perspective-origin: top left;
+}
+
+/* 旋转层：轴心固定在左上角 */
+.essay-switch__pane {
+  position: absolute;
+  inset: 0;
+  transform-origin: top left;
+  transform: rotate(0deg);
+  will-change: transform, opacity;
+}
+
+/* 进入：从逆时针 9° 顺时针扫回原位，中途冲过头再回来（回弹） */
+.essay-switch__pane.is-entering {
+  z-index: 2;
+  animation: essaySwingIn 0.72s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* 离开：先反向蓄力一点，再顺时针甩出去并淡出 */
+.essay-switch__pane.is-leaving {
+  z-index: 1;
+  pointer-events: none;
+  animation: essaySwingOut 0.5s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+
+@keyframes essaySwingIn {
+  0% {
+    transform: rotate(-9deg) scale(0.955);
+    opacity: 0;
+  }
+  55% {
+    transform: rotate(1.7deg) scale(1.008);
+    opacity: 1;
+  }
+  76% {
+    transform: rotate(-0.8deg) scale(0.998);
+    opacity: 1;
+  }
+  92% {
+    transform: rotate(0.35deg) scale(1.001);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes essaySwingOut {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  28% {
+    transform: rotate(-2.5deg) scale(0.99);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(13deg) scale(0.94);
+    opacity: 0;
+  }
+}
+
+/* 切换瞬间的一道斜向光扫，强化"液体玻璃"的质感 */
+.essay-switch__flare {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 16px;
+  pointer-events: none;
+  overflow: hidden;
+  animation: essayFlare 0.66s ease-out both;
+}
+.essay-switch__flare::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -40%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(12deg);
+  animation: essayFlareSweep 0.66s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes essayFlare {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes essayFlareSweep {
+  0% {
+    transform: translateX(0) rotate(12deg);
+  }
+  100% {
+    transform: translateX(320%) rotate(12deg);
+  }
+}
+
+/* ---------------- 右下角控制条 ---------------- */
+
+.essay-switch__nav {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 3px 2px 8px;
+  border-radius: 9999px;
+  background: rgba(12, 14, 20, 0.55);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.essay-switch__counter {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.essay-switch__next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 82%, #fff 18%),
+    color-mix(in srgb, var(--accent) 62%, #000 12%)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 8px -2px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.25s ease;
+}
+.essay-switch__next:hover {
+  transform: scale(1.16) rotate(-8deg);
+  filter: brightness(1.12);
+}
+.essay-switch__next:active {
+  transform: scale(0.9) rotate(8deg);
+  transition-duration: 0.12s;
+}
+.essay-switch__next:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 80%, #fff 20%);
+  outline-offset: 2px;
+}
+/* 点一下让图标转一圈，呼应卡片的顺时针切换 */
+.essay-switch__next svg {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.essay-switch__next:hover svg {
+  transform: rotate(90deg);
+}
+
+/* 控制条会盖住卡片右下角的点赞/缩略图，给它让出位置 */
+.essay-card--has-switch .essay-card__foot {
+  padding-right: 76px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .essay-switch__pane.is-entering,
+  .essay-switch__pane.is-leaving,
+  .essay-switch__flare {
+    animation-duration: 0.01ms !important;
+  }
+  .essay-switch__flare::before {
+    animation: none !important;
+    opacity: 0;
+  }
+}

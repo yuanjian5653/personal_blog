@@ -1,0 +1,559 @@
+/* ============================================================
+   悬浮「液态玻璃岛」导航栏
+   ------------------------------------------------------------
+   结构（见 components/layout/Navbar.tsx）：
+
+     header.nav-island-root        固定定位、全宽、默认 pointer-events:none
+       nav.nav-island              胶囊本体
+         span.nav-island__glass    ← 真正做 backdrop-filter 的一层
+         span.nav-island__sheen    高光/镜面膜
+         a.nav-island__brand
+         ul.nav-island__track
+           div.nav-island__liquid-wrap
+             span.nav-island__liquid-glow  滞后跟随的模糊光晕（液态尾巴）
+             span.nav-island__liquid       玻璃胶囊（回弹滑动）
+           span.nav-island__ripple         到位时的涟漪
+           li > a.nav-island__link ...
+         div.nav-island__actions   ThemeToggle
+         button.nav-island__burger 移动端汉堡
+       div.nav-sheet                移动端展开面板
+
+   三个关键点：
+   1. backdrop-filter 只放在 __glass 这一层，nav-island 自己不设。
+      避免 SVG filter / 子层滤镜与祖先 backdrop-filter 相互干扰。
+   2. 液体指示器靠 JS 量出当前项的 offsetLeft/offsetWidth，
+      写进 --liq-x / --liq-w，再用 transform 平移（不触发重排）。
+   3. 液态观感由「回弹滑动 + 滞后光晕 + 到位涟漪」三者叠加而成。
+      没用 SVG metaball（gooey）滤镜：要保住玻璃渐变就得 feComposite，
+      而 feComposite 会把两块之间的连接桥裁掉，反而失去粘连效果。
+   ============================================================ */
+
+.nav-island-root {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  display: flex;
+  /* 竖排：上面是岛，下面挂移动端面板 */
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 16px 0;
+  /* 整条 header 不拦截点击，只有岛本身和面板可交互 */
+  pointer-events: none;
+}
+
+/* ---------------- 岛本体 ---------------- */
+
+.nav-island {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 10px 0 18px;
+  border-radius: 9999px;
+  pointer-events: auto;
+  /* 变形/缩放动画的基准点 */
+  transform-origin: top center;
+  transition:
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    padding 0.4s ease;
+}
+
+/* 滚动后轻微收紧，增加"悬浮"的体积感变化 */
+.nav-island-root.is-scrolled .nav-island {
+  transform: scale(0.965);
+}
+
+/* 玻璃底：唯一使用 backdrop-filter 的层 */
+.nav-island__glass {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 46%,
+      rgba(255, 255, 255, 0.05) 100%
+    ),
+    rgba(16, 18, 26, 0.55);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  backdrop-filter: blur(26px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    /* 上沿高光：模拟玻璃边缘折光 */
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    /* 下沿微弱反光 */
+    inset 0 -1px 0 rgba(255, 255, 255, 0.07),
+    /* 内部扩散光 */
+    inset 0 0 26px -8px rgba(255, 255, 255, 0.16),
+    /* 外投影 */
+    0 12px 34px -12px rgba(0, 0, 0, 0.62),
+    0 3px 10px -4px rgba(0, 0, 0, 0.4);
+  transition:
+    background 0.45s ease,
+    box-shadow 0.45s ease,
+    border-color 0.45s ease;
+}
+
+/* 悬停时玻璃"变厚"一点：高光更亮、边界更清晰 */
+.nav-island:hover .nav-island__glass {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 34px -6px rgba(255, 255, 255, 0.22),
+    0 16px 40px -12px rgba(0, 0, 0, 0.66),
+    0 4px 12px -4px rgba(0, 0, 0, 0.42);
+}
+
+/* 镜面：左上角一片斜向高光，制造"凸面玻璃"的错觉 */
+.nav-island__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.nav-island__sheen::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -10%;
+  width: 55%;
+  height: 200%;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.16) 42%,
+    rgba(255, 255, 255, 0.04) 62%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(8deg);
+  opacity: 0.9;
+  transition: opacity 0.45s ease;
+}
+.nav-island:hover .nav-island__sheen::before {
+  opacity: 1;
+}
+
+/* ---------------- 品牌 ---------------- */
+
+.nav-island__brand {
+  position: relative;
+  z-index: 2;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 0 4px;
+  flex-shrink: 0;
+  transition: color 0.25s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-island__brand:hover {
+  transform: scale(1.04);
+  color: var(--accent);
+}
+
+/* ---------------- 导航轨道 ---------------- */
+
+.nav-island__track {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+/* 液体指示器容器 */
+.nav-island__liquid-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 主指示器：玻璃胶囊，回弹式滑动 */
+.nav-island__liquid {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 40px;
+  width: var(--liq-w, 0px);
+  border-radius: 9999px;
+  transform: translate3d(var(--liq-x, 0px), -50%, 0);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(255, 255, 255, 0.11) 58%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 10px -3px rgba(0, 0, 0, 0.4);
+  will-change: transform, width;
+  transition:
+    transform 0.62s cubic-bezier(0.34, 1.56, 0.64, 1),
+    width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease;
+}
+
+/* 滞后跟随的光晕：被模糊过的同一形状，比胶囊晚一点点到位，
+   在滑动过程中从胶囊后方拖出一条"液态尾巴"。
+   用独立的模糊层而不是 SVG metaball 滤镜：
+   后者要保住渐变就得 feComposite，而 feComposite 会把连接桥裁掉，
+   反而没有粘连效果；另外 filter:url() 与祖先 backdrop-filter 共存时
+   在部分 WebKit 版本上会被忽略。 */
+.nav-island__liquid-glow {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 40px;
+  width: var(--liq-w, 0px);
+  border-radius: 9999px;
+  transform: translate3d(var(--liq-x, 0px), -50%, 0);
+  background: radial-gradient(
+    62% 130% at 50% 50%,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.18) 55%,
+    rgba(255, 255, 255, 0) 78%
+  );
+  filter: blur(7px);
+  opacity: 0.9;
+  will-change: transform, width;
+  transition:
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.05s,
+    width 0.68s cubic-bezier(0.22, 1, 0.36, 1) 0.05s,
+    opacity 0.3s ease;
+}
+
+/* 切换瞬间的涟漪：以指示器为中心向外扩散 */
+.nav-island__ripple {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: var(--liq-w, 40px);
+  height: 40px;
+  margin-top: -20px;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform: translate3d(var(--liq-x, 0px), 0, 0);
+  animation: navLiquidRipple 0.72s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes navLiquidRipple {
+  0% {
+    opacity: 0.55;
+    transform: translate3d(var(--liq-x, 0px), 0, 0) scale(1, 1);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--liq-x, 0px), 0, 0) scale(1.55, 1.35);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0);
+  }
+}
+
+/* ---------------- 导航项 ---------------- */
+
+.nav-island__item {
+  position: relative;
+}
+
+.nav-island__link {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition:
+    color 0.28s ease,
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 悬停：文字变亮 + 图标轻微放大（"弯月面"的暗示） */
+.nav-island__link:hover {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.nav-island__link .nav-island__icon {
+  display: inline-flex;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-island__link:hover .nav-island__icon {
+  transform: scale(1.14) rotate(-4deg);
+}
+
+.nav-island__link.is-active {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+.nav-island__link.is-active .nav-island__icon {
+  transform: scale(1.06);
+}
+
+/* 激活项上的一道细高光，让文字像浮在液面上 */
+.nav-island__link.is-active::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 6px 12px;
+  height: 1px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  opacity: 0.8;
+}
+
+/* ---------------- 右侧：主题开关 / 汉堡 ---------------- */
+
+.nav-island__actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+/* 用一条极淡的竖线把"导航"和"操作"分开 */
+.nav-island__actions::before {
+  content: "";
+  width: 1px;
+  height: 20px;
+  margin-right: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+}
+
+.nav-island__burger {
+  position: relative;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    background 0.28s ease,
+    border-color 0.28s ease,
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-island__burger:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.nav-island__burger:active {
+  transform: scale(0.92);
+}
+.nav-island__burger svg {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-island-root.is-menu-open .nav-island__burger svg {
+  transform: rotate(90deg);
+}
+
+/* 移动端当前栏目名 */
+.nav-island__current {
+  display: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+
+/* ---------------- 移动端展开面板 ---------------- */
+
+.nav-sheet {
+  position: relative;
+  pointer-events: auto;
+  margin-top: 10px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 10px;
+  border-radius: 26px;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.96);
+  transform-origin: top center;
+  visibility: hidden;
+  transition:
+    opacity 0.32s ease,
+    transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0.42s;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    ),
+    rgba(16, 18, 26, 0.82);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 18px 44px -14px rgba(0, 0, 0, 0.7);
+}
+
+.nav-sheet.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+.nav-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-sheet__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: 16px;
+  font-size: 12px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nav-sheet__link:hover,
+.nav-sheet__link:active {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+.nav-sheet__link.is-active {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.07)
+  );
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+/* 面板逐项浮入 */
+.nav-sheet.is-open .nav-sheet__item {
+  animation: navSheetItemIn 0.44s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes navSheetItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------------- 响应式 ---------------- */
+
+/* 宽度不够放下 11 个栏目时，收进汉堡菜单 */
+@media (max-width: 1199px) {
+  .nav-island__track {
+    display: none;
+  }
+  .nav-island__burger {
+    display: inline-flex;
+  }
+  .nav-island__current {
+    display: inline-block;
+  }
+  .nav-island {
+    height: 54px;
+    padding: 0 8px 0 16px;
+    gap: 8px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .nav-sheet {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-island-root {
+    padding: 10px 12px 0;
+  }
+  .nav-island {
+    height: 50px;
+    padding: 0 6px 0 14px;
+  }
+  .nav-island__brand {
+    font-size: 14px;
+  }
+  /* 极窄屏放不下"当前栏目名"，让位给主题开关和汉堡 */
+  .nav-island__current {
+    display: none;
+  }
+  .nav-sheet__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .nav-sheet__link {
+    padding: 10px 4px;
+    font-size: 11px;
+  }
+}
+
+/* 尊重"减少动效"偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-island,
+  .nav-island__liquid,
+  .nav-island__liquid-glow,
+  .nav-island__link,
+  .nav-island__icon,
+  .nav-sheet,
+  .nav-island__brand {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

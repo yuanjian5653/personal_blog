@@ -188,11 +188,10 @@
   }
 }
 
-/* 随笔卡片（左侧，占 3）——高度已在 .essay-fly-card 内定义 */
-.essay-life-row .essay-fly-card {
-  height: 200px;
-}
-
+/* 随笔卡片（左侧，占 3）：
+   高度由 EssayCard 内的内联 style 决定（CARD_HEIGHT=200），
+   这里原本还有一条 .essay-fly-card 的规则，但那个类名早已不存在，
+   属于死代码，已删除。 */
 
 /* ---------- 生活动态小卡片 ---------- */
 .life-mini-card {
