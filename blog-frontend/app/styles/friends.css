@@ -73,16 +73,6 @@
   color: var(--text-secondary);
 }
 
-/* 点空白收起气泡的可点层（在卡片下面） */
-.friends-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border: none;
-  background: transparent;
-  cursor: default;
-}
-
 /* ---------- 卡片插槽（JS 控制位置） ---------- */
 .fc-slot {
   position: absolute;

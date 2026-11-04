@@ -574,12 +574,3 @@
   color: var(--card-text);
 }
 
-.side-author-bio,
-.side-music-artist,
-.side-related-date,
-.side-calendar-weekday,
-.side-music-header,
-.side-related-header {
-  color: var(--card-text-sub);
-}
-

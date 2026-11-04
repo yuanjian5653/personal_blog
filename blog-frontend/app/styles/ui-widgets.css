@@ -90,13 +90,6 @@
   animation: albumCardEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.article-card-enter {
-  opacity: 0;
-  animation: articleCardEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  will-change: opacity, transform;
-}
-
-
 /* ---------- 返回按钮 ---------- */
 .back-btn {
   --primary-color: var(--text-secondary);
@@ -164,7 +157,6 @@
   transform: translateX(-4px);
   color: var(--hovered-color);
 }
-
 
 /* ---------- 标签切换 ---------- */
 .tab-switch {
@@ -236,7 +228,6 @@
   --direction: 12px;
 }
 
-
 /* ---------- 波频条 ---------- */
 .wave-bar {
   width: 5px;
@@ -244,7 +235,6 @@
   animation: waveBounce 1s ease-in-out infinite;
   will-change: height;
 }
-
 
 /* ---------- 昼夜切换开关 ---------- */
 .theme-switch {

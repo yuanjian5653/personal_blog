@@ -332,8 +332,6 @@
   }
 }
 
-
-
 /* 关闭按钮 */
 .life-detail-close {
   position: fixed;
@@ -700,69 +698,6 @@ html[data-card-style="black"] .life-calendar-day.highlight {
   height: 14px;
   background: var(--accent);
   border-radius: 2px;
-}
-
-.life-detail-comments-list {
-  padding: 16px 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--ld-text-sub);
-  border-top: 1px dashed color-mix(in srgb, var(--ld-text) 12%, transparent);
-  border-bottom: 1px dashed color-mix(in srgb, var(--ld-text) 12%, transparent);
-  margin-bottom: 12px;
-}
-
-.life-detail-comments-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.life-detail-comments-input {
-  width: 100%;
-  min-height: 70px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: var(--ld-text);
-  font-size: 12px;
-  font-family: inherit;
-  resize: vertical;
-  outline: none;
-  transition: all 0.25s ease;
-}
-
-html[data-card-style="black"] .life-detail-comments-input {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.life-detail-comments-input::placeholder {
-  color: var(--ld-text-sub);
-  opacity: 0.7;
-}
-
-.life-detail-comments-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.life-detail-comments-submit {
-  padding: 7px 18px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.life-detail-comments-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* 移动端 */

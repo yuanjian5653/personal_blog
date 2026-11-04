@@ -163,24 +163,6 @@
   padding: 10px 8px 16px;
 }
 
-.admin-nav__group + .admin-nav__group {
-  margin-top: 4px;
-}
-
-.admin-nav__title {
-  font-size: 11px;
-  color: #a8aeb8;
-  padding: 12px 10px 6px;
-  letter-spacing: 0.04em;
-}
-
-.admin-nav__divider {
-  display: block;
-  height: 1px;
-  margin: 10px 6px;
-  background: var(--adm-line);
-}
-
 .admin-nav ul {
   list-style: none;
   margin: 0;
@@ -876,16 +858,12 @@
     justify-content: center;
   }
   .admin-side__brand-text,
-  .admin-nav__label,
-  .admin-nav__title {
+  .admin-nav__label {
     display: none;
   }
   .admin-nav__link {
     justify-content: center;
     padding: 9px 0;
-  }
-  .admin-nav__divider {
-    display: block;
   }
   .admin-side__toggle {
     display: none;

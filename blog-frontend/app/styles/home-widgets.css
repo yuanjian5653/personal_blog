@@ -14,84 +14,6 @@
   color: var(--card-text);
 }
 
-
-/* ---------- 骨架屏 ---------- */
-.skeleton-loader {
-  position: relative;
-  width: 100%;
-  min-height: 160px;
-  border-radius: 12px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  overflow: hidden;
-}
-
-.skeleton-loader::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  animation: skeleton-shimmer 1.6s linear infinite;
-  pointer-events: none;
-}
-
-.skeleton-loader .sk-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  min-height: 120px;
-}
-
-.skeleton-loader .sk-wrapper > div {
-  background-color: rgba(255, 255, 255, 0.07);
-  border-radius: 6px;
-}
-
-.skeleton-loader .sk-circle {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-}
-
-.skeleton-loader .sk-line-1 {
-  position: absolute;
-  top: 8px;
-  left: 64px;
-  height: 12px;
-  width: 35%;
-}
-
-.skeleton-loader .sk-line-2 {
-  position: absolute;
-  top: 30px;
-  left: 64px;
-  height: 10px;
-  width: 55%;
-}
-
-.skeleton-loader .sk-line-3 {
-  position: absolute;
-  top: 72px;
-  left: 0;
-  height: 10px;
-  width: 100%;
-}
-
-.skeleton-loader .sk-line-4 {
-  position: absolute;
-  top: 94px;
-  left: 0;
-  height: 10px;
-  width: 90%;
-}
-
 .skeleton-shimmer {
   position: absolute;
   inset: 0;
@@ -125,20 +47,6 @@
   transform: translateY(-2px);
 }
 
-.card-scale {
-  transition: transform 0.3s ease;
-}
-.card-scale:hover {
-  transform: scale(1.03);
-}
-
-.card-3d {
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-
 /* ---------- 卡片悬浮效果 ---------- */
 .tracker-wrap {
   position: relative;
@@ -159,19 +67,6 @@
 .tracker-wrap:hover .tracker-inner {
   filter: brightness(1.12);
 }
-.tracker-grid {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-}
-.tracker-cell {
-  width: 100%;
-  height: 100%;
-}
-
 
 /* ---------- 首页图片卡片 3D 追踪 / 随笔 + 生活 双卡片布局 ---------- */
 .essay-life-row {
@@ -456,15 +351,6 @@ html[data-card-style="black"] .life-mini-card__foot {
   white-space: nowrap;
 }
 
-/* 最右：备案 */
-.footer-info-icp {
-  font-size: 11px;
-  color: #9ca3af;
-  flex-shrink: 0;
-  padding-right: 12px;
-  white-space: nowrap;
-}
-
 /* ===== 响应式：窄屏折叠 ===== */
 @media (max-width: 900px) {
   .footer-info-stack {
@@ -481,8 +367,5 @@ html[data-card-style="black"] .life-mini-card__foot {
   }
   .footer-info-clock {
     width: 100%;
-  }
-  .footer-info-icp {
-    padding-right: 0;
   }
 }
