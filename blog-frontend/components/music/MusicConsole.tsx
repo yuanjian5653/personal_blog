@@ -7,7 +7,8 @@ import { MorphIcon } from "morphicons/react";
 import { usePlayer } from "@/components/player/PlayerProvider";
 import { formatTime } from "@/lib/format";
 import { filterSongs, playlistStats, songKey } from "@/lib/musicPlaylist";
-import { getCoverUrl, type Song } from "@/lib/types";
+import type { Song } from "@/lib/types";
+import CoverArt from "./CoverArt";
 import LyricsPanel from "./LyricsPanel";
 
 type TabKey = "list" | "lyrics";
@@ -106,7 +107,6 @@ export default function MusicConsole({
               {visible.map((song, i) => {
                 const key = songKey(song);
                 const isCurrent = key === currentKey;
-                const cover = getCoverUrl(song);
                 return (
                   <button
                     type="button"
@@ -120,17 +120,16 @@ export default function MusicConsole({
                         ? "♪"
                         : String(i + 1).padStart(2, "0")}
                     </span>
-                    {cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- 封面尺寸固定 34px，且来源是后端/外链
-                      <img
-                        className="mp-row__cover"
-                        src={cover}
-                        alt=""
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="mp-row__cover" aria-hidden="true" />
-                    )}
+                    {/* 本地歌大多没有封面，CoverArt 会退回音符占位而不是破图 */}
+                    <CoverArt
+                      song={song}
+                      className="mp-row__cover"
+                      fallback={
+                        <span className="mp-row__cover mp-row__cover--empty">
+                          ♪
+                        </span>
+                      }
+                    />
                     <span className="mp-row__text">
                       <span className="mp-row__title">{song.title}</span>
                       <span className="mp-row__artist">{song.artist}</span>

@@ -91,6 +91,21 @@ export function getLyricUrl(song: Song, format: "json" | "text" = "json"): strin
 /** 封面地址只需要这几个字段，本地歌曲类型也能直接传进来 */
 export type CoverSource = Pick<Song, "id" | "source" | "cover_url">;
 
+/**
+ * 这首歌是否**真的**有封面。
+ *
+ * 为什么需要：getCoverUrl() 对本地歌曲永远返回 /api/music/cover/{id}，
+ * 但本地歌如果没有 cover_path，后端会返回 404 —— 直接用它当 src
+ * 只会渲染出一张破图。所以渲染 <img> 之前先问一下这里。
+ * （网易云看 cover_url，本地看 cover_path。）
+ */
+export function hasCover(
+  song: Pick<Song, "source" | "cover_url" | "cover_path">
+): boolean {
+  if (song.source === "netease") return !!song.cover_url;
+  return !!song.cover_path;
+}
+
 /** 封面地址：网易云用外链，本地用后端接口 */
 export function getCoverUrl(song: CoverSource): string {
   if (song.cover_url) {

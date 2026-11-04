@@ -6,7 +6,7 @@ import Link from "next/link";
 import PlayerControls from "@/components/player/PlayerControls";
 import PlayerProgress from "@/components/player/PlayerProgress";
 import { usePlayer } from "@/components/player/PlayerProvider";
-import { getCoverUrl } from "@/lib/types";
+import { getCoverUrl, hasCover } from "@/lib/types";
 
 export default function MusicCard() {
   const { currentSong, isPlaying } = usePlayer();
@@ -40,9 +40,9 @@ export default function MusicCard() {
     );
   }
 
-  // 封面判断：网易云用 cover_url，本地用 cover_path
-  const hasCover =
-    (!!currentSong.cover_url || !!currentSong.cover_path) && !coverError;
+  // 封面判断：本地歌若没 cover_path，后端 /api/music/cover 会 404，
+  // 所以先用 hasCover 判断再渲染 <img>，避免破图。
+  const shownCover = hasCover(currentSong) && !coverError;
   const coverSrc = getCoverUrl(currentSong);
 
   return (
@@ -63,7 +63,7 @@ export default function MusicCard() {
 
       <div className="flex items-center gap-4 mb-4">
         <div className="relative w-16 h-16 flex-shrink-0">
-          {hasCover ? (
+          {shownCover ? (
             <Link
               href="/music"
               className="block w-16 h-16 rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity"

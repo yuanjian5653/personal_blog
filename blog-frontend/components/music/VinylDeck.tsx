@@ -3,7 +3,8 @@
 import { Volume2 } from "lucide";
 import { MorphIcon } from "morphicons/react";
 
-import { getCoverUrl, type Song } from "@/lib/types";
+import type { Song } from "@/lib/types";
+import CoverArt from "./CoverArt";
 
 interface Props {
   song: Song | null;
@@ -15,8 +16,11 @@ interface Props {
 /**
  * 左侧「唱片机」：旋转黑胶 + 唱臂 + 曲目信息 + 音量。
  *
- * 唱片只在播放时转（animation-play-state 控制），暂停就停在当前角度，
- * 和真实唱机一致 —— 用 animation 而不是 JS 定时器，暂停恢复不会跳一下。
+ * 两个物理感的小细节：
+ *   · 唱片只在播放时转，暂停就停在当前角度（用 animation-play-state，
+ *     不用 JS 定时器，恢复播放不会跳一下）
+ *   · 唱臂会随播放状态摆动：暂停时抬离唱片，播放时落到唱片上
+ *     （.mp-deck.is-playing 控制，CSS 过渡回弹）
  */
 export default function VinylDeck({
   song,
@@ -24,19 +28,16 @@ export default function VinylDeck({
   volume,
   onVolumeChange,
 }: Props) {
-  const cover = song ? getCoverUrl(song) : "";
-
   return (
-    <div className="mp-deck">
+    <div className={`mp-deck${playing ? " is-playing" : ""}`}>
       <div className="mp-vinyl-stage">
         <div className={`mp-vinyl${playing ? " is-spinning" : ""}`}>
           <div className="mp-vinyl__label">
-            {cover ? (
-              // eslint-disable-next-line @next/next/no-img-element -- 封面来自后端/外链，尺寸固定，无需 next/image
-              <img src={cover} alt="" loading="lazy" />
-            ) : (
-              <span aria-hidden="true">♪</span>
-            )}
+            <CoverArt
+              song={song}
+              fallback={<span aria-hidden="true">♪</span>}
+              alt={song?.title ?? ""}
+            />
             <span className="mp-vinyl__hole" />
           </div>
         </div>

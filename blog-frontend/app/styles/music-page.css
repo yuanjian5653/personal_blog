@@ -46,8 +46,13 @@
     var(--mp-surface);
   -webkit-backdrop-filter: blur(var(--mp-blur)) saturate(180%);
   backdrop-filter: blur(var(--mp-blur)) saturate(180%);
-  border: 1px solid var(--mp-border);
-  box-shadow: var(--mp-shadow);
+  background-clip: padding-box;
+  /* 描边用 inset 阴影而不是 1px border：
+     border 在 backdrop-filter + 圆角的元素上会被反复重栅格化，
+     低对比度的 1px 线就会"一闪一闪"；inset 阴影跟图层一起合成，稳定得多。 */
+  box-shadow:
+    inset 0 0 0 1px var(--mp-border),
+    var(--mp-shadow);
 }
 
 .music-page__inner {
@@ -97,6 +102,11 @@
     inset 0 0 40px rgba(0, 0, 0, 0.7);
   animation: mpSpin 9s linear infinite;
   animation-play-state: paused;
+  /* 独立合成层：否则每帧旋转都会让祖先的 backdrop-filter 重新采样，
+     表现就是卡片边框跟着抖 */
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .mp-vinyl.is-spinning {
   animation-play-state: running;
@@ -148,8 +158,19 @@
   background: linear-gradient(90deg, #cfd2d8, #9aa0aa);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   transform-origin: 100% 50%;
+  /* 暂停：抬离唱片（指向左上方） */
   transform: rotate(-38deg);
   pointer-events: none;
+  transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+
+/* 播放：唱臂落到唱片上。
+   支点在右上角，正向旋转 = 顺时针 = 针头向左下方压到盘面。 */
+.mp-deck.is-playing .mp-tonearm {
+  transform: rotate(30deg);
+  /* 稍等一点点再落针，像真实唱机先起转再下臂 */
+  transition-delay: 0.12s;
 }
 .mp-tonearm::before {
   /* 末端唱头 */
@@ -263,11 +284,15 @@
   background:
     linear-gradient(180deg, var(--mp-inner-hl), transparent 46%),
     var(--mp-surface);
-  border: 1px solid var(--mp-border);
+  background-clip: padding-box;
   border-radius: 20px;
-  box-shadow: var(--mp-shadow);
-  -webkit-backdrop-filter: blur(var(--mp-blur)) saturate(170%);
-  backdrop-filter: blur(var(--mp-blur)) saturate(170%);
+  /* 同 .music-page：描边改用 inset 阴影，避免毛玻璃圆角边框反复重栅格化 */
+  box-shadow:
+    inset 0 0 0 1px var(--mp-border),
+    var(--mp-shadow);
+  /* 这里**不再**叠加 backdrop-filter：
+     卡片本身已经是一层毛玻璃，面板再模糊一次既不会更好看，
+     又会和内部持续旋转的黑胶 / 每秒重绘的歌词一起让圆角边框反复重采样。 */
 }
 
 /* 顶部标签行 */
@@ -358,6 +383,8 @@
   height: 100%;
   flex: 1;
   min-height: 0;
+  transform: translateZ(0);
+  will-change: transform;
   overflow: hidden;
   border-radius: 16px;
   /* 用遮罩做上下渐隐：不依赖具体底色，换主题也不用改 */
@@ -380,6 +407,7 @@
   position: absolute;
   inset-inline: 0;
   top: 50%;
+  will-change: transform;
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .mp-lyrics__line {
@@ -508,6 +536,15 @@
   object-fit: cover;
   background: var(--mp-surface-hover);
   display: block;
+}
+
+/* 没封面时的音符占位（本地歌大多走到这里） */
+.mp-row__cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--mp-ink-faint);
 }
 
 .mp-row__text {
@@ -739,6 +776,9 @@
 @media (prefers-reduced-motion: reduce) {
   .mp-vinyl {
     animation: none !important;
+  }
+  .mp-tonearm {
+    transition-duration: 0.01ms !important;
   }
   .mp-tab,
   .mp-row,
