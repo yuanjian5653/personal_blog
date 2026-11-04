@@ -162,9 +162,19 @@
 
 /* ---------------- 导航轨道 ---------------- */
 
-.nav-island__track {
+/* 包裹层：定位上下文 + 堆叠上下文，液体层挂在它上面 */
+.nav-island__nav {
   position: relative;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.nav-island__track {
+  /* 必须保留 position: relative —— 它才是 <li> 的 offsetParent，
+     指示器靠 li.offsetLeft 定位。去掉它测量就会失效。 */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -268,8 +278,12 @@
 
 /* ---------------- 导航项 ---------------- */
 
+/* 注意：这里不要加 position: relative。
+   加了会让内部 <a> 的 offsetParent 变成这个 <li>，offsetLeft 恒为 0，
+   指示器就无法定位（曾踩过这个坑）。测量代码现在量的是 <li> 本身，
+   但保持它不定位可以让子元素的 offsetLeft 仍然相对轨道，语义更直观。 */
 .nav-island__item {
-  position: relative;
+  display: flex;
 }
 
 .nav-island__link {
@@ -498,7 +512,7 @@
 
 /* 宽度不够放下 11 个栏目时，收进汉堡菜单 */
 @media (max-width: 1199px) {
-  .nav-island__track {
+  .nav-island__nav {
     display: none;
   }
   .nav-island__burger {

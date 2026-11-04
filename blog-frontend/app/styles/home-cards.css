@@ -6,6 +6,12 @@
 /* ---------- 首页随笔卡片（斜飞入 + 星光 + 缩略图 + 点赞） ---------- */
 .essay-card {
   position: relative;
+  /* <a> 默认是 inline，而 inline 元素会忽略 height。
+     这张卡片原本是 .essay-life-row 的直接 grid item，被 blockify 过，
+     所以内联的 height:200px 一直生效、看不出问题；
+     现在它被包进 .essay-switch__pane 里，不再是 grid item，
+     必须显式声明 block —— 否则 height 失效、卡片撑不满、内容溢出。 */
+  display: block;
   overflow: hidden;
   border-radius: 16px;
   cursor: pointer;

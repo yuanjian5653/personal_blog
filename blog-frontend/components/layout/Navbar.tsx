@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide";
 import ThemeToggle from "./ThemeToggle";
+import { resolveLiquidGeometry } from "@/lib/navGeometry";
 
 const NAV_ITEMS = [
   { href: "/", label: "首页", icon: Home },
@@ -62,31 +63,44 @@ export default function Navbar() {
   const hidden = pathname.startsWith("/admin");
 
   const measure = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const el = track.querySelector<HTMLElement>('[data-active="true"]');
-    // offsetWidth 为 0 说明轨道被 CSS 隐藏了（移动端布局），此时不显示指示器
-    if (!el || el.offsetWidth === 0) {
-      setLiq(null);
-      return;
-    }
-    setLiq({ x: el.offsetLeft, w: el.offsetWidth });
+    // "量哪个元素"的逻辑抽在 lib/navGeometry.ts —— 那里踩过一个坑：
+    // 量 <a> 会恒得 offsetLeft=0（<a> 的 offsetParent 是它自己的 <li>），
+    // 抽成纯函数后可以用假对象做无浏览器的回归测试。
+    setLiq(resolveLiquidGeometry(trackRef.current));
   }, []);
 
   // 量位置必须在浏览器完成布局之后。用 useEffect（而非 useLayoutEffect）
-  // 是为了避开 SSR 期间 useLayoutEffect 的告警；第一帧的闪烁由 is-idle 隐藏兜住。
+  // 是为了避开 SSR 期间 useLayoutEffect 的告警；第一帧的闪烁由
+  // "量到位置才挂载指示器"兜住。
   useEffect(() => {
     measure();
   }, [pathname, measure]);
 
   useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
     const onResize = () => measure();
     window.addEventListener("resize", onResize);
+
+    // ThemeToggle 是水合后才渲染真实开关的，岛屿宽度会变、轨道整体位移，
+    // 只监听 window resize 会漏掉这种变化，所以直接观察元素尺寸。
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => measure())
+        : null;
+    ro?.observe(track);
+    if (track.parentElement) ro?.observe(track.parentElement);
+
     // 字体加载完成后文字宽度会变，重新量一次
     const fonts = (document as Document & { fonts?: { ready: Promise<unknown> } })
       .fonts;
     fonts?.ready.then(measure).catch(() => {});
-    return () => window.removeEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro?.disconnect();
+    };
   }, [measure]);
 
   useEffect(() => {
@@ -114,7 +128,7 @@ export default function Navbar() {
 
   const current = NAV_ITEMS.find((i) => isActive(pathname, i.href));
 
-  const trackStyle = {
+  const liquidVars = {
     "--liq-x": `${liq?.x ?? 0}px`,
     "--liq-w": `${liq?.w ?? 0}px`,
   } as React.CSSProperties;
@@ -146,9 +160,9 @@ export default function Navbar() {
         <span className="nav-island__current">{current?.label ?? ""}</span>
 
         {/* 桌面端：全部栏目 */}
-        <ul className="nav-island__track" ref={trackRef} style={trackStyle}>
-          {/* 液体指示器：滞后光晕在下，玻璃胶囊在上。
-              只在量到位置后才挂载 —— 否则宽度会从 0 长出来。 */}
+        {/* 液体指示器放在 <ul> 外面：<ul> 里只能有 <li>，
+            <div>/<span> 直接挂进去是无效 HTML（浏览器会容忍，但语义不对）。 */}
+        <div className="nav-island__nav" style={liquidVars}>
           <div className="nav-island__liquid-wrap" aria-hidden="true">
             {liq && (
               <>
@@ -156,34 +170,32 @@ export default function Navbar() {
                 <span className="nav-island__liquid" />
               </>
             )}
+            {liq && (
+              <span key={pathname} className="nav-island__ripple" />
+            )}
           </div>
-          {liq && (
-            <span
-              key={pathname}
-              className="nav-island__ripple"
-              aria-hidden="true"
-            />
-          )}
 
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <li className="nav-island__item" key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`nav-island__link${active ? " is-active" : ""}`}
-                  data-active={active ? "true" : "false"}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <span className="nav-island__icon">
-                    <MorphIcon icon={item.icon} size={14} />
-                  </span>
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+          <ul className="nav-island__track" ref={trackRef}>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <li className="nav-island__item" key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`nav-island__link${active ? " is-active" : ""}`}
+                    data-active={active ? "true" : "false"}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <span className="nav-island__icon">
+                      <MorphIcon icon={item.icon} size={14} />
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
         <div className="nav-island__actions">
           <ThemeToggle />

@@ -40,7 +40,9 @@
   will-change: transform, opacity;
 }
 
-/* 进入：从逆时针 9° 顺时针扫回原位，中途冲过头再回来（回弹） */
+/* 进入：从逆时针 6° 顺时针扫回原位，中途冲过头再回来（回弹）。
+   角度和缩放是配套算过的：绕左上角旋转时外接框会变大，
+   靠同时缩小把卡片压在自身 200px 高度内，不越界压到相邻卡片。 */
 .essay-switch__pane.is-entering {
   z-index: 2;
   animation: essaySwingIn 0.72s cubic-bezier(0.4, 0, 0.2, 1) both;
@@ -55,19 +57,19 @@
 
 @keyframes essaySwingIn {
   0% {
-    transform: rotate(-9deg) scale(0.955);
+    transform: rotate(-6deg) scale(0.86);
     opacity: 0;
   }
   55% {
-    transform: rotate(1.7deg) scale(1.008);
+    transform: rotate(1.2deg) scale(1.005);
     opacity: 1;
   }
   76% {
-    transform: rotate(-0.8deg) scale(0.998);
+    transform: rotate(-0.5deg) scale(0.997);
     opacity: 1;
   }
   92% {
-    transform: rotate(0.35deg) scale(1.001);
+    transform: rotate(0.2deg) scale(1.001);
     opacity: 1;
   }
   100% {
@@ -82,11 +84,11 @@
     opacity: 1;
   }
   28% {
-    transform: rotate(-2.5deg) scale(0.99);
+    transform: rotate(-1.5deg) scale(0.985);
     opacity: 1;
   }
   100% {
-    transform: rotate(13deg) scale(0.94);
+    transform: rotate(8deg) scale(0.84);
     opacity: 0;
   }
 }
