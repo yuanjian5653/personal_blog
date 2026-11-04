@@ -7,10 +7,47 @@ import { findActiveLyricIndex, parseLrc, type LyricLine } from "@/lib/lrc";
 import { getLyricUrl } from "@/lib/types";
 
 /**
- * 歌词面板：居中滚动 + 高亮当前行（参考稿里高亮是粉色）。
+ * 模块级歌词缓存。
+ * 切到别的页面再回音乐页时组件会重新挂载，没有这层缓存就会重新请求一遍歌词。
+ * key 用 "来源-id"，同一首歌永远命中。
+ */
+const lyricCache = new Map<string, LyricLine[]>();
+/** 进行中的请求，避免同一首歌并发拉两次 */
+const inflight = new Map<string, Promise<LyricLine[]>>();
+
+function loadLyrics(key: string, url: string): Promise<LyricLine[]> {
+  const cached = lyricCache.get(key);
+  if (cached) return Promise.resolve(cached);
+
+  const running = inflight.get(key);
+  if (running) return running;
+
+  const p = fetch(url)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no lyric"))))
+    .then((d: { content?: string; lyric?: string }) => {
+      const raw = d.content || d.lyric || "";
+      const lines = raw.trim() ? parseLrc(raw) : [];
+      lyricCache.set(key, lines);
+      return lines;
+    })
+    .catch(() => {
+      // 「没有歌词」也缓存，避免每次切歌都白请求一遍
+      lyricCache.set(key, []);
+      return [] as LyricLine[];
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+
+  inflight.set(key, p);
+  return p;
+}
+
+/**
+ * 歌词面板：居中滚动 + 高亮当前行。
  *
  * 逻辑与原来的 LyricsTab 一致（同一套 parseLrc / findActiveLyricIndex），
- * 只是换了外观并收进面板里。歌词按"属于哪首歌"缓存在一起，切歌时不会串。
+ * 只是换了外观、收进面板里，并加了模块级缓存。
  */
 export default function LyricsPanel() {
   const { currentSong, currentTime } = usePlayer();
@@ -27,16 +64,9 @@ export default function LyricsPanel() {
     if (!currentSong || !key) return;
     let cancelled = false;
 
-    fetch(getLyricUrl(currentSong))
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no lyric"))))
-      .then((d: { content?: string; lyric?: string }) => {
-        if (cancelled) return;
-        const raw = d.content || d.lyric || "";
-        setData({ key, lines: raw.trim() ? parseLrc(raw) : [] });
-      })
-      .catch(() => {
-        if (!cancelled) setData({ key, lines: [] });
-      });
+    loadLyrics(key, getLyricUrl(currentSong)).then((lines) => {
+      if (!cancelled) setData({ key, lines });
+    });
 
     return () => {
       cancelled = true;

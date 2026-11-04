@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import { cachedGet } from "@/lib/cache";
 import { mergePlaylists } from "@/lib/musicPlaylist";
 import { neteaseToSong } from "@/lib/netease";
 import type { NeteaseSong, Song } from "@/lib/types";
@@ -14,6 +14,14 @@ interface PublicPlaylistResponse {
   name: string;
   songs: NeteaseSong[];
 }
+
+const LOCAL_PATH = "/api/music/songs";
+const NET_PATH = "/api/netease/public-playlist";
+/**
+ * 歌单是低频数据：切到别的页面再回来不应该重新拉。
+ * 5 分钟后才会自动重新取一次。
+ */
+const TTL = 5 * 60_000;
 
 export interface MergedPlaylistState {
   songs: Song[];
@@ -31,9 +39,8 @@ export interface MergedPlaylistState {
 /**
  * 拉取「本地歌曲 + 站点配置的网易云歌单」，合并成一个播放列表。
  *
- * 以前音乐页是「本地」「网易云」两个标签各看各的，想连着听要手动加入队列。
- * 现在合并成一份列表，点任意一首播放时把整份列表交给播放器，
- * 上一首/下一首就能在本地与网易云之间自然衔接。
+ * 走 lib/cache 的模块级缓存：从别的路由切回音乐页时直接命中缓存，
+ * 不会再转一圈（之前每次回来都重新请求，表现为"重新加载播放列表"）。
  */
 export function useMergedPlaylist(): MergedPlaylistState {
   // null = 还在加载；用 null 而不是单独的 loading 标志，
@@ -53,14 +60,12 @@ export function useMergedPlaylist(): MergedPlaylistState {
   useEffect(() => {
     let cancelled = false;
 
-    const localPromise = api
-      .get<Song[]>("/api/music/songs")
+    const localPromise = cachedGet<Song[]>(LOCAL_PATH, TTL)
       .then((list) => list.map((s) => ({ ...s, source: "local" as const })))
       // 本地接口挂了也让页面能用（至少还能放网易云）
       .catch(() => [] as Song[]);
 
-    const neteasePromise = api
-      .get<PublicPlaylistResponse>("/api/netease/public-playlist")
+    const neteasePromise = cachedGet<PublicPlaylistResponse>(NET_PATH, TTL)
       .then((d) => {
         if (!d.configured) {
           return {

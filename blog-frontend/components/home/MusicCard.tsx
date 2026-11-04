@@ -2,25 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+
+import PlayerControls from "@/components/player/PlayerControls";
+import PlayerProgress from "@/components/player/PlayerProgress";
 import { usePlayer } from "@/components/player/PlayerProvider";
-import { formatTime } from "@/lib/format";
 import { getCoverUrl } from "@/lib/types";
 
 export default function MusicCard() {
-  const {
-    currentSong,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    playMode,
-    toggle,
-    next,
-    prev,
-    seek,
-    setVolume,
-    setPlayMode,
-  } = usePlayer();
+  const { currentSong, isPlaying } = usePlayer();
 
   // 记录"加载封面失败的是哪首歌"，而不是一个布尔值。
   // 这样切歌时比较结果自然变成 false，不需要"切歌就重置"的 effect。
@@ -54,20 +43,10 @@ export default function MusicCard() {
   // 封面判断：网易云用 cover_url，本地用 cover_path
   const hasCover =
     (!!currentSong.cover_url || !!currentSong.cover_path) && !coverError;
-
-  // 封面 URL
   const coverSrc = getCoverUrl(currentSong);
 
-  const cycleMode = () => {
-    const order: Array<"order" | "loop" | "single"> = ["order", "loop", "single"];
-    const idx = order.indexOf(playMode);
-    setPlayMode(order[(idx + 1) % order.length]);
-  };
-
-  const modeIcon = { order: "↻", loop: "🔀", single: "🔂" }[playMode];
-
   return (
-    <div className="glass music-card p-5 flex flex-col h-full relative overflow-hidden">
+    <div className="glass music-card mp-theme p-5 flex flex-col h-full relative overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <span
           className="text-xs uppercase tracking-widest"
@@ -132,82 +111,17 @@ export default function MusicCard() {
         </div>
       </div>
 
-      <div className="mb-3">
-        <input
-          type="range"
-          min={0}
-          max={duration || 0}
-          step={0.1}
-          value={currentTime}
-          onChange={(e) => seek(Number(e.target.value))}
-          className="w-full h-1 accent-[var(--accent)] cursor-pointer"
-        />
-        <div
-          className="flex justify-between text-[10px] mt-1"
+      {/* 与音乐页完全相同的进度条与控制键 */}
+      <PlayerProgress />
+      <PlayerControls />
+
+      <div className="mt-auto pt-3 flex justify-end">
+        <Link
+          href="/music"
+          className="text-xs hover:opacity-70 transition-opacity"
           style={{ color: "var(--text-secondary)" }}
         >
-          <span className="tabular-nums">{formatTime(currentTime)}</span>
-          <span className="tabular-nums">{formatTime(duration)}</span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center gap-4 mb-3">
-        <button
-          onClick={prev}
-          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-          title="上一首"
-        >
-          ⏮
-        </button>
-
-        <button
-          onClick={toggle}
-          className="w-11 h-11 rounded-full flex items-center justify-center text-white"
-          style={{ background: "var(--accent)" }}
-          title={isPlaying ? "暂停" : "播放"}
-        >
-          {isPlaying ? "⏸" : "▶"}
-        </button>
-
-        <button
-          onClick={next}
-          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
-          title="下一首"
-        >
-          ⏭
-        </button>
-      </div>
-
-      <div
-        className="flex items-center justify-between text-xs pt-3"
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          color: "var(--text-secondary)",
-        }}
-      >
-        <button onClick={cycleMode} className="hover:opacity-70" title="播放模式">
-          {modeIcon}
-        </button>
-        <Link href="/music" className="hover:opacity-70" title="音乐库">
-          ☰
-        </Link>
-        <button className="hover:opacity-70" title="喜欢">
-          ♡
-        </button>
-        <div className="flex items-center gap-1">
-          <span>🔊</span>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="w-14 h-1 accent-[var(--accent)] cursor-pointer"
-          />
-        </div>
-        <Link href="/music" className="hover:opacity-70" title="查看全部">
-          →
+          查看全部 →
         </Link>
       </div>
     </div>

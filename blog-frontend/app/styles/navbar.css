@@ -41,8 +41,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 56px;
-  padding: 0 10px 0 16px;
+  height: 62px;
+  padding: 0 12px 0 18px;
   border-radius: 9999px;
   pointer-events: auto;
   /* 唯一的一层玻璃 */
@@ -67,7 +67,7 @@
 .nav-island__brand {
   position: relative;
   z-index: 2;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -84,7 +84,7 @@
 /* 窄屏下的当前栏目名 */
 .nav-island__current {
   display: none;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -115,7 +115,7 @@
   position: absolute;
   top: 50%;
   left: 0;
-  height: 38px;
+  height: 42px;
   width: var(--liq-w, 0px);
   border-radius: 9999px;
   transform: translate3d(var(--liq-x, 0px), -50%, 0);
@@ -153,10 +153,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 38px;
-  padding: 0 11px;
+  height: 42px;
+  padding: 0 12px;
   border-radius: 9999px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
   white-space: nowrap;
   text-decoration: none;
@@ -211,8 +211,8 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
@@ -331,8 +331,8 @@
     display: inline-block;
   }
   .nav-island {
-    height: 52px;
-    padding: 0 8px 0 16px;
+    height: 58px;
+    padding: 0 10px 0 18px;
     gap: 8px;
   }
 }
@@ -348,11 +348,11 @@
     padding: 10px 12px 0;
   }
   .nav-island {
-    height: 50px;
-    padding: 0 6px 0 14px;
+    height: 54px;
+    padding: 0 8px 0 16px;
   }
   .nav-island__brand {
-    font-size: 14px;
+    font-size: 15px;
   }
   /* 极窄屏放不下"当前栏目名"，让位给主题开关和汉堡 */
   .nav-island__current {

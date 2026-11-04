@@ -166,7 +166,7 @@ export default function Navbar() {
                     aria-current={active ? "page" : undefined}
                   >
                     <span className="nav-island__icon">
-                      <MorphIcon icon={item.icon} size={14} />
+                      <MorphIcon icon={item.icon} size={16} />
                     </span>
                     <span>{item.label}</span>
                   </Link>
@@ -188,7 +188,7 @@ export default function Navbar() {
           aria-controls="nav-sheet"
           onClick={() => setOpen((v) => !v)}
         >
-          <MorphIcon icon={open ? X : Menu} size={18} />
+          <MorphIcon icon={open ? X : Menu} size={20} />
         </button>
       </nav>
 
@@ -214,7 +214,7 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                   tabIndex={open ? 0 : -1}
                 >
-                  <MorphIcon icon={item.icon} size={18} />
+                  <MorphIcon icon={item.icon} size={19} />
                   <span>{item.label}</span>
                 </Link>
               </li>

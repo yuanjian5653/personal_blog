@@ -17,6 +17,7 @@
    黑色的黑胶本体是唱片本身的质感，不随主题变。
    ============================================================ */
 
+.mp-theme,
 .music-page {
   /* 把主题变量收成一组本地别名，下面只引用别名 */
   --mp-surface: var(--card-bg);
@@ -32,7 +33,9 @@
   --mp-accent-soft: color-mix(in srgb, var(--accent) 26%, transparent);
   --mp-track-line: color-mix(in srgb, var(--card-text) 16%, transparent);
   --mp-green: #4ec98a;
+}
 
+.music-page {
   max-width: 1180px;
   margin: 0 auto;
   padding: 18px;
@@ -324,16 +327,37 @@
   background: var(--mp-ink-faint);
 }
 
-/* 面板主体 */
+/* 面板主体：**固定高度**。
+   播放列表和歌词的内容量不同，若各自撑高，切标签时整张卡片会忽高忽低，
+   下面的控制条也跟着上下跳。这里定死高度，内部各自滚动。 */
 .mp-body {
+  display: flex;
+  flex-direction: column;
+  height: 336px;
   padding: 6px 4px;
+  overflow: hidden;
+}
+
+/* 两个面板始终挂载，只切换显示。
+   用条件渲染的话每次切标签都会销毁重建：
+   列表要重新渲染整份数据、歌词要重新请求接口，表现为"切回来又加载一遍"。 */
+.mp-pane {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.mp-pane.is-active {
+  display: flex;
 }
 
 /* ---------------- 歌词 ---------------- */
 
 .mp-lyrics {
   position: relative;
-  height: 322px;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   border-radius: 16px;
   /* 用遮罩做上下渐隐：不依赖具体底色，换主题也不用改 */
@@ -380,7 +404,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 322px;
+  height: 100%;
+  flex: 1;
   font-size: 13px;
   color: var(--mp-ink-faint);
 }
@@ -426,7 +451,8 @@
 }
 
 .mp-list__rows {
-  height: 268px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0 6px 6px;
   scrollbar-width: thin;
@@ -545,7 +571,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 220px;
+  flex: 1;
+  min-height: 0;
   font-size: 13px;
   color: var(--mp-ink-faint);
 }
@@ -682,12 +709,8 @@
   .mp-vinyl-stage {
     width: min(70%, 250px);
   }
-  .mp-lyrics,
-  .mp-lyrics__hint {
-    height: 260px;
-  }
-  .mp-list__rows {
-    height: 240px;
+  .mp-body {
+    height: 300px;
   }
 }
 

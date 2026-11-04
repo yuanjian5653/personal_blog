@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import { cachedGet } from "@/lib/cache";
 import { resolveImageUrl } from "@/lib/url";
 import CardSkeleton from "./CardSkeleton";
 
@@ -64,10 +64,12 @@ export default function ProfileCard() {
   useEffect(() => {
     let cancelled = false;
 
-    // 配置与统计各拉一次；统计来自数据库实时计数，
+    // 配置与统计各拉一次。统计来自数据库实时计数，
     // 所以后台增删文章/说说/照片后，刷新首页数字就会变。
-    api
-      .get<{ configs: Record<string, string> }>("/api/site-config")
+    //
+    // 走 cachedGet：从别的页面切回首页时命中模块级缓存，不再重新请求
+    // （否则每次回来个人卡片都会闪一下骨架）。统计用较短 TTL 保证数字不会太旧。
+    cachedGet<{ configs: Record<string, string> }>("/api/site-config", 60_000)
       .then((d) => {
         if (!cancelled) setCfg(d.configs);
       })
@@ -75,8 +77,7 @@ export default function ProfileCard() {
         if (!cancelled) setCfg({});
       });
 
-    api
-      .get<SiteStats>("/api/site-config/stats")
+    cachedGet<SiteStats>("/api/site-config/stats", 60_000)
       .then((s) => {
         if (!cancelled) setStats(s);
       })
