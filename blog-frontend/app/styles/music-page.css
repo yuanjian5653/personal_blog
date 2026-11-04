@@ -1,48 +1,56 @@
 /* ============================================================
-   音乐页（参考稿：黑胶唱片 + 奶油色面板 + 圆形控制键）
+   音乐页（黑胶唱片 + 毛玻璃面板）
    ------------------------------------------------------------
-   这是一个自成一体的"唱片封套"式页面：浅奶油色面板浮在深色背景上，
-   左侧是旋转的黑胶与唱臂，右侧是歌词/播放列表面板 + 控制条。
+   配色**全部走站点主题变量**，因此页面会跟随右上角的黑白毛玻璃切换
+   （html[data-card-style="glass" | "black"]）：
 
-   配色集中在这里，想换成站点主题色只需改这一段：
-     --mp-cream / --mp-panel / --mp-ink / --mp-pink ...
+     --card-bg        面板底色
+     --card-bg-hover  悬停底色
+     --card-border    描边
+     --card-text      主文字
+     --card-text-sub  次要文字
+     --card-inner-hl  内高光
+     --card-blur      背景模糊半径
+     --card-shadow    外投影
+     --accent         强调色（进度条、高亮、徽标）
+
+   黑色的黑胶本体是唱片本身的质感，不随主题变。
    ============================================================ */
 
 .music-page {
-  /* ---- 奶油面板配色 ---- */
-  --mp-cream: #f6efdd;
-  --mp-cream-soft: #efe6d0;
-  --mp-panel: rgba(255, 253, 247, 0.72);
-  --mp-panel-solid: #f3ecda;
-  --mp-ink: #3d342a;
-  --mp-ink-soft: #8d8477;
-  --mp-ink-faint: rgba(61, 52, 42, 0.45);
-  --mp-line: rgba(61, 52, 42, 0.1);
-  --mp-pink: #f0879c;
-  --mp-pink-deep: #e2697f;
-  --mp-green: #46c98a;
-  --mp-shadow: 0 26px 60px -28px rgba(58, 42, 16, 0.55);
+  /* 把主题变量收成一组本地别名，下面只引用别名 */
+  --mp-surface: var(--card-bg);
+  --mp-surface-hover: var(--card-bg-hover);
+  --mp-border: var(--card-border);
+  --mp-ink: var(--card-text);
+  --mp-ink-soft: var(--card-text-sub);
+  --mp-ink-faint: color-mix(in srgb, var(--card-text-sub) 62%, transparent);
+  --mp-inner-hl: var(--card-inner-hl);
+  --mp-blur: var(--card-blur);
+  --mp-shadow: var(--card-shadow);
+  --mp-accent: var(--accent);
+  --mp-accent-soft: color-mix(in srgb, var(--accent) 26%, transparent);
+  --mp-track-line: color-mix(in srgb, var(--card-text) 16%, transparent);
+  --mp-green: #4ec98a;
 
   max-width: 1180px;
   margin: 0 auto;
-  padding: 4px;
-  border-radius: 30px;
-  background:
-    radial-gradient(120% 90% at 12% 0%, #fbf5e6 0%, rgba(251, 245, 230, 0) 55%),
-    linear-gradient(160deg, var(--mp-cream) 0%, var(--mp-cream-soft) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    var(--mp-shadow);
+  padding: 18px;
+  border-radius: 26px;
   color: var(--mp-ink);
+  background:
+    linear-gradient(180deg, var(--mp-inner-hl), transparent 42%),
+    var(--mp-surface);
+  -webkit-backdrop-filter: blur(var(--mp-blur)) saturate(180%);
+  backdrop-filter: blur(var(--mp-blur)) saturate(180%);
+  border: 1px solid var(--mp-border);
+  box-shadow: var(--mp-shadow);
 }
 
 .music-page__inner {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
   gap: 18px;
-  padding: 18px;
 }
 
 /* ---------------- 左：黑胶 ---------------- */
@@ -53,26 +61,25 @@
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 10px 6px 6px;
+  padding: 6px;
 }
 
 .mp-vinyl-stage {
   position: relative;
-  width: min(100%, 340px);
+  width: min(100%, 330px);
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 唱片本体 */
+/* 唱片本体：黑胶是黑色，与主题无关 */
 .mp-vinyl {
   position: relative;
   width: 88%;
   height: 88%;
   border-radius: 50%;
   background:
-    /* 一道道纹路 */
     repeating-radial-gradient(
       circle at 50% 50%,
       rgba(255, 255, 255, 0.055) 0px,
@@ -83,7 +90,7 @@
     radial-gradient(circle at 34% 30%, #3a3a3d 0%, #1d1d20 42%, #101012 72%);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.55),
-    0 18px 40px -14px rgba(0, 0, 0, 0.6),
+    0 16px 36px -14px rgba(0, 0, 0, 0.6),
     inset 0 0 40px rgba(0, 0, 0, 0.7);
   animation: mpSpin 9s linear infinite;
   animation-play-state: paused;
@@ -101,9 +108,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(140deg, #cdd8b7, #9fb98f);
+  background: linear-gradient(140deg, #6f7f72, #47554c);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
     0 0 0 6px rgba(0, 0, 0, 0.35);
   color: rgba(255, 255, 255, 0.85);
   font-size: 26px;
@@ -123,7 +130,7 @@
   height: 8px;
   margin: -4px 0 0 -4px;
   border-radius: 50%;
-  background: #f6efdd;
+  background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
 }
 
@@ -176,10 +183,11 @@
 /* 曲目信息 */
 .mp-meta {
   text-align: center;
-  min-height: 58px;
+  min-height: 56px;
+  max-width: 100%;
 }
 .mp-meta__title {
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.01em;
   margin: 0 0 6px;
@@ -187,20 +195,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 340px;
 }
 .mp-meta__artist {
-  font-size: 15px;
+  font-size: 14px;
   margin: 0;
-  color: var(--mp-pink-deep);
+  color: var(--mp-accent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 340px;
 }
 .mp-meta__empty {
   font-size: 14px;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
 }
 
 /* 音量 */
@@ -208,37 +214,36 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(100%, 260px);
+  width: min(100%, 240px);
   color: var(--mp-ink-soft);
 }
 .mp-volume__icon {
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 .mp-volume input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
-  height: 6px;
+  height: 5px;
   border-radius: 9999px;
-  background: rgba(61, 52, 42, 0.12);
+  background: var(--mp-track-line);
   outline: none;
   cursor: pointer;
 }
 .mp-volume input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--mp-pink);
-  box-shadow: 0 1px 4px rgba(226, 105, 127, 0.5);
+  background: var(--mp-accent);
 }
 .mp-volume input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border: none;
   border-radius: 50%;
-  background: var(--mp-pink);
+  background: var(--mp-accent);
 }
 
 /* ---------------- 右侧列 ---------------- */
@@ -250,16 +255,16 @@
   min-width: 0;
 }
 
-/* 面板通用外观 */
+/* 面板：内高光 + 卡片底色，与站点其它卡片同一套变量 */
 .mp-panel {
-  background: var(--mp-panel);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 22px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 12px 28px -18px rgba(58, 42, 16, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background:
+    linear-gradient(180deg, var(--mp-inner-hl), transparent 46%),
+    var(--mp-surface);
+  border: 1px solid var(--mp-border);
+  border-radius: 20px;
+  box-shadow: var(--mp-shadow);
+  -webkit-backdrop-filter: blur(var(--mp-blur)) saturate(170%);
+  backdrop-filter: blur(var(--mp-blur)) saturate(170%);
 }
 
 /* 顶部标签行 */
@@ -268,7 +273,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--mp-line);
+  border-bottom: 1px solid var(--mp-border);
 }
 .mp-tab {
   display: inline-flex;
@@ -283,19 +288,17 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background 0.25s ease,
-    color 0.25s ease,
-    border-color 0.25s ease,
-    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease;
 }
 .mp-tab:hover {
   color: var(--mp-ink);
 }
 .mp-tab.is-active {
-  background: var(--mp-panel-solid);
-  border-color: rgba(61, 52, 42, 0.1);
+  background: var(--mp-surface-hover);
+  border-color: var(--mp-border);
   color: var(--mp-ink);
-  box-shadow: 0 2px 8px -4px rgba(58, 42, 16, 0.4);
 }
 
 /* 「播放中」胶囊 */
@@ -306,7 +309,8 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--mp-surface);
+  border: 1px solid var(--mp-border);
   font-size: 12px;
   color: var(--mp-ink-soft);
 }
@@ -315,11 +319,9 @@
   height: 7px;
   border-radius: 50%;
   background: var(--mp-green);
-  box-shadow: 0 0 0 3px rgba(70, 201, 138, 0.18);
 }
 .mp-live.is-paused .mp-live__dot {
   background: var(--mp-ink-faint);
-  box-shadow: none;
 }
 
 /* 面板主体 */
@@ -333,7 +335,22 @@
   position: relative;
   height: 322px;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 16px;
+  /* 用遮罩做上下渐隐：不依赖具体底色，换主题也不用改 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 20%,
+    #000 80%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    #000 20%,
+    #000 80%,
+    transparent 100%
+  );
 }
 .mp-lyrics__scroller {
   position: absolute;
@@ -352,13 +369,12 @@
   color: var(--mp-ink-faint);
   transition:
     color 0.3s ease,
-    font-size 0.3s ease,
-    opacity 0.3s ease;
+    font-size 0.3s ease;
 }
 .mp-lyrics__line.is-active {
   font-size: 16px;
   font-weight: 700;
-  color: var(--mp-pink-deep);
+  color: var(--mp-accent);
 }
 .mp-lyrics__hint {
   display: flex;
@@ -366,21 +382,7 @@
   justify-content: center;
   height: 322px;
   font-size: 13px;
-  color: var(--mp-ink-soft);
-}
-/* 上下渐隐 */
-.mp-lyrics::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    var(--mp-panel-solid) 0%,
-    rgba(243, 236, 218, 0) 26%,
-    rgba(243, 236, 218, 0) 74%,
-    var(--mp-panel-solid) 100%
-  );
+  color: var(--mp-ink-faint);
 }
 
 /* ---------------- 播放列表 ---------------- */
@@ -401,7 +403,7 @@
 }
 .mp-list__count {
   font-size: 11px;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
   white-space: nowrap;
 }
 .mp-list__search {
@@ -410,14 +412,14 @@
   height: 30px;
   padding: 0 12px;
   border-radius: 9999px;
-  border: 1px solid var(--mp-line);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--mp-border);
+  background: var(--mp-surface);
   color: var(--mp-ink);
   font-size: 12px;
   outline: none;
 }
 .mp-list__search:focus {
-  border-color: var(--mp-pink);
+  border-color: var(--mp-accent);
 }
 .mp-list__search::placeholder {
   color: var(--mp-ink-faint);
@@ -428,13 +430,13 @@
   overflow-y: auto;
   padding: 0 6px 6px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(61, 52, 42, 0.22) transparent;
+  scrollbar-color: var(--mp-track-line) transparent;
 }
 .mp-list__rows::-webkit-scrollbar {
   width: 8px;
 }
 .mp-list__rows::-webkit-scrollbar-thumb {
-  background: rgba(61, 52, 42, 0.2);
+  background: var(--mp-track-line);
   border-radius: 9999px;
 }
 
@@ -450,16 +452,13 @@
   text-align: left;
   cursor: pointer;
   color: inherit;
-  transition:
-    background 0.2s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: background 0.2s ease;
 }
 .mp-row:hover {
-  background: rgba(255, 255, 255, 0.75);
-  transform: translateX(2px);
+  background: var(--mp-surface-hover);
 }
 .mp-row.is-current {
-  background: rgba(240, 135, 156, 0.16);
+  background: var(--mp-accent-soft);
 }
 
 .mp-row__index {
@@ -471,7 +470,7 @@
   color: var(--mp-ink-faint);
 }
 .mp-row.is-current .mp-row__index {
-  color: var(--mp-pink-deep);
+  color: var(--mp-accent);
   font-weight: 700;
 }
 
@@ -481,7 +480,8 @@
   flex-shrink: 0;
   border-radius: 8px;
   object-fit: cover;
-  background: rgba(61, 52, 42, 0.08);
+  background: var(--mp-surface-hover);
+  display: block;
 }
 
 .mp-row__text {
@@ -489,8 +489,7 @@
   flex: 1;
   display: block;
 }
-/* 这两个是 <span>，必须显式 block 才能让 ellipsis 生效
-   （inline 元素的 overflow/text-overflow 不作用） */
+/* 这两个是 <span>，必须显式 block 才能让 ellipsis 生效 */
 .mp-row__title {
   display: block;
   font-size: 13px;
@@ -500,13 +499,13 @@
   white-space: nowrap;
 }
 .mp-row.is-current .mp-row__title {
-  color: var(--mp-pink-deep);
+  color: var(--mp-accent);
   font-weight: 700;
 }
 .mp-row__artist {
   display: block;
   font-size: 11px;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -522,12 +521,12 @@
   letter-spacing: 0.02em;
 }
 .mp-row__badge--local {
-  background: rgba(61, 52, 42, 0.08);
+  background: var(--mp-surface-hover);
   color: var(--mp-ink-soft);
 }
 .mp-row__badge--netease {
-  background: rgba(226, 105, 127, 0.16);
-  color: var(--mp-pink-deep);
+  background: var(--mp-accent-soft);
+  color: var(--mp-accent);
 }
 
 .mp-row__time {
@@ -540,7 +539,7 @@
 .mp-list__note {
   padding: 6px 12px 2px;
   font-size: 11px;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
 }
 .mp-list__empty {
   display: flex;
@@ -548,7 +547,7 @@
   justify-content: center;
   height: 220px;
   font-size: 13px;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
 }
 
 /* ---------------- 控制条 ---------------- */
@@ -565,7 +564,7 @@
 .mp-progress__time {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--mp-ink-soft);
+  color: var(--mp-ink-faint);
   min-width: 38px;
 }
 .mp-progress__time--right {
@@ -574,16 +573,16 @@
 .mp-progress__track {
   position: relative;
   flex: 1;
-  height: 6px;
+  height: 5px;
   border-radius: 9999px;
-  background: rgba(61, 52, 42, 0.12);
+  background: var(--mp-track-line);
   cursor: pointer;
 }
 .mp-progress__fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 9999px;
-  background: linear-gradient(90deg, var(--mp-pink), var(--mp-pink-deep));
+  background: var(--mp-accent);
 }
 .mp-progress__input {
   position: absolute;
@@ -612,17 +611,16 @@
   color: var(--mp-ink-soft);
   cursor: pointer;
   transition:
-    background 0.22s ease,
-    color 0.22s ease,
-    transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.24s ease;
 }
 .mp-ctrl:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--mp-surface-hover);
   color: var(--mp-ink);
-  transform: translateY(-1px);
 }
 .mp-ctrl:active {
-  transform: scale(0.92);
+  transform: scale(0.93);
 }
 .mp-ctrl:disabled {
   opacity: 0.4;
@@ -630,38 +628,59 @@
 }
 .mp-ctrl:disabled:hover {
   background: transparent;
-  transform: none;
 }
 .mp-ctrl.is-on {
-  color: var(--mp-pink-deep);
+  color: var(--mp-accent);
 }
 
-/* 中央播放键：更大、带奶油底与柔和投影 */
+/* 中央播放键：更大一圈，带一层内高光 */
 .mp-ctrl--play {
   width: 52px;
   height: 52px;
-  background: linear-gradient(160deg, #ffffff, var(--mp-cream-soft));
-  border-color: rgba(255, 255, 255, 0.9);
+  background:
+    linear-gradient(180deg, var(--mp-inner-hl), transparent 60%),
+    var(--mp-surface-hover);
+  border-color: var(--mp-border);
   color: var(--mp-ink);
-  box-shadow:
-    0 10px 22px -10px rgba(58, 42, 16, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 .mp-ctrl--play:hover {
-  transform: translateY(-2px) scale(1.03);
   color: var(--mp-ink);
+}
+
+/* ---------------- 拉取失败时的重试入口 ---------------- */
+
+.music-page__retry {
+  display: block;
+  margin: 12px auto 0;
+  padding: 5px 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.music-page__retry:hover {
+  background: var(--card-bg-hover);
+  color: var(--text-primary);
 }
 
 /* ---------------- 响应式 ---------------- */
 
 @media (max-width: 900px) {
+  .music-page {
+    padding: 14px;
+    border-radius: 22px;
+  }
   .music-page__inner {
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
-    padding: 14px;
   }
   .mp-vinyl-stage {
-    width: min(70%, 260px);
+    width: min(70%, 250px);
   }
   .mp-lyrics,
   .mp-lyrics__hint {
@@ -674,10 +693,8 @@
 
 @media (max-width: 480px) {
   .music-page {
-    border-radius: 22px;
-  }
-  .music-page__inner {
     padding: 12px;
+    border-radius: 20px;
   }
   .mp-meta__title {
     font-size: 18px;

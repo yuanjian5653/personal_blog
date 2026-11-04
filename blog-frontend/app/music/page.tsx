@@ -47,21 +47,7 @@ export default function MusicPage() {
 
       {/* 仅当网易云确实拉取失败时给重试入口；"还没配置歌单"不算失败 */}
       {neteaseFailed && !loading && (
-        <button
-          type="button"
-          onClick={reload}
-          style={{
-            display: "block",
-            margin: "0 auto 12px",
-            padding: "4px 14px",
-            borderRadius: 9999,
-            border: "1px solid rgba(61,52,42,0.15)",
-            background: "rgba(255,255,255,0.6)",
-            color: "#8d8477",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-        >
+        <button type="button" onClick={reload} className="music-page__retry">
           重新加载列表
         </button>
       )}
