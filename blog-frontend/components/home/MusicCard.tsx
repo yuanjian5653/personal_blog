@@ -47,8 +47,13 @@ export default function MusicCard() {
   const coverSrc = currentSong ? getCoverUrl(currentSong) : "";
 
   return (
-    <div className={`music-card mp-theme${currentSong ? "" : " is-empty"}`}>
-      {/* 底层：两团游动的光斑（参考稿的 .two / .three） */}
+    <div
+      className={`music-card mp-theme${currentSong ? "" : " is-empty"}${
+        isPlaying ? " is-playing" : ""
+      }`}
+    >
+      {/* 底层：两团游动的光斑（参考稿的 .two / .three）。
+          播放时换成更短周期的呼吸动画，见 music-card.css */}
       <span className="music-card__glow music-card__glow--a" aria-hidden="true" />
       <span className="music-card__glow music-card__glow--b" aria-hidden="true" />
 

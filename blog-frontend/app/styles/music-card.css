@@ -60,7 +60,8 @@
     color-mix(in srgb, var(--mc-a) 40%, transparent) 55%,
     transparent 78%
   );
-  animation: mcGlowA 11s ease-in-out infinite;
+  /* 空闲：缓慢漂移，让卡片不死板 */
+  animation: mcDriftA 14s ease-in-out infinite;
 }
 
 .music-card__glow--b {
@@ -72,44 +73,91 @@
     color-mix(in srgb, var(--mc-b) 40%, transparent) 55%,
     transparent 78%
   );
-  animation: mcGlowB 14s ease-in-out infinite;
+  animation: mcDriftB 18s ease-in-out infinite;
 }
 
-/* 用 transform 而不是参考稿的 top/left —— 后者每帧触发布局 */
-@keyframes mcGlowA {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  25% {
-    transform: translate3d(18%, 10%, 0) scale(1.08);
-  }
-  50% {
-    transform: translate3d(6%, 22%, 0) scale(0.95);
-  }
-  75% {
-    transform: translate3d(-8%, 8%, 0) scale(1.04);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
+/* 关键帧一律用 transform（参考稿动的是 top/left，每帧触发布局）。
+   两套：
+     mcDriftA/B  空闲时的缓慢漂移 —— 幅度调大了，隔着毛玻璃也看得见
+     mcPulseA/B  播放时的快速呼吸 —— 周期 2.6~3.2s，同时改透明度和缩放，
+                 一眼就能看出"跟着音乐在动" */
 
-@keyframes mcGlowB {
+@keyframes mcDriftA {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
   }
   30% {
-    transform: translate3d(-14%, -12%, 0) scale(1.06);
+    transform: translate3d(26%, 16%, 0) scale(1.12);
   }
-  55% {
-    transform: translate3d(-4%, -24%, 0) scale(0.94);
-  }
-  80% {
-    transform: translate3d(10%, -6%, 0) scale(1.02);
+  60% {
+    transform: translate3d(8%, 32%, 0) scale(0.94);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+}
+
+@keyframes mcDriftB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  35% {
+    transform: translate3d(-22%, -18%, 0) scale(1.1);
+  }
+  70% {
+    transform: translate3d(-6%, -34%, 0) scale(0.92);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 播放中：更短周期 + 透明度起伏，明显"在呼吸" */
+@keyframes mcPulseA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.45;
+  }
+  35% {
+    transform: translate3d(22%, 14%, 0) scale(1.2);
+    opacity: 0.8;
+  }
+  65% {
+    transform: translate3d(10%, 26%, 0) scale(1.02);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.45;
+  }
+}
+
+@keyframes mcPulseB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translate3d(-20%, -16%, 0) scale(1.22);
+    opacity: 0.78;
+  }
+  70% {
+    transform: translate3d(-8%, -30%, 0) scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.4;
+  }
+}
+
+/* 播放状态切换动画（关键点：切换 animation 会让它从 0% 重新开始，
+   所以按下播放时会立刻看到光斑"动起来"） */
+.music-card.is-playing .music-card__glow--a {
+  animation: mcPulseA 2.6s ease-in-out infinite;
+}
+.music-card.is-playing .music-card__glow--b {
+  animation: mcPulseB 3.2s ease-in-out infinite;
 }
 
 /* ---------------- 中层：毛玻璃 ---------------- */
@@ -305,9 +353,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* 尊重"减少动效"：取消所有位移，只保留极慢的透明度呼吸，
+     这样播放/暂停仍有反馈，又不产生运动感。
+     注意：如果看到光斑完全不动，也可能是系统开了"减少动画"
+     （Windows：设置 → 辅助功能 → 视觉效果 → 动画效果）。 */
   .music-card__glow--a,
   .music-card__glow--b {
-    animation: none !important;
+    animation: mcBreathe 6s ease-in-out infinite !important;
+  }
+  .music-card.is-playing .music-card__glow--a,
+  .music-card.is-playing .music-card__glow--b {
+    animation: mcBreathe 3.2s ease-in-out infinite !important;
   }
   .music-card__tile,
   .music-card__title,
@@ -316,5 +372,16 @@
   }
   .music-card__tile:hover {
     transform: none;
+  }
+}
+
+/* 仅供"减少动效"模式使用：只改透明度，不位移 */
+@keyframes mcBreathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.72;
   }
 }
