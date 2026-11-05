@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { MorphIcon } from "morphicons/react";
 
 import {
@@ -51,6 +53,8 @@ export default function ToolForm({
   categories,
 }: Props) {
   const [form, setForm] = useState<ToolInput>(initial);
+  // 正文编辑 / 预览切换
+  const [preview, setPreview] = useState(false);
 
   const set = <K extends keyof ToolInput>(key: K, value: ToolInput[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -74,6 +78,7 @@ export default function ToolForm({
       slug: form.slug.trim(),
       href: form.href.trim(),
       summary: form.summary.trim(),
+      description: form.description.trim(),
       category: form.category.trim() || DEFAULT_CATEGORY,
       tags: form.tags.trim(),
       icon: form.icon || "",
@@ -194,6 +199,41 @@ export default function ToolForm({
         />
         <small className="admin-muted">{KIND_HINT[kind]}</small>
       </label>
+
+      <div className="admin-panel__title">详情正文（Markdown，可选）</div>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="admin-btn admin-btn--ghost"
+          onClick={() => setPreview((v) => !v)}
+        >
+          {preview ? "继续编辑" : "预览"}
+        </button>
+        <span className="admin-muted text-xs">
+          支持标题、列表、表格、代码块；留空则详情页不显示正文区
+        </span>
+      </div>
+
+      {preview ? (
+        <div className="tool-form__preview prose-custom">
+          {form.description.trim() ? (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {form.description}
+            </ReactMarkdown>
+          ) : (
+            <p className="admin-muted">（还没有内容）</p>
+          )}
+        </div>
+      ) : (
+        <textarea
+          className="tool-form__textarea"
+          rows={10}
+          value={form.description}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder={"# 用法\n\n1. 打开 xxx\n2. 粘贴链接\n3. 选择画质后下载"}
+        />
+      )}
 
       <div className="admin-panel__title">状态</div>
 

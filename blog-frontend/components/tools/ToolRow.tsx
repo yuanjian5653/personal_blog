@@ -3,30 +3,23 @@
 import Link from "next/link";
 import { MorphIcon } from "morphicons/react";
 
-import { recordToolClick, splitTags, type Tool } from "@/lib/tools";
+import { splitTags, type Tool } from "@/lib/tools";
 import { resolveToolIcon } from "./icons";
 
 /**
  * 工具列表的一行（朴素列表风：分隔线 + 图标 + 名称/说明 + 箭头）。
  *
- * 三种 kind 的点击行为：
- *   page  站内跳转（用 next/link，不刷新页面）
- *   app   下载（站内路径加 download；外链则新窗口）
- *   link  新窗口打开
- *
- * 点击时上报计数，用 sendBeacon 保证"跳走之后请求也能发出去"。
+ * 点击整行走**详情页**（/tools/{slug}）：详情页里才有正文和真正的
+ * "打开/前往/下载"按钮。这样行本身是纯导航，不用处理三种 kind 的差别，
+ * 点击计数也只在真正使用工具时（详情页按钮）才记，语义更准。
  */
 export default function ToolRow({ tool }: { tool: Tool }) {
   const Icon = resolveToolIcon(tool.icon);
   const tags = splitTags(tool.tags);
-  const isPage = tool.kind === "page";
   const isApp = tool.kind === "app";
-  const isLocalFile = isApp && tool.href.startsWith("/");
 
-  const handleClick = () => recordToolClick(tool.id);
-
-  const content = (
-    <>
+  return (
+    <Link href={`/tools/${tool.slug}`} className="tool-row">
       <span className="tool-row__icon" aria-hidden="true">
         <MorphIcon icon={Icon} size={17} />
       </span>
@@ -53,37 +46,8 @@ export default function ToolRow({ tool }: { tool: Tool }) {
       </span>
 
       <span className="tool-row__arrow" aria-hidden="true">
-        {isApp ? "↓" : "→"}
+        →
       </span>
-    </>
-  );
-
-  if (isPage) {
-    return (
-      <Link href={tool.href} className="tool-row" onClick={handleClick}>
-        {content}
-      </Link>
-    );
-  }
-
-  // 站内文件用 download，外链走新窗口
-  if (isLocalFile) {
-    return (
-      <a href={tool.href} className="tool-row" download onClick={handleClick}>
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <a
-      href={tool.href}
-      className="tool-row"
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={handleClick}
-    >
-      {content}
-    </a>
+    </Link>
   );
 }

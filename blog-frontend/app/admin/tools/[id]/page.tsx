@@ -9,7 +9,7 @@ import {
   fetchTool,
   toolToInput,
   updateTool,
-  type Tool,
+  type ToolDetail,
   type ToolInput,
 } from "@/lib/tools";
 import ToolForm from "@/components/tools/ToolForm";
@@ -26,7 +26,7 @@ export default function AdminToolEditPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id);
 
-  const [tool, setTool] = useState<Tool | null>(null);
+  const [tool, setTool] = useState<ToolDetail | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -281,6 +281,76 @@ check_status("删除后查不到", r, 404)
 r = client.delete("/api/tools/999999")
 check_status("删除不存在 -> 404", r, 404)
 
+# ---------------------------------------------------------------- 详情页（description + by-slug）
+print("\n=== 8. 详情页 ===")
+r = client.post("/api/tools", json={
+    "name": PREFIX + "带正文",
+    "slug": "with-desc-tool",
+    "href": "/downloads/x.zip",
+    "kind": "app",
+    "description": "# 说明\n\n这是一段**Markdown** 正文。",
+})
+check_status("带 description 新建", r, 200)
+tool_desc = r.json()
+
+# 列表接口不返回正文（响应体积）
+r = client.get("/api/tools")
+check_status("公开列表", r, 200)
+rows = r.json()
+check_true(
+    "列表项不含 description 字段",
+    all("description" not in t for t in rows),
+    str([k for t in rows for k in t if k == "description"][:3]),
+)
+
+r = client.get("/api/tools/all")
+check_true(
+    "后台列表也不含 description",
+    all("description" not in t for t in r.json()),
+)
+
+# 详情接口含正文
+r = client.get(f"/api/tools/{tool_desc['id']}")
+check_status("后台单条", r, 200)
+detail = r.json()
+check_true("详情含 description 字段", "description" in detail)
+check_true(
+    "正文内容正确",
+    detail["description"].startswith("# 说明"),
+    repr(detail.get("description"))[:60],
+)
+
+# by-slug 公开详情
+r = client.get("/api/tools/by-slug/with-desc-tool")
+check_status("by-slug 详情", r, 200)
+by_slug = r.json()
+check("by-slug 命中同一条", by_slug["id"], tool_desc["id"])
+check_true("by-slug 也带正文", bool(by_slug.get("description")))
+
+r = client.get("/api/tools/by-slug/不存在-slug")
+check_status("by-slug 不存在 -> 404", r, 404)
+
+# 下架后 by-slug 不可访问（不泄露草稿）
+client.put(f"/api/tools/{tool_desc['id']}", json={"is_visible": False})
+r = client.get("/api/tools/by-slug/with-desc-tool")
+check_status("下架后 by-slug -> 404", r, 404)
+client.put(f"/api/tools/{tool_desc['id']}", json={"is_visible": True})
+
+# 更新正文
+r = client.put(
+    f"/api/tools/{tool_desc['id']}",
+    json={"description": "改过的正文"},
+)
+check_status("更新正文", r, 200)
+r = client.get(f"/api/tools/{tool_desc['id']}")
+check("正文已更新", r.json()["description"], "改过的正文")
+
+# 清空正文 → None
+r = client.put(f"/api/tools/{tool_desc['id']}", json={"description": ""})
+check_status("清空正文", r, 200)
+r = client.get(f"/api/tools/{tool_desc['id']}")
+check("清空后为 None", r.json()["description"], None)
+
 # ---------------------------------------------------------------- 收尾
 cleanup()
 

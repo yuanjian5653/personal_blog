@@ -27,6 +27,7 @@
 """
 from datetime import datetime
 
+from sqlalchemy import Column, Text
 from sqlmodel import SQLModel, Field
 
 from app.models._base import utcnow
@@ -51,6 +52,15 @@ class Tool(SQLModel, table=True):
     name: str = Field(max_length=80)
     # 卡片/列表上的一句话说明
     summary: str | None = Field(default=None, max_length=200)
+
+    # 详情页正文（Markdown）。
+    # 用 Text 而不是默认的 VARCHAR(255)：正文可能很长。
+    # 注意它**不进列表接口**（见 schemas/tool.py 的 ToolRead / ToolDetail），
+    # 几十条工具的正文加起来可能几十 KB，塞进列表响应纯属浪费。
+    description: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+    )
 
     # 分组用；不建分类表（工具就几十个，分类 3~6 个，join 不值得）
     category: str = Field(default=DEFAULT_CATEGORY, max_length=40, index=True)

@@ -2,12 +2,13 @@
 工具路由
 
 公开接口（无需登录）：
-  GET  /api/tools                 列表（只返回已上架的）
-  POST /api/tools/{tool_id}/click 记一次点击
+  GET  /api/tools                  列表（只返回已上架的，**不含正文**）
+  GET  /api/tools/by-slug/{slug}   详情（含 Markdown 正文）
+  POST /api/tools/{tool_id}/click  记一次点击
 
 后台接口（需管理员）：
   GET    /api/tools/all           列表（含已下架）
-  GET    /api/tools/{tool_id}     单条（编辑页回填）
+  GET    /api/tools/{tool_id}     单条详情（编辑页回填，含正文）
   POST   /api/tools               新建
   PUT    /api/tools/{tool_id}     修改（只传要改的字段）
   DELETE /api/tools/{tool_id}     删除
@@ -31,6 +32,7 @@ from app.models import Admin, Tool
 from app.models.tool import DEFAULT_CATEGORY, TOOL_KINDS
 from app.schemas.tool import (
     ToolCreate,
+    ToolDetail,
     ToolRead,
     ToolReorderItem,
     ToolUpdate,
@@ -115,6 +117,20 @@ def list_tools(db: Session = Depends(get_session)):
     return sorted(rows, key=_sort_key)
 
 
+@router.get("/by-slug/{slug}", response_model=ToolDetail)
+def get_tool_by_slug(slug: str, db: Session = Depends(get_session)):
+    """前台详情页：按 slug 取一条**已上架**的工具（含正文）。
+
+    ⚠️ 这个路由必须声明在 /{tool_id} 之前：FastAPI 按声明顺序匹配，
+       否则 "by-slug" 会被拿去当 tool_id 做整型解析。
+    隐藏的工具返回 404，不泄露草稿内容。
+    """
+    tool = db.exec(select(Tool).where(Tool.slug == slug)).first()
+    if tool is None or not tool.is_visible:
+        raise HTTPException(status_code=404, detail="工具不存在")
+    return tool
+
+
 @router.post("/{tool_id}/click")
 def record_click(tool_id: int, db: Session = Depends(get_session)):
     """记一次点击（前台点击卡片时上报，fire-and-forget）。
@@ -181,7 +197,7 @@ def reorder_tools(
     return {"message": f"已调整 {changed} 项"}
 
 
-@router.get("/{tool_id}", response_model=ToolRead)
+@router.get("/{tool_id}", response_model=ToolDetail)
 def get_tool(
     tool_id: int,
     db: Session = Depends(get_session),
@@ -222,6 +238,10 @@ def create_tool(
 
     summary = (data.get("summary") or "").strip()
     data["summary"] = summary or None
+
+    # 正文：空串存 None（否则详情页会出现一个空的 Markdown 区块）
+    description = (data.get("description") or "").strip()
+    data["description"] = description or None
 
     want_slug = (data.get("slug") or "").strip()
     if want_slug:
@@ -307,7 +327,7 @@ def update_tool(
     if "category" in data:
         data["category"] = (data["category"] or "").strip() or DEFAULT_CATEGORY
 
-    for key in ("summary", "tags", "icon"):
+    for key in ("summary", "tags", "icon", "description"):
         if key in data:
             value = (data[key] or "").strip()
             data[key] = value or None

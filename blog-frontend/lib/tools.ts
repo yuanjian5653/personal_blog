@@ -9,6 +9,11 @@
  *   link 外链   —— 新窗口打开外部网站（href 必须 http/https）
  *   page 站内   —— 跳转到本站已有页面（href 必须 / 开头）
  *   app  下载   —— 下载一个文件（站内 / 路径 或 http(s) 外链）
+ *
+ * 两个数据类型是有意分开的：
+ *   Tool        列表项，**不含 description**
+ *   ToolDetail  详情项，含 Markdown 正文
+ * 后端对应 ToolRead / ToolDetail —— 列表接口不返回正文，省响应体积。
  */
 import { api, withApiBase } from "./api";
 
@@ -35,6 +40,14 @@ export const KIND_PLACEHOLDER: Record<ToolKind, string> = {
   app: "/media/tools/xxx.exe",
 };
 
+/** 详情页主按钮文案 */
+export const KIND_ACTION: Record<ToolKind, string> = {
+  link: "打开",
+  page: "前往",
+  app: "下载",
+};
+
+/** 列表项 */
 export interface Tool {
   id: number;
   slug: string;
@@ -52,11 +65,17 @@ export interface Tool {
   updated_at: string;
 }
 
+/** 详情项（多一个 Markdown 正文） */
+export interface ToolDetail extends Tool {
+  description: string | null;
+}
+
 /** 表单里编辑的字段（不含后端生成的 id / click_count / 时间戳） */
 export interface ToolInput {
   name: string;
   slug: string;
   summary: string;
+  description: string;
   category: string;
   kind: ToolKind;
   icon: string;
@@ -74,6 +93,7 @@ export function emptyToolInput(): ToolInput {
     name: "",
     slug: "",
     summary: "",
+    description: "",
     category: DEFAULT_CATEGORY,
     kind: "link",
     icon: DEFAULT_ICON_NAME,
@@ -84,11 +104,12 @@ export function emptyToolInput(): ToolInput {
   };
 }
 
-export function toolToInput(tool: Tool): ToolInput {
+export function toolToInput(tool: ToolDetail): ToolInput {
   return {
     name: tool.name,
     slug: tool.slug,
     summary: tool.summary ?? "",
+    description: tool.description ?? "",
     category: tool.category,
     kind: tool.kind,
     icon: tool.icon ?? DEFAULT_ICON_NAME,
@@ -110,9 +131,14 @@ export function splitTags(raw: string | null | undefined): string[] {
 
 /* ---------------- 接口 ---------------- */
 
-/** 前台列表（只含已上架的，已按 sort_order 排序） */
+/** 前台列表（只含已上架的，已按 sort_order 排序，不含正文） */
 export function fetchTools(): Promise<Tool[]> {
   return api.get<Tool[]>("/api/tools");
+}
+
+/** 前台详情（按 slug，含正文） */
+export function fetchToolBySlug(slug: string): Promise<ToolDetail> {
+  return api.get<ToolDetail>(`/api/tools/by-slug/${encodeURIComponent(slug)}`);
 }
 
 /** 后台列表（含已下架） */
@@ -120,8 +146,9 @@ export function fetchAllTools(): Promise<Tool[]> {
   return api.get<Tool[]>("/api/tools/all");
 }
 
-export function fetchTool(id: number): Promise<Tool> {
-  return api.get<Tool>(`/api/tools/${id}`);
+/** 后台单条（含正文，编辑页回填用） */
+export function fetchTool(id: number): Promise<ToolDetail> {
+  return api.get<ToolDetail>(`/api/tools/${id}`);
 }
 
 export function createTool(data: Partial<ToolInput>): Promise<Tool> {
@@ -147,7 +174,7 @@ export function reorderTools(
 }
 
 /**
- * 记一次点击。
+ * 记一次点击（在详情页"打开/下载/前往"按钮上调用）。
  *
  * 点击后往往会立刻跳走，普通 fetch 会被页面卸载打断，
  * 所以优先用 sendBeacon（浏览器会在页面关闭后仍然把请求发出去）。

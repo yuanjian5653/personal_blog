@@ -230,3 +230,155 @@
     transform: none;
   }
 }
+
+/* ============================================
+   工具详情页 /tools/[slug]
+   ============================================ */
+
+.tool-detail {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.tool-detail__back {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.tool-detail__back:hover {
+  color: var(--accent);
+}
+
+.tool-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tool-detail__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--card-text) 6%, transparent);
+  border: 1px solid var(--card-border);
+}
+
+.tool-detail__heading {
+  min-width: 0;
+}
+
+.tool-detail__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.tool-detail__summary {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.tool-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.tool-detail__chip {
+  padding: 2px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tool-detail__tag {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+.tool-detail__tag::before {
+  content: "#";
+  opacity: 0.6;
+}
+
+.tool-detail__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 22px;
+  padding: 9px 22px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: var(--accent);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.tool-detail__cta:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.tool-detail__cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.tool-detail__body {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--card-border);
+}
+
+/* ============================================
+   后台表单里的 Markdown 文本域 / 预览
+   ============================================ */
+
+.tool-form__textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--card-text) 4%, transparent);
+  color: var(--card-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  resize: vertical;
+}
+.tool-form__textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--card-border));
+}
+
+.tool-form__preview {
+  min-height: 180px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px dashed var(--card-border);
+  background: color-mix(in srgb, var(--card-text) 3%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-detail__cta,
+  .tool-detail__back {
+    transition: none !important;
+  }
+  .tool-detail__cta:hover {
+    transform: none;
+  }
+}
