@@ -36,6 +36,11 @@ const TAB_RULES: Array<{ test: (h: string) => boolean; label: (h: string) => str
     test: (h) => /^\/admin\/essays\/(new|\d+)$/.test(h),
     label: (h) => (h.endsWith("/new") ? "新建随笔" : "编辑随笔"),
   },
+  // 新建 / 编辑工具
+  {
+    test: (h) => /^\/admin\/tools\/(new|\d+)$/.test(h),
+    label: (h) => (h.endsWith("/new") ? "新建工具" : "编辑工具"),
+  },
 ];
 
 /** 路径 → 栏目标签（前缀匹配） */

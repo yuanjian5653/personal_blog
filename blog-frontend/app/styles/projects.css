@@ -1,5 +1,5 @@
 /* ============================================
-   项目页（/projects）与工具页（/tools）
+   项目页（/projects）
 
    两套卡片风格都要照顾：
      · 默认 / data-card-style="glass" —— 半透明毛玻璃
@@ -8,29 +8,25 @@
    只有"黑色模式下不需要模糊"这点单独覆盖。
    ============================================ */
 
-.projects-page,
-.tools-page {
+.projects-page {
   max-width: 900px;
   margin: 0 auto;
 }
 
 /* ---------- 页头 ---------- */
-.projects-hero,
-.tools-hero {
+.projects-hero {
   text-align: center;
   margin-bottom: 26px;
 }
 
-.projects-hero__title,
-.tools-hero__title {
+.projects-hero__title {
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text-primary);
 }
 
-.projects-hero__sub,
-.tools-hero__sub {
+.projects-hero__sub {
   margin-top: 6px;
   font-size: 13px;
   color: var(--text-secondary);
@@ -269,92 +265,6 @@ html[data-card-style="black"] .project-card {
 
 html[data-card-style="black"] .projects-empty {
   border-color: var(--card-border);
-}
-
-/* ============================================
-   工具页：开发中
-   ============================================ */
-.tools-wip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-  padding: 64px 24px 72px;
-  border-radius: 18px;
-
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--card-blur, 20px)) saturate(180%);
-  color: var(--card-text);
-}
-
-html[data-card-style="black"] .tools-wip {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* 纯 CSS 的"施工中"图标：一个锥形桶 + 三条横杆 */
-.tools-wip__icon {
-  position: relative;
-  width: 74px;
-  height: 68px;
-  margin-bottom: 4px;
-}
-
-.tools-wip__cone {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 25px solid transparent;
-  border-right: 25px solid transparent;
-  border-bottom: 62px solid color-mix(in srgb, var(--accent) 78%, transparent);
-  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--accent) 45%, transparent));
-}
-
-.tools-wip__bar {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 7px;
-  border-radius: 2px;
-  background: #f8fafc;
-  opacity: 0.92;
-}
-
-.tools-wip__bar:nth-child(2) { bottom: 16px; width: 42px; }
-.tools-wip__bar:nth-child(3) { bottom: 30px; width: 30px; }
-.tools-wip__bar:nth-child(4) { bottom: 44px; width: 18px; }
-
-.tools-wip__title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--card-text);
-}
-
-.tools-wip__text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.9;
-  color: var(--card-text-sub);
-}
-
-.tools-wip__back {
-  margin-top: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.tools-wip__back:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* 尊重"减少动效"偏好 */

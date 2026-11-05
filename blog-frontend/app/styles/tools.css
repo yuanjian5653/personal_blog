@@ -1,0 +1,232 @@
+/* ============================================
+   工具页（/tools）
+
+   风格：**朴素列表**，不是卡片。
+     · 分组标题（分类）
+     · 每个工具一行，行与行之间用 1px 分隔线
+     · 悬停只做很轻的背景变化 + 箭头位移
+     · 颜色全部取自站点变量，跟随「原版毛玻璃 / 黑色毛玻璃」
+
+   这些 .tools-* 规则原来寄生在 projects.css 里（第 12–35、272–353 行），
+   本次迁到这里并重写；projects.css 只留项目页自己的样式。
+   ============================================ */
+
+.tools-page {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ---------------- 页头 ---------------- */
+
+.tools-hero {
+  margin-bottom: 26px;
+}
+
+.tools-hero__title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.tools-hero__sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ---------------- 分组 ---------------- */
+
+.tools-group {
+  margin-bottom: 24px;
+}
+
+.tools-group__title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  opacity: 0.72;
+}
+
+/* ---------------- 列表 ---------------- */
+
+.tools-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--card-border);
+}
+
+.tools-list__item {
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* ---------------- 一行 ---------------- */
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 10px;
+  color: inherit;
+  text-decoration: none;
+  /* 用 card-text 混出极淡的背景，深浅主题下都不会看不见 */
+  transition: background 0.18s ease;
+}
+
+.tool-row:hover {
+  background: color-mix(in srgb, var(--card-text) 5%, transparent);
+}
+
+.tool-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.tool-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--card-text) 6%, transparent);
+  border: 1px solid var(--card-border);
+}
+
+.tool-row__main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tool-row__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tool-row__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--card-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-row__badge {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  font-size: 10px;
+  color: var(--card-text-sub);
+}
+
+.tool-row__summary {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--card-text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.tool-row__tag {
+  font-size: 10px;
+  color: var(--card-text-sub);
+  opacity: 0.8;
+}
+.tool-row__tag::before {
+  content: "#";
+  opacity: 0.6;
+}
+
+.tool-row__arrow {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--card-text-sub);
+  opacity: 0.45;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tool-row:hover .tool-row__arrow {
+  opacity: 0.9;
+  transform: translateX(2px);
+}
+
+/* ---------------- 空态 / 加载 ---------------- */
+
+.tools-empty {
+  padding: 52px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border: 1px dashed var(--card-border);
+  border-radius: 14px;
+}
+
+/* ---------------- 后台表单里的小预览 ---------------- */
+
+.tool-form__icon-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--card-text) 6%, transparent);
+  border: 1px solid var(--card-border);
+}
+
+.tool-form__icon-preview small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ---------------- 响应式 ---------------- */
+
+@media (max-width: 640px) {
+  .tools-page {
+    max-width: none;
+  }
+  .tool-row {
+    padding: 12px 4px;
+    gap: 12px;
+  }
+  .tool-row__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-row,
+  .tool-row__arrow {
+    transition: none !important;
+  }
+  .tool-row:hover .tool-row__arrow {
+    transform: none;
+  }
+}

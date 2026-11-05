@@ -23,6 +23,7 @@ from app.routers import (
     playlist,
     project,
     site_config,
+    tools,
     upload,
 )
 from app.services.scanner import scan_music_folder
@@ -96,6 +97,7 @@ app.include_router(comments.router)
 app.include_router(admin.router)
 app.include_router(friendlink.router)
 app.include_router(project.router)
+app.include_router(tools.router)
 
 @app.get("/")
 def root():
