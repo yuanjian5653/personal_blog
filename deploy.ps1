@@ -6,7 +6,7 @@
     做三件事：
       1. 检查工作区干净 → git push
       2. 本地 pnpm build（服务器只有 1.6G 内存，跑不动 Next.js 构建）
-      3. 打包 .next → scp 上传 → ssh 执行服务器上的 deploy.sh
+      3. 打包 .next（排除 cache/dev，通常 ~4 MB）→ scp 上传 → ssh 执行服务器上的 deploy.sh
 
     产品物替换、清 nginx 缓存、重启、健康检查、失败回滚，全部在
     deploy.sh 里完成（那边的逻辑更接近服务器，也更好维护）。
@@ -127,14 +127,23 @@ if (-not $SkipFrontend) {
     if (Test-Path $tgz) { Remove-Item $tgz -Force }
     Push-Location $frontendDir
     try {
-        Invoke-Checked "tar -czf next.tgz .next" "tar 打包"
+        # 只打 next start 真正需要的东西。
+        # .next/cache（构建缓存，64 MB）与 .next/dev（开发模式产物，124 MB）
+        # 都不参与运行：实测 135.7 MB 的包排除这两项后只有 3.6 MB，
+        # 1 Mbps 上传从 18 分钟降到半分钟。
+        # 安全性：server/ 下 221 个运行时文件没有一个引用 next/cache；
+        # 即使判断有误，deploy.sh 的健康检查失败会自动回滚，不会把站点留在坏状态。
+        Invoke-Checked "tar -czf next.tgz --exclude='.next/cache' --exclude='.next/dev' .next" "tar 打包"
     } finally {
         Pop-Location
     }
     if (-not $DryRun) {
         $mb = [math]::Round((Get-Item $tgz).Length / 1MB, 1)
-        Write-Info "next.tgz：$mb MB"
-        if ($mb -gt 80) { Write-Warn "包偏大（$mb MB），1 Mbps 上传会比较久" }
+        $etaMin = [math]::Round($mb * 1024 / 128 / 60, 1)
+        Write-Info "next.tgz：$mb MB（1 Mbps 上传约 $etaMin 分钟）"
+        if ($mb -gt 40) {
+            Write-Warn "包偏大（$mb MB）。如果远超 10 MB，多半是 .next/cache 或 .next/dev 混进来了，检查打包参数"
+        }
     }
 }
 
