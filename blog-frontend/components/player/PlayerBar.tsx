@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePlayer } from "./PlayerProvider";
 import { formatTime } from "@/lib/format";
 import { getCoverUrl } from "@/lib/types";
+import { cyclePlayMode, PLAY_MODE_LABEL, PLAY_MODE_SHORT } from "@/lib/playback";
 
 /**
  * 播放条折叠状态的存储 key。
@@ -63,14 +64,11 @@ export default function PlayerBar() {
   if (pathname.startsWith("/admin")) return null;
   if (!currentSong) return null;
 
-  const cycleMode = () => {
-    const order: Array<"order" | "loop" | "single"> = ["order", "loop", "single"];
-    const idx = order.indexOf(playMode);
-    setPlayMode(order[(idx + 1) % order.length]);
-  };
-
-
-  const modeLabel = { order: "顺序", loop: "随机", single: "单曲" }[playMode];
+  // 播放模式：循环顺序与文案都来自 lib/playback.ts，
+  // 和 PlayerControls 共用同一份 —— 之前两处各写一套，文案和图标会互相矛盾。
+  const cycleMode = () => setPlayMode(cyclePlayMode(playMode));
+  const modeLabel = PLAY_MODE_SHORT[playMode];
+  const modeTitle = PLAY_MODE_LABEL[playMode];
 
   // ===== 最小化形态：只有封面 + 播放键 + 展开按钮 =====
   if (minimized) {
@@ -203,7 +201,8 @@ export default function PlayerBar() {
           onClick={cycleMode}
           className="text-xs px-2 py-1 rounded hover:opacity-70"
           style={{ color: "var(--text-secondary)" }}
-          title={`播放模式：${modeLabel}`}
+          title={`播放模式：${modeTitle}（点击切换）`}
+          aria-label={`播放模式：${modeTitle}（点击切换）`}
         >
           {modeLabel}
         </button>

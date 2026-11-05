@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ListMusic,
   Pause,
   Play,
   Repeat,
@@ -13,7 +14,26 @@ import {
 } from "lucide";
 import { MorphIcon } from "morphicons/react";
 
+import {
+  cyclePlayMode,
+  PLAY_MODE_LABEL,
+  type PlayMode,
+} from "@/lib/playback";
 import { usePlayer } from "./PlayerProvider";
+
+/**
+ * 每种模式对应的图标。
+ *
+ * 注意顺序（之前这里是错的）：旧代码用 `single→Repeat1 / loop→Repeat /
+ * order→Shuffle`，但"顺序播放"显示随机图标、而 loop 当时又真的是随机，
+ * 结果图标和实际行为对不上。现在四种模式与图标一一对应。
+ */
+const MODE_ICON: Record<PlayMode, typeof Repeat> = {
+  order: ListMusic,
+  loop: Repeat,
+  single: Repeat1,
+  shuffle: Shuffle,
+};
 
 /**
  * 播放控制键（模式 / 上一首 / 播放暂停 / 下一首 / 静音）。
@@ -54,20 +74,11 @@ export default function PlayerControls() {
     }
   };
 
-  const cycleMode = () => {
-    setPlayMode(
-      playMode === "order" ? "loop" : playMode === "loop" ? "single" : "order"
-    );
-  };
+  // 循环顺序与文案都来自 lib/playback.ts（与底栏 PlayerBar 共用同一份）
+  const cycleMode = () => setPlayMode(cyclePlayMode(playMode));
 
-  const ModeIcon =
-    playMode === "single" ? Repeat1 : playMode === "loop" ? Repeat : Shuffle;
-  const modeLabel =
-    playMode === "single"
-      ? "单曲循环"
-      : playMode === "loop"
-        ? "列表循环"
-        : "顺序播放";
+  const ModeIcon = MODE_ICON[playMode];
+  const modeLabel = PLAY_MODE_LABEL[playMode];
 
   return (
     <div className="mp-controls">

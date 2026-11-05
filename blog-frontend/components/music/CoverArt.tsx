@@ -39,7 +39,7 @@ export default function CoverArt({
   if (!usable) return <>{fallback}</>;
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- 封面尺寸固定、来源是后端接口或外链 CDN，无需 next/image
+     
     <img
       className={className}
       src={getCoverUrl(song)}

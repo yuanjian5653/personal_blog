@@ -50,7 +50,7 @@ export default function FriendCard({ link, visual, active }: Props) {
       data-link-id={link.id}
     >
       {showCover ? (
-        // eslint-disable-next-line @next/next/no-img-element
+         
         <img
           src={link.cover as string}
           alt=""

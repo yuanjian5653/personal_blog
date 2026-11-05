@@ -275,7 +275,7 @@ export default function CommentManager({ fixedTarget, title = "评论管理" }: 
 
 function Avatar({ url, name }: { url: string | null; name: string }) {
   if (url) {
-    // eslint-disable-next-line @next/next/no-img-element
+     
     return <img src={url} alt="" className="admin-avatar" />;
   }
   return <span className="admin-avatar admin-avatar--fallback">{name[0]?.toUpperCase()}</span>;

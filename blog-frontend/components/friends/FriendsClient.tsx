@@ -434,7 +434,7 @@ function FriendBubble({ link }: { link: FriendLink }) {
     <div className="fc-bubble">
       <div className="fc-bubble__head">
         {showCover ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img
             src={link.cover as string}
             alt=""

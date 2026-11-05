@@ -9,11 +9,28 @@ import {
   useState,
 } from "react";
 import type { Song } from "@/lib/types";
-import { getCoverUrl, getStreamUrl } from "@/lib/types";
 import type { APlayerInstance } from "@/lib/aplayer";
 import { api } from "@/lib/api";
+import {
+  autoNextIndex,
+  nextIndex,
+  normalizeMode,
+  prevIndex,
+} from "@/lib/playback";
+import type { PlayMode } from "@/lib/playback";
+import { loadAPlayer, toAPlayerAudio } from "./aplayer";
+import {
+  clearPlayerState,
+  loadPlayerState,
+  loadVolume,
+  sameSong,
+  savePlayerState,
+  saveVolume,
+} from "./storage";
 
-export type PlayMode = "order" | "loop" | "single";
+// 类型与纯逻辑已迁到 lib/playback.ts；这里继续对外导出，
+// 免得所有 `import type { PlayMode } from "./PlayerProvider"` 的地方都要改。
+export type { PlayMode };
 
 interface PlayerContextValue {
   currentSong: Song | null;
@@ -44,107 +61,6 @@ interface PlayerContextValue {
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
-
-/* ============ APlayer 脚本加载 ============ */
-let aplayerLoadPromise: Promise<void> | null = null;
-
-function loadAPlayer(): Promise<void> {
-  if (aplayerLoadPromise) return aplayerLoadPromise;
-
-  aplayerLoadPromise = (async () => {
-    if (!document.querySelector("link[data-aplayer-style]")) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css";
-      link.setAttribute("data-aplayer-style", "1");
-      document.head.appendChild(link);
-    }
-    if (!window.APlayer) {
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src =
-          "https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js";
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("APlayer 加载失败"));
-        document.head.appendChild(script);
-      });
-    }
-  })();
-
-  return aplayerLoadPromise;
-}
-
-/* ============ Song → APlayer 音频对象 ============ */
-function toAPlayerAudio(song: Song) {
-  return {
-    name: song.title,
-    artist: song.artist,
-    url: getStreamUrl(song),
-    cover: getCoverUrl(song),
-    lrc: "",
-    theme: "#7c5cff",
-  };
-  // 说明：歌词不交给 APlayer 渲染，由 TextCard 通过 getLyricUrl 自行拉取，
-  // 所以这里 lrc 固定为空，也不再计算 lrc 地址。
-}
-
-/* ============ 播放状态持久化 ============ */
-//
-// 用 localStorage 而不是 sessionStorage：
-//   sessionStorage 的作用域是**单个标签页**，关掉浏览器/标签就没了，
-//   所以以前每次重新进入网站播放器都会重置（歌单空、回到"点击音乐页开始播放"）。
-//   localStorage 跨会话保留，再配合下面保存的 currentTime，
-//   下次打开能接着上次的位置继续。
-//
-// 版本号 v2：数据结构和 v1 不兼容（新增 currentTime / playMode），
-// 换 key 可以避免读到旧结构导致异常。
-const PLAYER_STATE_KEY = "player_state_v2";
-
-/** 一次播放会话的完整快照 */
-interface SavedPlayerState {
-  playlist: Song[];
-  currentIndex: number;
-  currentSong: Song | null;
-  /** 上次播放到的秒数，用于恢复进度 */
-  currentTime: number;
-  playMode: PlayMode;
-}
-
-function savePlayerState(state: SavedPlayerState) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
-  } catch {
-    // 隐私模式 / 配额满：忽略，不影响播放
-  }
-}
-
-function loadPlayerState(): SavedPlayerState | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(PLAYER_STATE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SavedPlayerState>;
-    if (!Array.isArray(parsed.playlist) || parsed.playlist.length === 0) {
-      return null;
-    }
-    return {
-      playlist: parsed.playlist,
-      currentIndex: parsed.currentIndex ?? 0,
-      currentSong: parsed.currentSong ?? null,
-      currentTime: typeof parsed.currentTime === "number" ? parsed.currentTime : 0,
-      playMode: parsed.playMode ?? "order",
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** 同一首歌才恢复进度：按 source + id 判断 */
-function sameSong(a: Song | null | undefined, b: Song | null | undefined) {
-  if (!a || !b) return false;
-  return a.id === b.id && (a.source ?? "local") === (b.source ?? "local");
-}
 
 /* ============ Provider ============ */
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
@@ -259,11 +175,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       aplayerRef.current = ap;
 
       // 恢复音量
-      const savedVolume = localStorage.getItem("player_volume");
-      if (savedVolume) {
-        const v = Number(savedVolume);
-        ap.volume(v, true);
-        setVolumeState(v);
+      const savedVolume = loadVolume();
+      if (savedVolume !== null) {
+        ap.volume(savedVolume, true);
+        setVolumeState(savedVolume);
       }
 
       // ===== 恢复上次播放状态，没有历史则默认加载本地音乐 =====
@@ -398,20 +313,33 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       ap.on("ended", () => {
         const mode = playModeRef.current;
         const list = playlistRef.current;
+        if (list.length === 0) return;
+
+        // 目标索引由 lib/playback.ts 的纯函数决定（有单元测试覆盖）：
+        //   single  → 当前曲（重头再来）
+        //   loop    → 下一首，末尾回到开头
+        //   shuffle → 随机另一首
+        //   order   → 下一首；到末尾返回 -1，表示"该停了"
+        const target = autoNextIndex(mode, ap.list.index, list.length);
 
         if (mode === "single") {
           ap.seek(0);
           ap.play();
-        } else if (mode === "loop" && list.length > 1) {
-          // 随机下一首；切歌后 listswitch 会同步状态，这里不用再手动 set
-          const idx = Math.floor(Math.random() * list.length);
-          ap.list.switch(idx);
-          ap.play();
-        } else {
-          // 顺序播放：交给 APlayer 前进，listswitch 会同步 currentSong/currentIndex
-          ap.skipForward();
-          if (!ap.audio?.paused) ap.play();
+          return;
         }
+
+        if (target < 0) {
+          // 顺序播放已到最后一首 —— 停下来，不再无限循环
+          // （旧实现这里会交给 skipForward 绕回第一首，导致"顺序"和"循环"没区别）
+          try {
+            ap.pause();
+          } catch {}
+          return;
+        }
+
+        // 切歌后 listswitch 会同步 currentSong / currentIndex，这里不用手动 set
+        ap.list.switch(target);
+        ap.play();
       });
     })();
 
@@ -508,25 +436,40 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   //
   // 注：这里读 ap.list.index 是安全的 —— 它在 list.switch() 内部、
   // 事件触发之后就被赋值。只有"在 listswitch 回调里"读它才会拿到旧值。
+  //
+  // 目标索引由 lib/playback.ts 决定：单曲循环保持当前曲、随机模式跳到
+  // 随机另一首、其余顺序前进/后退（手动切歌时总是循环，不会走到"停止"）。
+  const goTo = useCallback((target: number) => {
+    const ap = aplayerRef.current;
+    if (!ap || target < 0) return;
+    ap.list.switch(target);
+    // APlayer 内部切歌需要一点时间加载 metadata
+    setTimeout(() => ap.play(), 50);
+  }, []);
+
   const next = useCallback(() => {
     const ap = aplayerRef.current;
     if (!ap) return;
     const list = playlistRef.current;
-    if (list.length === 0) return;
-    const newIndex = (ap.list.index + 1) % list.length;
-    ap.list.switch(newIndex);
-    // APlayer 内部切歌需要一点时间加载 metadata
-    setTimeout(() => ap.play(), 50);
-  }, []);
+    goTo(nextIndex(playModeRef.current, ap.list.index, list.length));
+  }, [goTo]);
 
   const prev = useCallback(() => {
     const ap = aplayerRef.current;
     if (!ap) return;
     const list = playlistRef.current;
-    if (list.length === 0) return;
-    const newIndex = (ap.list.index - 1 + list.length) % list.length;
-    ap.list.switch(newIndex);
-    setTimeout(() => ap.play(), 50);
+    goTo(prevIndex(playModeRef.current, ap.list.index, list.length));
+  }, [goTo]);
+
+  /** 直接播列表里的第 index 首（播放列表点击用） */
+  const playAt = useCallback((index: number) => {
+    const ap = aplayerRef.current;
+    if (!ap) return;
+    const list = playlistRef.current;
+    if (index < 0 || index >= list.length) return;
+    // listswitch 会同步 currentIndex / currentSong
+    ap.list.switch(index);
+    ap.play();
   }, []);
 
   /* ---------- 进度跳转 ---------- */
@@ -542,15 +485,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const ap = aplayerRef.current;
     if (ap) ap.volume(v, true);
     setVolumeState(v);
-    localStorage.setItem("player_volume", String(v));
+    saveVolume(v);
   }, []);
 
   /* ---------- 播放模式 ---------- */
   const setPlayMode = useCallback((m: PlayMode) => {
-    setPlayModeState(m);
+    // 规整一次，避免调用方传入非法值后状态机进到未定义分支
+    setPlayModeState(normalizeMode(m));
   }, []);
 
-    const addToQueue = useCallback((song: Song) => {
+  const addToQueue = useCallback((song: Song) => {
     const ap = aplayerRef.current;
     if (!ap) return;
     const exists = playlistRef.current.some(
@@ -580,16 +524,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setPlaylist(next);
   }, []);
 
-  const playAt = useCallback((index: number) => {
-    const ap = aplayerRef.current;
-    if (!ap) return;
-    const list = playlistRef.current;
-    if (index < 0 || index >= list.length) return;
-    // listswitch 会同步 currentIndex / currentSong
-    ap.list.switch(index);
-    ap.play();
-  }, []);
-
   const removeFromQueue = useCallback((index: number) => {
     const ap = aplayerRef.current;
     if (!ap) return;
@@ -613,7 +547,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setDuration(0);
     currentTimeRef.current = 0;
     pendingSeekRef.current = 0;
-    localStorage.removeItem(PLAYER_STATE_KEY);
+    clearPlayerState();
   }, []);
 
     /* ---------- 频谱数据（供 TextCard 波频条用）---------- */

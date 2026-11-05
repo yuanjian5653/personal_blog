@@ -249,7 +249,7 @@ export default function AdminFriendsPage() {
           <span>封面</span>
           <div className="fl-cover-row">
             {form.cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img
                 src={resolveImageUrl(form.cover)}
                 alt=""
@@ -337,7 +337,7 @@ export default function AdminFriendsPage() {
                 <tr key={link.id} style={link.is_visible ? undefined : { opacity: 0.55 }}>
                   <td>
                     {link.cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img
                         src={resolveImageUrl(link.cover)}
                         alt=""

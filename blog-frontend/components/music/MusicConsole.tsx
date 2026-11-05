@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ListMusic, Mic2 } from "lucide";
 import { MorphIcon } from "morphicons/react";
 
@@ -40,13 +40,46 @@ export default function MusicConsole({
 }: Props) {
   const [tab, setTab] = useState<TabKey>("list");
   const [keyword, setKeyword] = useState("");
-  const { currentSong, isPlaying } = usePlayer();
+  const { currentSong, isPlaying, toggle } = usePlayer();
 
   const stats = useMemo(() => playlistStats(songs), [songs]);
   const visible = useMemo(() => filterSongs(songs, keyword), [songs, keyword]);
   const currentKey = currentSong ? songKey(currentSong) : null;
 
   const title = playlistName || "播放列表";
+
+  /** 列表滚动容器，用于把当前曲滚到可见位置 */
+  const rowsRef = useRef<HTMLDivElement | null>(null);
+
+  // 切歌（或从歌词页切回来）时，把当前曲滚进可视区。
+  // 只改列表容器自己的 scrollTop，不用 scrollIntoView ——
+  // 后者会把整页一起带动，在长列表里体验很差。
+  useEffect(() => {
+    if (tab !== "list" || !currentKey) return;
+    const box = rowsRef.current;
+    if (!box) return;
+    const row = box.querySelector<HTMLElement>(".mp-row.is-current");
+    if (!row) return;
+    const top = row.offsetTop;
+    const bottom = top + row.offsetHeight;
+    if (top < box.scrollTop) {
+      box.scrollTop = top;
+    } else if (bottom > box.scrollTop + box.clientHeight) {
+      box.scrollTop = bottom - box.clientHeight;
+    }
+  }, [currentKey, tab]);
+
+  /**
+   * 点一首歌：如果点的就是当前这首，就当作播放/暂停；
+   * 否则切过去。之前无论点哪首都会从头重播当前曲，很不符合直觉。
+   */
+  const handlePick = (song: Song) => {
+    if (currentKey && songKey(song) === currentKey) {
+      toggle();
+      return;
+    }
+    onPick(song);
+  };
 
   return (
     <section className="mp-panel">
@@ -103,7 +136,7 @@ export default function MusicConsole({
               {songs.length === 0 ? "还没有可播放的歌曲" : "没有匹配的歌曲"}
             </div>
           ) : (
-            <div className="mp-list__rows">
+            <div className="mp-list__rows" ref={rowsRef}>
               {visible.map((song, i) => {
                 const key = songKey(song);
                 const isCurrent = key === currentKey;
@@ -112,7 +145,7 @@ export default function MusicConsole({
                     type="button"
                     key={key}
                     className={`mp-row${isCurrent ? " is-current" : ""}`}
-                    onClick={() => onPick(song)}
+                    onClick={() => handlePick(song)}
                     title={`${song.title} - ${song.artist}`}
                   >
                     <span className="mp-row__index">
