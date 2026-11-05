@@ -16,6 +16,7 @@
 
 /* ---- 首页 ---- */
 @import "./styles/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
+@import "./styles/entry-cards.css";     /* 首页底部三入口卡片（项目 / 工具 / 友链） */
 @import "./styles/essay-switch.css";     /* 说说卡片的顺时针旋转轮播（覆盖在 home-cards 之上） */
 @import "./styles/home-widgets.css";    /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
 @import "./styles/profile-socials.css"; /* 个人卡片的社交按钮 */

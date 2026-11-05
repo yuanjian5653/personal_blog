@@ -1,0 +1,275 @@
+/* ============================================================
+   首页底部三入口卡片（项目 / 工具 / 友链）
+   ------------------------------------------------------------
+   结构见 components/home/EntryCards.tsx：
+
+     a.entry-card
+       span.entry-card__wash    指针跟随光斑（--spot-x/--spot-y）
+       span.entry-card__sheen   悬停时的一次性斜向光扫
+       div.entry-card__top
+         span.entry-card__icon  方形玻璃砖里的图标
+         span.entry-card__arrow 右上角箭头
+       h2.entry-card__title
+       p.entry-card__desc
+       span.entry-card__meta    数量 / 状态
+
+   配色全部来自站点卡片主题变量，因此跟随"原版毛玻璃 / 黑色毛玻璃"切换；
+   每张卡另有一个 --fc-glow（由 --accent 混一个固定色得到），
+   只用在光斑、图标、悬停边框上，保持同色系但有区分。
+   ============================================================ */
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* ---------------- 卡片本体 ---------------- */
+
+.entry-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 152px;
+  padding: 16px 18px 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  text-decoration: none;
+  color: inherit;
+
+  /* 光斑默认落在上方中央，指针进来后由 JS 覆盖 */
+  --spot-x: 50%;
+  --spot-y: 0%;
+
+  background:
+    linear-gradient(180deg, var(--card-inner-hl), transparent 58%),
+    var(--card-bg);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(170%);
+  backdrop-filter: blur(var(--card-blur)) saturate(170%);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+
+  transition:
+    transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.4s ease,
+    border-color 0.4s ease;
+
+  /* 入场：三张卡按 --fc-i 错开浮起 */
+  animation: entryCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--fc-i, 0) * 60ms);
+}
+
+@keyframes entryCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entry-card:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in srgb, var(--fc-glow) 55%, var(--card-border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--fc-glow) 40%, transparent),
+    inset 0 0 24px -12px color-mix(in srgb, var(--fc-glow) 60%, transparent),
+    0 18px 38px -18px rgba(0, 0, 0, 0.55);
+}
+
+.entry-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--fc-glow) 80%, #fff 20%);
+  outline-offset: 2px;
+}
+
+/* ---------------- 指针跟随光斑 ---------------- */
+
+.entry-card__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--spot-x) var(--spot-y),
+    color-mix(in srgb, var(--fc-glow) 30%, transparent) 0%,
+    color-mix(in srgb, var(--fc-glow) 10%, transparent) 45%,
+    transparent 72%
+  );
+  transition: opacity 0.35s ease;
+}
+.entry-card:hover .entry-card__wash {
+  opacity: 1;
+}
+
+/* ---------------- 悬停光扫 ---------------- */
+
+.entry-card__sheen {
+  position: absolute;
+  top: -60%;
+  left: -35%;
+  width: 40%;
+  height: 220%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.16) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(12deg);
+}
+.entry-card:hover .entry-card__sheen {
+  animation: entryCardSheen 0.95s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes entryCardSheen {
+  0% {
+    opacity: 0;
+    transform: translateX(0) rotate(12deg);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(420%) rotate(12deg);
+  }
+}
+
+/* ---------------- 顶部：图标 + 箭头 ---------------- */
+
+.entry-card__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.entry-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  color: var(--fc-glow);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fc-glow) 22%, transparent),
+      color-mix(in srgb, var(--fc-glow) 8%, transparent)
+    ),
+    var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--fc-glow) 30%, var(--card-border));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+.entry-card:hover .entry-card__icon {
+  transform: translateY(-3px) rotate(-6deg) scale(1.06);
+  border-color: color-mix(in srgb, var(--fc-glow) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 8px 18px -8px color-mix(in srgb, var(--fc-glow) 70%, transparent);
+}
+
+.entry-card__arrow {
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--card-text-sub);
+  opacity: 0.55;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease,
+    color 0.3s ease;
+}
+.entry-card:hover .entry-card__arrow {
+  transform: translateX(4px);
+  opacity: 1;
+  color: var(--fc-glow);
+}
+
+/* ---------------- 文案 ---------------- */
+
+.entry-card__title {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--card-text);
+  transition: color 0.3s ease;
+}
+.entry-card:hover .entry-card__title {
+  color: color-mix(in srgb, var(--fc-glow) 70%, var(--card-text) 30%);
+}
+
+.entry-card__desc {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--card-text-sub);
+}
+
+.entry-card__meta {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--card-text-sub);
+  opacity: 0.75;
+  border-top: 1px solid color-mix(in srgb, var(--card-border) 70%, transparent);
+}
+
+/* ---------------- 响应式 ---------------- */
+
+@media (max-width: 768px) {
+  .entry-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .entry-card {
+    min-height: 0;
+    padding: 14px 16px 12px;
+  }
+  /* 单列时卡片变宽，图标和标题可以并排，省一点纵向空间 */
+  .entry-card__top {
+    margin-bottom: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-card {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .entry-card:hover {
+    transform: none;
+  }
+  .entry-card__sheen,
+  .entry-card:hover .entry-card__sheen {
+    animation: none !important;
+  }
+  .entry-card:hover .entry-card__icon {
+    transform: none;
+  }
+}
