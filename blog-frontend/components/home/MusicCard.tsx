@@ -2,12 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ListMusic } from "lucide";
+import { MorphIcon } from "morphicons/react";
 
 import PlayerControls from "@/components/player/PlayerControls";
 import PlayerProgress from "@/components/player/PlayerProgress";
 import { usePlayer } from "@/components/player/PlayerProvider";
 import { getCoverUrl, hasCover } from "@/lib/types";
 
+/**
+ * 首页音乐卡片（参考 uiverse「music player card」的圆角 + 渐变 + 极简）。
+ *
+ * 相比上一版压掉了一圈高度（min-height 290 -> 236）：
+ *   · 去掉顶部独立的 "Music" 标题行
+ *   · 封面 64 -> 56
+ *   · 去掉底部"查看全部"整行，改成头部右上角一个播放列表图标按钮
+ *   · 内边距 20 -> 16
+ * 功能一个没少：封面/歌名/歌手、进度条、模式/上一首/播放/下一首/静音、
+ * 跳转音乐页、未播放时的空态。
+ *
+ * 进度条与控制键仍是 components/player 下的共享组件 —— 与音乐页完全一致。
+ */
 export default function MusicCard() {
   const { currentSong, isPlaying } = usePlayer();
 
@@ -19,110 +34,81 @@ export default function MusicCard() {
 
   if (!currentSong) {
     return (
-      <div className="glass music-card music-card--empty p-6 h-full">
-        <div
-          className="w-20 h-20 rounded-full mb-4 flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-        >
-          <span className="text-2xl">🎵</span>
+      <div className="glass music-card music-card--empty mp-theme">
+        <span className="music-card__wash" aria-hidden="true" />
+        <div className="music-card__inner">
+          <span className="music-card__empty-icon" aria-hidden="true">
+            🎵
+          </span>
+          <p className="music-card__empty-text">点击音乐页开始播放</p>
+          <Link href="/music" className="music-card__empty-cta">
+            去音乐页
+          </Link>
         </div>
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          点击音乐页开始播放
-        </p>
-        <Link
-          href="/music"
-          className="mt-3 text-xs px-4 py-1.5 rounded-full"
-          style={{ background: "var(--accent)", color: "#fff" }}
-        >
-          去音乐页
-        </Link>
       </div>
     );
   }
 
-  // 封面判断：本地歌若没 cover_path，后端 /api/music/cover 会 404，
+  // 本地歌若没有 cover_path，后端 /api/music/cover 会 404，
   // 所以先用 hasCover 判断再渲染 <img>，避免破图。
   const shownCover = hasCover(currentSong) && !coverError;
   const coverSrc = getCoverUrl(currentSong);
 
   return (
-    <div className="glass music-card mp-theme p-5 flex flex-col h-full relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <span
-          className="text-xs uppercase tracking-widest"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Music
-        </span>
-        <svg viewBox="0 0 16 16" width="16" height="16" fill="var(--accent)">
-          <path d="M9 13c0 1.105-1.12 2-2.5 2S4 14.105 4 13s1.12-2 2.5-2 2.5.895 2.5 2z" />
-          <path d="M9 3v10H8V3h1z" fillRule="evenodd" />
-          <path d="M8 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 13 2.22V4L8 5V2.82z" />
-        </svg>
-      </div>
+    <div className="glass music-card mp-theme">
+      {/* 参考稿的渐变底：两团低透明度色斑，颜色由主题强调色混出来 */}
+      <span className="music-card__wash" aria-hidden="true" />
 
-      <div className="flex items-center gap-4 mb-4">
-        <div className="relative w-16 h-16 flex-shrink-0">
-          {shownCover ? (
-            <Link
-              href="/music"
-              className="block w-16 h-16 rounded-lg overflow-hidden bg-white/5 hover:opacity-80 transition-opacity"
-            >
+      <div className="music-card__inner">
+        {/* 头部：封面 + 曲目信息 + 去音乐页 */}
+        <div className="music-card__head">
+          <Link href="/music" className="music-card__cover" aria-label="打开音乐页">
+            {shownCover ? (
               <img
                 key={`${currentSong.source}-${currentSong.id}`}
                 src={coverSrc}
                 alt={currentSong.title}
-                className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
                 onError={() => setErrorKey(songKey)}
               />
-            </Link>
-          ) : (
-            <Link href="/music" className="block">
-              <div
-                className={`disc w-16 h-16 ${
+            ) : (
+              <span
+                className={`disc music-card__disc ${
                   isPlaying ? "disc-spin" : "disc-paused"
                 }`}
+                aria-hidden="true"
               >
-                <div
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{ background: "var(--accent)", color: "#fff" }}
-                >
-                  ♪
-                </div>
-              </div>
-            </Link>
-          )}
-        </div>
+                <span className="music-card__disc-core">♪</span>
+              </span>
+            )}
+          </Link>
 
-        <div className="min-w-0 flex-1">
+          <div className="music-card__meta">
+            <Link
+              href="/music"
+              className="music-card__title"
+              title={currentSong.title}
+            >
+              {currentSong.title}
+            </Link>
+            <p className="music-card__artist" title={currentSong.artist}>
+              {currentSong.artist}
+            </p>
+          </div>
+
           <Link
             href="/music"
-            className="text-sm font-semibold truncate block hover:text-[var(--accent)] transition-colors"
+            className="music-card__more"
+            aria-label="打开播放列表"
+            title="打开播放列表"
           >
-            {currentSong.title}
+            <MorphIcon icon={ListMusic} size={15} />
           </Link>
-          <p
-            className="text-xs truncate mt-0.5"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {currentSong.artist}
-          </p>
         </div>
-      </div>
 
-      {/* 与音乐页完全相同的进度条与控制键 */}
-      <PlayerProgress />
-      <PlayerControls />
-
-      <div className="mt-auto pt-3 flex justify-end">
-        <Link
-          href="/music"
-          className="text-xs hover:opacity-70 transition-opacity"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          查看全部 →
-        </Link>
+        {/* 进度条与控制键：与音乐页共用同一对组件 */}
+        <PlayerProgress />
+        <PlayerControls />
       </div>
     </div>
   );
