@@ -19,7 +19,7 @@
 #     7. 任何一步失败 → 自动回滚（后端代码 / 前端产物）并以非 0 退出
 #
 #  可用环境变量覆盖：
-#     PROJECT_DIR  BACKEND_SERVICE  FRONTEND_SERVICE  NGINX_CACHE  SITE_URL  KEEP_BACKUPS
+#     PROJECT_DIR  BACKEND_SERVICE  FRONTEND_SERVICE  NGINX_CACHE  SITE_URL  KEEP_BACKUPS  PY
 # ============================================================
 set -euo pipefail
 
@@ -154,19 +154,40 @@ fi
 
 # ---------- 2. 数据库迁移（幂等白名单） ----------
 step "2. 数据库迁移"
-# 优先用后端自己的 venv
-PY=""
-for cand in "$PROJECT_DIR/blog-backend/.venv/bin/python" "$PROJECT_DIR/.venv/bin/python"; do
-  # 不能写成 `[ -x "$cand" ] && PY=... && break`：
-  # 在 set -e 下这类 && 链的失败语义容易踩坑，用显式 if 最稳
-  if [ -x "$cand" ]; then
-    PY="$cand"
-    break
-  fi
-done
+# 找 python：优先用环境变量 PY 覆盖，其次按常见布局猜
+#   服务器上的 venv 名字不一定叫 .venv（也可能叫 venv），猜不到就让人指定：
+#     PY=/www/wwwroot/personal_blog/blog-backend/.venv/bin/python bash deploy.sh
+PY="${PY:-}"
+if [ -z "$PY" ]; then
+  for cand in \
+    "$PROJECT_DIR/blog-backend/.venv/bin/python" \
+    "$PROJECT_DIR/blog-backend/venv/bin/python" \
+    "$PROJECT_DIR/.venv/bin/python" \
+    "$PROJECT_DIR/venv/bin/python"; do
+    # 不能写成 `[ -x "$cand" ] && PY=... && break`：
+    # 在 set -e 下这类 && 链的失败语义容易踩坑，用显式 if 最稳
+    if [ -x "$cand" ]; then
+      PY="$cand"
+      break
+    fi
+  done
+fi
 [ -n "$PY" ] || PY="$(command -v python3 || true)"
 [ -n "$PY" ] || die "找不到 python，无法执行迁移脚本"
 info "Python：$PY"
+
+# 迁移脚本要 import 项目自己的模块（sqlmodel / pymysql 等）。
+# 系统 python3 通常没有这些依赖 —— 与其等到真正迁移时才报 ImportError，
+# 不如现在就明确指出来该怎么修。
+if [ "$DRY" = "0" ] && [ "$SKIP_BACKEND" = "0" ]; then
+  if ! "$PY" -c "import sqlmodel" >/dev/null 2>&1; then
+    warn "这个 python 里没有 sqlmodel：$PY"
+    warn "请指定后端自己的解释器，例如："
+    warn "  PY=/www/wwwroot/personal_blog/blog-backend/.venv/bin/python bash deploy.sh"
+    warn "（可用 systemctl cat $BACKEND_SERVICE | grep ExecStart 查看它实际用的 python）"
+    die "python 环境不可用，已中止（没有改动任何文件）"
+  fi
+fi
 
 RAN=0
 for m in "${MIGRATIONS[@]}"; do
