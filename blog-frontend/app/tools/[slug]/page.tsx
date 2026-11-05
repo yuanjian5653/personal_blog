@@ -29,6 +29,47 @@ import { resolveToolIcon } from "@/components/tools/icons";
  *     不加 rehype-raw，所以 Markdown 里的原始 HTML 不会被渲染（防 XSS）
  *   · 正文容器复用文章页的 .prose-custom 样式，排版自动一致
  */
+/**
+ * 返回工具列表。
+ *
+ * 用文章详情页同一套 .back-btn 效果（下划线从 0 撑满 + 箭头左移 + 文字染色），
+ * 样式定义在 app/styles/ui-widgets.css，两处共用一份，改一处两边同步。
+ *
+ * 为什么用 <Link> 而不是文章页那样的 <button onClick={router.push}>：
+ * 效果完全一致，但 <Link> 是真链接 —— 支持中键新开标签页、可被爬虫抓取。
+ * 文本通过 --btn-text 传给 CSS 的伪元素（hover 时的那层高亮文字）。
+ */
+function BackToTools() {
+  return (
+    <Link
+      href="/tools"
+      className="back-btn tool-detail__back"
+      style={
+        {
+          "--btn-text": '"返回工具列表"',
+          "--primary-color": "var(--card-text-sub)",
+          "--hovered-color": "var(--accent)",
+        } as React.CSSProperties
+      }
+    >
+      <svg
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        strokeWidth={2.5}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        />
+      </svg>
+      <p>返回工具列表</p>
+    </Link>
+  );
+}
+
 export default function ToolDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug ?? "";
@@ -52,9 +93,7 @@ export default function ToolDetailPage() {
   if (error) {
     return (
       <div className="tool-detail">
-        <Link href="/tools" className="tool-detail__back">
-          ← 工具
-        </Link>
+        <BackToTools />
         <div className="tools-empty">
           {error === "工具不存在" ? "这个工具不存在或已下架" : error}
         </div>
@@ -65,9 +104,7 @@ export default function ToolDetailPage() {
   if (!tool) {
     return (
       <div className="tool-detail">
-        <Link href="/tools" className="tool-detail__back">
-          ← 工具
-        </Link>
+        <BackToTools />
         <div className="tools-empty">正在加载…</div>
       </div>
     );
@@ -80,9 +117,7 @@ export default function ToolDetailPage() {
 
   return (
     <div className="tool-detail">
-      <Link href="/tools" className="tool-detail__back">
-        ← 工具
-      </Link>
+      <BackToTools />
 
       <header className="tool-detail__head">
         <span className="tool-detail__icon" aria-hidden="true">

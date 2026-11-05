@@ -3,15 +3,17 @@
    ------------------------------------------------------------
    结构见 components/home/EntryCards.tsx：
 
-     a.entry-card
+     a.entry-card                     ← 横向 flex，一行排完
        span.entry-card__wash    指针跟随光斑（--spot-x/--spot-y）
        span.entry-card__sheen   悬停时的一次性斜向光扫
-       div.entry-card__top
-         span.entry-card__icon  方形玻璃砖里的图标
-         span.entry-card__arrow 右上角箭头
-       h2.entry-card__title
-       p.entry-card__desc
-       span.entry-card__meta    数量 / 状态
+       span.entry-card__icon    方形玻璃砖里的图标（左侧）
+       span.entry-card__body    标题 + 描述（中间，占满剩余宽度）
+       span.entry-card__side    数量 + 箭头（右侧）
+         span.entry-card__meta  如"12 个仓库"
+         span.entry-card__arrow 箭头
+
+   为什么改成横向：原来标题/描述/数量各占一行，卡片要 152px 高；
+   横向之后数量挪到右侧，高度降到 82px。光斑、光扫、辉光、图标浮起全部保留。
 
    配色全部来自站点卡片主题变量，因此跟随"原版毛玻璃 / 黑色毛玻璃"切换；
    每张卡另有一个 --fc-glow（由 --accent 混一个固定色得到），
@@ -28,11 +30,13 @@
 
 .entry-card {
   position: relative;
+  /* 横向排布：图标 | 标题+描述 | 数量+箭头
+     这样卡片高度只有一两行文案那么高（原来竖排要 152px） */
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 152px;
-  padding: 16px 18px 14px;
+  align-items: center;
+  gap: 14px;
+  min-height: 84px;
+  padding: 14px 16px;
   border-radius: 16px;
   overflow: hidden;
   isolation: isolate;
@@ -144,23 +148,16 @@
 
 /* ---------------- 顶部：图标 + 箭头 ---------------- */
 
-.entry-card__top {
+.entry-card__icon {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.entry-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: 11px;
   color: var(--fc-glow);
   background:
     linear-gradient(
@@ -185,8 +182,6 @@
 }
 
 .entry-card__arrow {
-  position: relative;
-  z-index: 1;
   font-size: 14px;
   line-height: 1;
   color: var(--card-text-sub);
@@ -204,14 +199,25 @@
 
 /* ---------------- 文案 ---------------- */
 
-.entry-card__title {
+.entry-card__body {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entry-card__title {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--card-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: color 0.3s ease;
 }
 .entry-card:hover .entry-card__title {
@@ -219,25 +225,36 @@
 }
 
 .entry-card__desc {
-  position: relative;
-  z-index: 1;
   margin: 0;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--card-text-sub);
+  /* 三列时每张卡只有约 285px，扣掉图标/间距/右侧数量后留给描述 ~120px。
+     "我在 GitHub 上写的东西" 在 12px 下约需 144px —— 强制单行会被省略号砍掉。
+     所以允许折到 2 行并截断（-webkit-line-clamp），信息完整又不撑高卡片。 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 右侧：数量 + 箭头。数量不再单独占一行（原来占底部一行 + 上边框） */
+.entry-card__side {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .entry-card__meta {
-  position: relative;
-  z-index: 1;
-  margin-top: auto;
-  padding-top: 10px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   color: var(--card-text-sub);
-  opacity: 0.75;
-  border-top: 1px solid color-mix(in srgb, var(--card-border) 70%, transparent);
+  opacity: 0.8;
+  white-space: nowrap;
 }
 
 /* ---------------- 响应式 ---------------- */
@@ -245,15 +262,29 @@
 @media (max-width: 768px) {
   .entry-grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
+    gap: 12px;
   }
   .entry-card {
-    min-height: 0;
-    padding: 14px 16px 12px;
+    min-height: 74px;
+    padding: 12px 14px;
+    gap: 12px;
   }
-  /* 单列时卡片变宽，图标和标题可以并排，省一点纵向空间 */
-  .entry-card__top {
-    margin-bottom: 2px;
+  .entry-card__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+}
+
+/* 很窄的时候数量换到标题下面，避免把描述挤没 */
+@media (max-width: 400px) {
+  .entry-card__side {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .entry-card__meta {
+    font-size: 10px;
   }
 }
 

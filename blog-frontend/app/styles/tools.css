@@ -240,16 +240,14 @@
   margin: 0 auto;
 }
 
+/* 返回按钮复用文章详情页的 .back-btn 效果（下划线从 0 撑满、箭头左移、
+   文字染色），样式定义在 ui-widgets.css，两处共用一份。
+   这里只补 .back-btn 不管的两件事：
+     1. 与下方内容的间距
+     2. <a> 的下划线（.back-btn 原本用在 <button> 上，不用处理这个） */
 .tool-detail__back {
-  display: inline-block;
-  margin-bottom: 20px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  margin-bottom: 22px;
   text-decoration: none;
-  transition: color 0.2s ease;
-}
-.tool-detail__back:hover {
-  color: var(--accent);
 }
 
 .tool-detail__head {
@@ -375,10 +373,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tool-detail__cta,
-  .tool-detail__back {
+  .tool-detail__back,
+  .tool-detail__back p,
+  .tool-detail__back svg,
+  .tool-detail__back::after,
+  .tool-detail__back p::before {
     transition: none !important;
   }
   .tool-detail__cta:hover {
+    transform: none;
+  }
+  .tool-detail__back:hover svg {
     transform: none;
   }
 }

@@ -126,19 +126,22 @@ export default function EntryCards() {
             {/* 悬停时的一次性斜向光扫 */}
             <span className="entry-card__sheen" aria-hidden="true" />
 
-            <div className="entry-card__top">
-              <span className="entry-card__icon" aria-hidden="true">
-                <MorphIcon icon={entry.icon} size={18} />
-              </span>
+            <span className="entry-card__icon" aria-hidden="true">
+              <MorphIcon icon={entry.icon} size={18} />
+            </span>
+
+            <span className="entry-card__body">
+              <span className="entry-card__title">{entry.name}</span>
+              <span className="entry-card__desc">{entry.desc}</span>
+            </span>
+
+            {/* 右侧：数量 + 箭头（横向排布，所以卡片能压得比较矮） */}
+            <span className="entry-card__side">
+              <span className="entry-card__meta">{meta}</span>
               <span className="entry-card__arrow" aria-hidden="true">
                 →
               </span>
-            </div>
-
-            <h2 className="entry-card__title">{entry.name}</h2>
-            <p className="entry-card__desc">{entry.desc}</p>
-
-            <span className="entry-card__meta">{meta}</span>
+            </span>
           </Link>
         );
       })}
