@@ -152,8 +152,8 @@ else
   info "更新：$PREV_COMMIT → $NEW_COMMIT"
 fi
 
-# ---------- 2. 数据库迁移（幂等白名单） ----------
-step "2. 数据库迁移"
+# ---------- 2. 数据库迁移 + 后端依赖 ----------
+step "2. 数据库迁移与后端依赖"
 # 找 python：优先用环境变量 PY 覆盖，其次按常见布局猜
 #   服务器上的 venv 名字不一定叫 .venv（也可能叫 venv），猜不到就让人指定：
 #     PY=/www/wwwroot/personal_blog/blog-backend/.venv/bin/python bash deploy.sh
@@ -205,6 +205,19 @@ for m in "${MIGRATIONS[@]}"; do
   RAN=$((RAN + 1))
 done
 [ "$RAN" -gt 0 ] || info "没有需要执行的迁移"
+
+# 依赖：只有 requirements.txt 在这次拉取里变了才装。
+# 为什么必须有这一步：新增 Python 包但没装，重启后后端会直接起不来；
+# 那种情况下健康检查会触发回滚 —— 站点没事，但这次部署白跑一趟。
+REQ_REL="blog-backend/requirements.txt"
+if [ "$SKIP_BACKEND" = "1" ]; then
+  info "跳过依赖检查（按参数只更前端）"
+elif git -C "$PROJECT_DIR" diff --name-only "$PREV_COMMIT" "$NEW_COMMIT" -- "$REQ_REL" | grep -q .; then
+  info "requirements.txt 有变化，安装依赖"
+  run "'$PY' -m pip install -r '$PROJECT_DIR/$REQ_REL'"
+else
+  info "requirements.txt 未变化，跳过 pip install"
+fi
 
 # ---------- 3. 后端 ----------
 if [ "$SKIP_BACKEND" = "1" ]; then
