@@ -19,6 +19,7 @@ from app.models.pageview import PageView
 from app.models.friendlink import FriendLink
 from app.models.project import Project
 from app.models.tool import Tool
+from app.models.subscriber import Subscriber
 
 __all__ = [
     "Admin",
@@ -42,4 +43,5 @@ __all__ = [
     "FriendLink",
     "Project",
     "Tool",
+    "Subscriber",
 ]

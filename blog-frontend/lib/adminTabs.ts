@@ -54,6 +54,7 @@ const PATH_LABELS: Record<string, string> = {
   "/admin/photos": "图片管理",
   "/admin/projects": "项目管理",
   "/admin/tools": "工具管理",
+  "/admin/subscribers": "订阅管理",
   "/admin/friends": "友链管理",
   "/admin/comments": "评论管理",
   "/admin/guestbook": "杂谈管理",

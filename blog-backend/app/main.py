@@ -23,6 +23,7 @@ from app.routers import (
     playlist,
     project,
     site_config,
+    subscribe,
     tools,
     upload,
 )
@@ -98,6 +99,8 @@ app.include_router(admin.router)
 app.include_router(friendlink.router)
 app.include_router(project.router)
 app.include_router(tools.router)
+app.include_router(subscribe.router)
+app.include_router(subscribe.admin_router)
 
 @app.get("/")
 def root():

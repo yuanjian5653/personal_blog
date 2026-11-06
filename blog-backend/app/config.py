@@ -92,8 +92,43 @@ class Settings:
     PHOTO_DIR: Path = BASE_DIR / os.getenv("PHOTO_DIR", "media/photos")
 
     THUMB_DIR: Path = BASE_DIR / os.getenv("THUMB_DIR", "media/thumbs")
+
+    # ---- 邮件推送（订阅通知用，阿里云 DirectMail 的 SMTP）----
+    #
+    # 为什么用 SMTP 而不是阿里云 API：SMTP 用自写 HTML 就行，
+    # **不需要提交邮件模板审核**（BatchSendMail 才需要），
+    # 也不用装阿里云 SDK（那一套会拖进一堆依赖，而这台服务器只有 1.6G 内存）。
+    # 单发 QPS 很低，我们每篇内容也就几十封，完全够用。
+    #
+    # 全部留空 = 邮件功能关闭：订阅接口仍可记录邮箱，但不会真的发信，
+    # 便于本地开发时不配凭据也能跑通流程。
+    MAIL_HOST: str = os.getenv("MAIL_HOST", "smtpdm.aliyun.com")
+    # 465 = 隐式 SSL（推荐，阿里云 25 端口容易被运营商限速）
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", "465"))
+    # 发信地址，必须与 SMTP 登录账号完全一致，如 noreply@mail.yuanjian.website
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
+    # 显示名（收件人看到的发件人名称）
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "博客")
+    # 回信地址：收件人点"回复"时写给谁
+    MAIL_REPLY_TO: str = os.getenv("MAIL_REPLY_TO", "")
+
+    # 站点对外地址（拼确认/退订链接用，必须能被收件人访问）
+    SITE_URL: str = os.getenv("SITE_URL", "http://localhost:3000").rstrip("/")
+
+    # 订阅相关限制
+    # 同一 IP 60 秒内最多提交 1 次（DB 查最近记录实现，重启不丢）
+    SUBSCRIBE_IP_COOLDOWN: int = int(os.getenv("SUBSCRIBE_IP_COOLDOWN", "60"))
+    # 同一邮箱 5 分钟内不重复发确认信（避免被当成骚扰工具）
+    SUBSCRIBE_RESEND_COOLDOWN: int = int(os.getenv("SUBSCRIBE_RESEND_COOLDOWN", "300"))
+
     # 调试
     DEBUG: bool = _env_bool("DEBUG", False)
+
+    @property
+    def mail_enabled(self) -> bool:
+        """发信地址 + 密码都配了才算启用"""
+        return bool(self.MAIL_FROM and self.MAIL_PASSWORD)
 
     @property
     def github_oauth_enabled(self) -> bool:

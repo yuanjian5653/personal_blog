@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
@@ -99,6 +100,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               >
                 <span id="footer-mps" />
               </a>
+            </div>
+
+            {/* 订阅入口：全站可见，但不抢眼 */}
+            <div className="mt-2 text-xs">
+              <Link
+                href="/subscribe"
+                className="hover:underline"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                邮件订阅
+              </Link>
             </div>
           </footer>
           {/* 全局播放条，固定底部 */}

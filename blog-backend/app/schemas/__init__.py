@@ -20,6 +20,11 @@ from app.schemas.article import (
     ArticleRead,
     ArticleUpdate,
 )
+from app.schemas.subscriber import (
+    SubscriberRead,
+    SubscriberStats,
+    SubscribeRequest,
+)
 from app.schemas.essay import (
     EssayCreate,
     EssayRead,
@@ -34,4 +39,5 @@ __all__ = [
     "PhotoRead",
     "ArticleCreate", "ArticleListItem", "ArticleRead", "ArticleUpdate",
     "EssayCreate", "EssayRead", "EssayUpdate",
+    "SubscribeRequest", "SubscriberRead", "SubscriberStats",
 ]
