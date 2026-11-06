@@ -81,12 +81,24 @@ export default function MusicCard() {
                   onError={() => setErrorKey(songKey)}
                 />
               ) : (
-                <span
-                  className={`disc music-card__disc ${
-                    isPlaying ? "disc-spin" : "disc-paused"
-                  }`}
-                  aria-hidden="true"
-                >
+                /*
+                 * 无封面时的黑胶占位。
+                 *
+                 * 原来用的是 `.disc` / `.disc-spin` / `.disc-paused` ——
+                 * 这三个类在黑胶改版后**已经不存在于任何样式表**里，
+                 * 于是这只是一个空 span；而里面的 ♪ 是绝对定位，
+                 * 又没有任何定位祖先，结果按页面定位跑到卡片外面去了。
+                 * 鼠标一悬浮，.music-card__tile:hover 的 transform 临时
+                 * 创建了定位上下文，♪ 又跳回卡片里 —— 就是"悬浮前后不一样"。
+                 *
+                 * 现在改成自成一体的结构：外壳负责定位，内层负责转。
+                 */
+                <span className="music-card__disc" aria-hidden="true">
+                  <span
+                    className={`music-card__disc-vinyl${
+                      isPlaying ? " is-spinning" : ""
+                    }`}
+                  />
                   <span className="music-card__disc-core">♪</span>
                 </span>
               )}

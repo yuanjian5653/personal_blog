@@ -116,7 +116,7 @@ export default function ToolDetailPage() {
   const ctaClass = "tool-detail__cta";
 
   return (
-    <div className="tool-detail">
+    <div className="tool-detail" data-color={tool.color ?? "default"}>
       <BackToTools />
 
       <header className="tool-detail__head">

@@ -241,11 +241,76 @@
   font-size: 26px;
 }
 
-/* 无封面时的黑胶占位（沿用 .disc 的旋转动画） */
+/* ---------------- 无封面时的迷你黑胶 ----------------
+ *
+ * 以前这里用了 `.disc` / `.disc-spin`，但黑胶改版后那几个类
+ * 已经不在任何样式表里了，所以占位盘完全没有样式；
+ * 而 .music-card__disc-core 是绝对定位却没有定位祖先，
+ * 于是 ♪ 跑到卡片外面，悬浮时才因为 tile 的 transform 临时
+ * 建立了定位上下文而跳回来 —— 就是"悬浮前后图标不一样"。
+ *
+ * 现在：外壳 position:relative 负责定位与裁剪，
+ * 内层 .music-card__disc-vinyl 只负责转（纹理与中心贴纸）。
+ * ------------------------------------------------ */
+
 .music-card__disc {
+  /* 关键：给里面的绝对定位元素一个稳定的参照，
+     不再依赖 hover 时 tile 的 transform */
+  position: relative;
+  display: block;
   width: 100%;
   height: 100%;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #111114;
 }
+
+/* 转动的黑胶盘面（沟槽 + 高光） */
+.music-card__disc-vinyl {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    /* 中心贴纸 */
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--accent) 55%, #1a1a1e) 0 18%,
+      transparent 18%
+    ),
+    /* 一圈高光，让旋转看得出来 */
+      conic-gradient(
+        from 210deg,
+        rgba(255, 255, 255, 0.14) 0deg,
+        transparent 46deg,
+        transparent 180deg,
+        rgba(255, 255, 255, 0.07) 240deg,
+        transparent 300deg
+      ),
+    /* 沟槽 */
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        #1b1b20 0 2px,
+        #141418 2px 4px
+      );
+  /* 显式写 from/to：只在静态声明上挂 transform 再插值会失效（踩过） */
+  animation: musicCardDiscSpin 6s linear infinite;
+  animation-play-state: paused;
+}
+
+.music-card__disc-vinyl.is-spinning {
+  animation-play-state: running;
+}
+
+@keyframes musicCardDiscSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 中间的 ♪：不跟着转，位置永远在盘心 */
 .music-card__disc-core {
   position: absolute;
   top: 50%;
@@ -260,7 +325,15 @@
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 82%, #000);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-card__disc-vinyl {
+    animation: none;
+  }
 }
 
 /* 歌名 / 歌手（参考稿的 .name / .name1，居中） */
