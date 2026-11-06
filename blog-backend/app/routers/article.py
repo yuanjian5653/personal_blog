@@ -21,6 +21,7 @@ from app.schemas.article import (
     ArticleUpdate,
 )
 from app.services.log_service import apply_updates, log_operation
+from app.services import notifier
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +221,11 @@ def create_article(
     )
     db.commit()
     db.refresh(article)
+
+    # 只有真正"已发布"的文章才通知订阅者（草稿不通知）
+    if (article.status or "") == "published":
+        notifier.enqueue_article_published(article)
+
     return article
 
 
@@ -235,6 +241,10 @@ def update_article(
         raise HTTPException(status_code=404, detail="文章不存在")
 
     update_data = data.model_dump(exclude_unset=True)
+
+    # 记录改动前的发布状态：用来判断"这次是不是第一次发布"
+    was_published = (article.status or "") == "published"
+
 
     # slug 唯一性
     if "slug" in update_data and update_data["slug"]:
@@ -265,6 +275,11 @@ def update_article(
 
     db.commit()
     db.refresh(article)
+
+    # 草稿→发布 的那一刻才通知；只是编辑已发布的文章不重复发
+    if (article.status or "") == "published" and not was_published:
+        notifier.enqueue_article_published(article)
+
     return article
 
 

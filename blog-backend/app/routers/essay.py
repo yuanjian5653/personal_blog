@@ -14,6 +14,7 @@ from app.services.log_service import (
     loads_json_list,
     log_operation,
 )
+from app.services import notifier
 
 router = APIRouter(prefix="/api/essays", tags=["随笔"])
 
@@ -96,6 +97,8 @@ def create_essay(
     db.commit()
     db.refresh(e)
     return _to_read(e)
+
+    notifier.enqueue_essay_created(e)
 
 
 @router.put("/{essay_id}", response_model=EssayRead)

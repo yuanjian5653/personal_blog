@@ -14,6 +14,7 @@ from app.services.log_service import (
     loads_json_list,
     log_operation,
 )
+from app.services import notifier
 
 router = APIRouter(prefix="/api/life", tags=["生活"])
 
@@ -70,6 +71,8 @@ def create_life_post(
     db.commit()
     db.refresh(p)
     return _to_read(p)
+
+    notifier.enqueue_life_created(p)
 
 
 @router.put("/{post_id}", response_model=LifePostRead)

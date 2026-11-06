@@ -18,6 +18,7 @@ from app.routers import (
     friendlink,
     life,
     log,
+    notifications,
     music,
     netease,
     playlist,
@@ -27,7 +28,10 @@ from app.routers import (
     tools,
     upload,
 )
+import asyncio
+
 from app.services.scanner import scan_music_folder
+from app.services import notifier
 from app.services.watcher import start_watcher
 
 
@@ -54,6 +58,10 @@ async def lifespan(app: FastAPI):
     # 把 observer 存到 app.state，关闭时用
     app.state.watcher = observer
 
+    # 3. 启动内容更新通知 worker（asyncio 任务，1.6G 内存下比 Celery 轻得多）
+    notify_task = asyncio.create_task(notifier.worker_loop(), name="notify-worker")
+    app.state.notify_task = notify_task
+
     yield
 
     # ---- 关闭 ----
@@ -61,6 +69,16 @@ async def lifespan(app: FastAPI):
         app.state.watcher.stop()
         app.state.watcher.join()
         logger.info("[关闭] 文件监控已停止")
+
+    # 取消通知 worker，等它真正退出再返回，避免留下悬挂任务
+    task = getattr(app.state, "notify_task", None)
+    if task is not None and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        logger.info("[关闭] 通知 worker 已停止")
 
 
 app = FastAPI(
@@ -101,6 +119,7 @@ app.include_router(project.router)
 app.include_router(tools.router)
 app.include_router(subscribe.router)
 app.include_router(subscribe.admin_router)
+app.include_router(notifications.router)
 
 @app.get("/")
 def root():

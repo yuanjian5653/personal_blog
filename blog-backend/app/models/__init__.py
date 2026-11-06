@@ -20,6 +20,7 @@ from app.models.friendlink import FriendLink
 from app.models.project import Project
 from app.models.tool import Tool
 from app.models.subscriber import Subscriber
+from app.models.notification import NotificationOutbox
 
 __all__ = [
     "Admin",
@@ -44,4 +45,5 @@ __all__ = [
     "Project",
     "Tool",
     "Subscriber",
+    "NotificationOutbox",
 ]

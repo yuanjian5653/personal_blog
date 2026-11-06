@@ -122,6 +122,14 @@ class Settings:
     # 同一邮箱 5 分钟内不重复发确认信（避免被当成骚扰工具）
     SUBSCRIBE_RESEND_COOLDOWN: int = int(os.getenv("SUBSCRIBE_RESEND_COOLDOWN", "300"))
 
+    # ---- 内容更新自动推送 ----
+    # 总开关。关掉后发布内容不再自动入队（手动入队/测试不受影响）。
+    NOTIFY_ENABLED: bool = _env_bool("NOTIFY_ENABLED", True)
+    # worker 轮询间隔（秒）
+    NOTIFY_POLL_SECONDS: int = int(os.getenv("NOTIFY_POLL_SECONDS", "30"))
+    # 冷却合并：距上次发送不足这么多分钟，就把新内容顺延、合并成一封
+    NOTIFY_COOLDOWN_MINUTES: int = int(os.getenv("NOTIFY_COOLDOWN_MINUTES", "120"))
+
     # 调试
     DEBUG: bool = _env_bool("DEBUG", False)
 

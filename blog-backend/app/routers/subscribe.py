@@ -322,7 +322,13 @@ def list_subscribers(
     注意：**统计基于全部记录**，列表才按 status 过滤 ——
     否则筛了 pending 之后 confirmed 的数量会变成 0，看着像数据丢了。
     """
-    all_rows = db.exec(select(Subscriber)).all()
+    # exec() 返回的是 Row，需要解包成模型（见 notifier._model 的说明）
+    raw_rows = db.exec(select(Subscriber)).all()
+    all_rows = []
+    for r in raw_rows:
+        obj = r[0] if not isinstance(r, Subscriber) else r
+        if isinstance(obj, Subscriber):
+            all_rows.append(obj)
 
     stats = SubscriberStats(
         total=len(all_rows),
