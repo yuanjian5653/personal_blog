@@ -99,7 +99,10 @@ def cleanup() -> None:
                 db.delete(obj)
 
         raw_sub = db.exec(
-            select(Subscriber).where(Subscriber.email == TEST_EMAIL)
+            select(Subscriber).where(
+                (Subscriber.email == TEST_EMAIL)
+                | Subscriber.email.startswith(PREFIX)
+            )
         ).all()
         for r in raw_sub:
             obj = unwrap(r, Subscriber)
@@ -354,6 +357,166 @@ else:
     check_true("删除 200", r.status_code == 200, str(r.status_code))
     r = client.delete("/api/admin/notifications/999999")
     check_true("删除不存在 404", r.status_code == 404, str(r.status_code))
+
+# ------------------------------------------------------------------ 游标续传
+print("\n=== 10. 发送游标（中断后续传，不重复发）===")
+#
+# 这里把 mailer.try_send_mail 换成假的，记录"这一轮发给了谁"，
+# 这样不用真的发信就能验证续传逻辑。
+sent_to: list[str] = []
+real_try_send = notifier.mailer.try_send_mail
+
+
+async def fake_try_send(to_email, subject, text, html, unsubscribe_url=None):
+    sent_to.append(to_email)
+    return True, None
+
+
+notifier.mailer.try_send_mail = fake_try_send
+notifier.SEND_INTERVAL = 0
+
+# 造 3 个已确认订阅者
+CURSOR_EMAILS = [f"{PREFIX}cursor{i}@example.com" for i in (1, 2, 3)]
+with Session(engine) as db:
+    for i, em in enumerate(CURSOR_EMAILS):
+        db.add(Subscriber(
+            email=em,
+            status="confirmed",
+            confirm_token=f"__notify_cursor_ct_{i}_" + "x" * 10,
+            unsubscribe_token=f"__notify_cursor_ut_{i}_" + "y" * 10,
+            source="test",
+            created_at=datetime.now(timezone.utc),
+            confirmed_at=datetime.now(timezone.utc),
+        ))
+    db.commit()
+
+with Session(engine) as db:
+    ids = [
+        x[0]
+        for x in db.exec(
+            select(Subscriber.id)
+            .where(Subscriber.email.in_(CURSOR_EMAILS))
+            .order_by(Subscriber.id)
+        ).all()
+    ]
+check("3 个订阅者 id 递增", ids == sorted(ids), True)
+first_id, second_id, third_id = ids
+
+# ---- 第一轮：全新记录，游标为空 → 应该发给全部 3 人 ----
+notifier._enqueue("essay.new", "essay", 910001, PREFIX + "游标一", None, "/essays")
+row1 = rows_by_title(PREFIX + "游标一")[0]
+sent_to.clear()
+asyncio.run(notifier._send_batch())
+row1 = rows_by_title(PREFIX + "游标一")[0]
+# 注意：开发库里可能还有**真实的**已确认订阅者（比如你自己的邮箱），
+# 所以这里不写死"只有 3 个"，而是断言 3 个测试邮箱都被发到了。
+check("3 个测试订阅者都被发到", all(e in sent_to for e in CURSOR_EMAILS), True)
+check("最后发的是 id 最大那个", sent_to[-1], CURSOR_EMAILS[-1])
+check("首轮后状态 sent", row1.status, "sent")
+check("sent_count 与本轮发送数一致", row1.sent_count, len(sent_to))
+check("游标停在最后一个人", row1.last_commenter_id, third_id)
+
+# ---- 第二轮：人为把游标设成第 1 个人，模拟"发到第 1 个就被 kill" ----
+notifier._enqueue("essay.new", "essay", 910002, PREFIX + "游标二", None, "/essays")
+with Session(engine) as db:
+    r = db.exec(
+        select(NotificationOutbox).where(
+            NotificationOutbox.title == PREFIX + "游标二"
+        )
+    ).first()
+    obj = r[0] if not isinstance(r, NotificationOutbox) else r
+    obj.last_commenter_id = first_id
+    obj.sent_count = 1
+    obj.scheduled_at = datetime.now(timezone.utc) - timedelta(seconds=2)
+    db.add(obj)
+    db.commit()
+
+sent_to.clear()
+asyncio.run(notifier._send_batch())
+row2 = rows_by_title(PREFIX + "游标二")[0]
+check("续传只发给游标之后的 2 人", sent_to, CURSOR_EMAILS[1:])
+check("第一个人没有被重发", CURSOR_EMAILS[0] in sent_to, False)
+check("sent_count 累加（1 + 本轮 2）", row2.sent_count, 3)
+check("游标推进到最后一个", row2.last_commenter_id, third_id)
+
+# ---- 游标已经在最后一个人：不应再发任何人 ----
+notifier._enqueue("essay.new", "essay", 910003, PREFIX + "游标三", None, "/essays")
+with Session(engine) as db:
+    r = db.exec(
+        select(NotificationOutbox).where(
+            NotificationOutbox.title == PREFIX + "游标三"
+        )
+    ).first()
+    obj = r[0] if not isinstance(r, NotificationOutbox) else r
+    obj.last_commenter_id = third_id
+    obj.sent_count = 3
+    obj.scheduled_at = datetime.now(timezone.utc) - timedelta(seconds=2)
+    db.add(obj)
+    db.commit()
+
+sent_to.clear()
+asyncio.run(notifier._send_batch())
+row3 = rows_by_title(PREFIX + "游标三")[0]
+check("游标已到末尾 → 一个人都不发", sent_to, [])
+check("仍然标记为 sent（不会无限堆积）", row3.status, "sent")
+
+# ------------------------------------------------------------------ 网站更新公告
+print("\n=== 11. 网站更新公告 ===")
+# immediate=True 时无视冷却
+settings.NOTIFY_COOLDOWN_MINUTES = 120
+before = datetime.now(timezone.utc)
+ok = notifier.enqueue_site_update(PREFIX + "站点更新", "改了导航", "/about", immediate=True)
+check("入队成功", ok, True)
+
+with Session(engine) as db:
+    r = db.exec(
+        select(NotificationOutbox).where(
+            NotificationOutbox.title == PREFIX + "站点更新"
+        )
+    ).first()
+    site_row = r[0] if not isinstance(r, NotificationOutbox) else r
+check("event_type 是 site.update", site_row.event_type, "site.update")
+check("target_type 是 site", site_row.target_type, "site")
+check("link 用的是传入路径", site_row.url, "/about")
+delta = (site_row.scheduled_at - before).total_seconds()
+check_true("immediate 时不被冷却顺延", -2 <= delta <= 5, f"{delta:.1f} 秒")
+
+# 冷却生效时（immediate=False）会被顺延
+ok = notifier.enqueue_site_update(PREFIX + "站点更新慢", None, "/", immediate=False)
+with Session(engine) as db:
+    r = db.exec(
+        select(NotificationOutbox).where(
+            NotificationOutbox.title == PREFIX + "站点更新慢"
+        )
+    ).first()
+    slow_row = r[0] if not isinstance(r, NotificationOutbox) else r
+slow_delta = (slow_row.scheduled_at - datetime.now(timezone.utc)).total_seconds() / 60
+check_true(
+    "immediate=False 时会被顺延到冷却期后",
+    slow_delta > 60,
+    f"顺延 {slow_delta:.0f} 分钟",
+)
+
+# 邮件标题要用"网站更新"这个措辞
+subj, text, html = notifier.render_digest([site_row], "https://x/u?t=t")
+check_true("主题含「网站更新」", "网站更新" in subj, subj)
+check_true("正文含标题", PREFIX + "站点更新" in text, text[:60])
+
+# 跑一轮把它发出去（fake 发送器仍然生效）
+sent_to.clear()
+with Session(engine) as db:
+    for r in db.exec(select(NotificationOutbox)).all():
+        obj = r[0] if not isinstance(r, NotificationOutbox) else r
+        if isinstance(obj, NotificationOutbox) and obj.title.startswith(PREFIX):
+            if obj.status == "pending":
+                obj.scheduled_at = datetime.now(timezone.utc) - timedelta(seconds=2)
+                db.add(obj)
+    db.commit()
+asyncio.run(notifier._send_batch())
+check_true("公告也走同一条发送管道", len(sent_to) >= 3, str(len(sent_to)))
+
+# 恢复真实发送器
+notifier.mailer.try_send_mail = real_try_send
 
 # ------------------------------------------------------------------ 收尾
 notifier.SEND_INTERVAL = original_interval

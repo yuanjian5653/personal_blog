@@ -42,7 +42,29 @@ export const NOTIFY_EVENT_LABEL: Record<string, string> = {
   "article.new": "新文章",
   "essay.new": "新随笔",
   "life.new": "新动态",
+  "site.update": "网站更新",
 };
+
+/** 手动发一条「网站更新」公告 */
+export interface BroadcastInput {
+  title: string;
+  summary?: string;
+  path?: string;
+  /** true = 无视冷却、立刻发（公告通常就是这个意思） */
+  immediate?: boolean;
+}
+
+export interface BroadcastResult {
+  ok: boolean;
+  message: string;
+  notification_id: number | null;
+}
+
+export function broadcastSiteUpdate(
+  data: BroadcastInput
+): Promise<BroadcastResult> {
+  return api.post<BroadcastResult>("/api/admin/notifications/broadcast", data);
+}
 
 export function fetchNotifications(): Promise<NotificationListResult> {
   return api.get<NotificationListResult>("/api/admin/notifications");

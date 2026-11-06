@@ -19,13 +19,14 @@
 """
 from datetime import datetime
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import BigInteger, Column, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 from app.models._base import utcnow
 
 # 事件类型（也用于邮件标题措辞）
-NOTIFY_EVENTS = ("article.new", "essay.new", "life.new")
+# site.update 是**手动**发起的"网站更新"公告，不是内容自动触发的
+NOTIFY_EVENTS = ("article.new", "essay.new", "life.new", "site.update")
 
 # 状态
 NOTIFY_STATUSES = ("pending", "sending", "sent", "failed")
@@ -48,9 +49,16 @@ class NotificationOutbox(SQLModel, table=True):
 
     # article.new / essay.new / life.new
     event_type: str = Field(max_length=30, index=True)
-    # article / essay / life
+    # article / essay / life / site
     target_type: str = Field(max_length=20)
-    target_id: int = Field(index=True)
+
+    # 目标 id。
+    # 内容通知放的是 article/essay/life 的 id（很小），
+    # 而手动"网站更新"公告放的是**毫秒时间戳**（约 1.8e12），
+    # 所以必须是 BIGINT —— 用 INT 会直接 "Out of range value"。
+    target_id: int = Field(
+        sa_column=Column(BigInteger, nullable=False, index=True)
+    )
 
     # 邮件内容素材（入队时就固定下来，避免 worker 再去查内容表）
     title: str = Field(max_length=300)
@@ -62,6 +70,14 @@ class NotificationOutbox(SQLModel, table=True):
     scheduled_at: datetime = Field(default_factory=utcnow, index=True)
 
     attempts: int = Field(default=0)
+
+    # 发送游标：本批最后一个**发送成功**的订阅者 id。
+    #
+    # 为什么需要它：原来一批发送是"全有或全无" —— 发到一半进程被杀（部署重启、
+    # OOM），这批记录会卡在 sending，10 分钟后被重置回 pending，然后**从头再发**
+    # 一遍，已经收到的人会再收到一次。
+    # 有了游标，重启后从 sent 的最后一个人之后继续，最多重复当前那一封。
+    last_commenter_id: int | None = Field(default=None)
     last_error: str | None = Field(default=None, max_length=500)
     # 实际发给了多少个订阅者（0 表示当时没有订阅者）
     sent_count: int = Field(default=0)

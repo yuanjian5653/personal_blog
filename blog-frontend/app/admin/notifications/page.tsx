@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   NOTIFY_EVENT_LABEL,
   NOTIFY_STATUS_LABEL,
+  broadcastSiteUpdate,
   deleteNotification,
   fetchNotifications,
   retryNotification,
@@ -23,6 +24,12 @@ export default function AdminNotificationsPage() {
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // 「网站更新」公告的草稿
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeSummary, setNoticeSummary] = useState("");
+  const [noticePath, setNoticePath] = useState("/");
+  const [noticeImmediate, setNoticeImmediate] = useState(true);
+
   const load = useCallback(() => {
     fetchNotifications()
       .then((d) => {
@@ -35,6 +42,36 @@ export default function AdminNotificationsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const sendNotice = async () => {
+    const title = noticeTitle.trim();
+    if (!title) return;
+    if (
+      !window.confirm(
+        `确定把这个公告发给所有已确认订阅者？\n\n标题：${title}\n` +
+          `链接：${noticePath || "/"}`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await broadcastSiteUpdate({
+        title,
+        summary: noticeSummary.trim() || undefined,
+        path: noticePath.trim() || "/",
+        immediate: noticeImmediate,
+      });
+      flash(res.message);
+      setNoticeTitle("");
+      setNoticeSummary("");
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "发布失败");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const flash = (msg: string) => {
     setOkMsg(msg);
@@ -101,6 +138,71 @@ export default function AdminNotificationsPage() {
 
       {okMsg && <p className="admin-ok">{okMsg}</p>}
       {error && <p className="admin-error">{error}</p>}
+
+      {/* 手动发「网站更新」公告 */}
+      <div className="admin-panel">
+        <div className="admin-panel__title">发布网站更新公告</div>
+        <p className="admin-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+          只在你真的想让订阅者知道时点它。改样式、修错别字这种小改动别发 ——
+          发多了订阅者会直接退订。
+        </p>
+
+        <div className="admin-filters">
+          <label className="admin-field admin-field--grow">
+            <span>标题 *</span>
+            <input
+              value={noticeTitle}
+              onChange={(e) => setNoticeTitle(e.target.value)}
+              placeholder="例如：导航改版 + 新增邮件订阅"
+              maxLength={300}
+              disabled={busy}
+            />
+          </label>
+
+          <label className="admin-field">
+            <span>链接</span>
+            <input
+              value={noticePath}
+              onChange={(e) => setNoticePath(e.target.value)}
+              placeholder="/ 或 /articles/xxx"
+              maxLength={500}
+              disabled={busy}
+            />
+          </label>
+        </div>
+
+        <label className="admin-field admin-field--grow">
+          <span>一句话说明</span>
+          <input
+            value={noticeSummary}
+            onChange={(e) => setNoticeSummary(e.target.value)}
+            placeholder="可选，会显示在标题下面"
+            maxLength={500}
+            disabled={busy}
+          />
+        </label>
+
+        <div className="flex items-center gap-4 mt-3">
+          <label className="admin-field" style={{ flexDirection: "row" }}>
+            <input
+              type="checkbox"
+              checked={noticeImmediate}
+              onChange={(e) => setNoticeImmediate(e.target.checked)}
+              disabled={busy}
+            />
+            <span>立即发送（不排队等冷却）</span>
+          </label>
+
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={sendNotice}
+            disabled={busy || !noticeTitle.trim()}
+          >
+            发布公告
+          </button>
+        </div>
+      </div>
 
       <div className="admin-panel admin-panel--flush">
         {data === null ? (

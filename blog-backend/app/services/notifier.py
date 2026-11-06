@@ -87,6 +87,8 @@ def _enqueue(
     title: str,
     summary: str | None,
     path: str,
+    *,
+    immediate: bool = False,
 ) -> bool:
     """写一条待发记录。返回是否新插入（重复内容返回 False）。
 
@@ -109,8 +111,9 @@ def _enqueue(
             now = _utcnow()
             scheduled = now
 
-            # 冷却合并：距上次发送不足冷却期就顺延
-            cooldown_min = max(0, settings.NOTIFY_COOLDOWN_MINUTES)
+            # 冷却合并：距上次发送不足冷却期就顺延。
+            # immediate=True 时跳过（手动"网站更新"公告通常是"我现在就要发"）。
+            cooldown_min = 0 if immediate else max(0, settings.NOTIFY_COOLDOWN_MINUTES)
             if cooldown_min > 0:
                 # 取"最近一次成功发送的时间"。
                 # 特意不用 func.max()：这个版本 exec 会把它包成 Row，
@@ -210,6 +213,34 @@ def enqueue_life_created(post) -> bool:
     return _enqueue("life.new", "life", int(post.id), display_title, summary, "/life")
 
 
+def enqueue_site_update(
+    title: str, summary: str | None, path: str = "/", *, immediate: bool = True
+) -> bool:
+    """手动发一条「网站更新」公告给所有订阅者。
+
+    与内容通知共用同一条 outbox 管道，所以幂等、重试、游标续传、
+    冷却合并都自动适用。
+
+    target_id 用**当前时间戳（毫秒）**：
+      outbox 的 (event_type, target_type, target_id) 是唯一索引，
+      内容通知靠它防重复；而公告是人为发起的，每次都应该算新的一条。
+      **必须是毫秒**：用秒的话，同一秒内发两条第二条会被唯一索引挡掉，
+      而且 _enqueue 只会返回 False、静默跳过 —— 表现为"点了没反应"。
+      防手抖重复提交由调用方（路由）用"60 秒内同标题即拒绝"兜住。
+    """
+    import time
+
+    return _enqueue(
+        "site.update",
+        "site",
+        int(time.time() * 1000),
+        title,
+        summary,
+        path or "/",
+        immediate=immediate,
+    )
+
+
 # ============================================================
 # 邮件渲染
 # ============================================================
@@ -218,6 +249,7 @@ _EVENT_LABEL = {
     "article.new": "新文章",
     "essay.new": "新随笔",
     "life.new": "新动态",
+    "site.update": "网站更新",
 }
 
 
@@ -339,25 +371,46 @@ async def _send_batch() -> None:
             db.add(it)
         db.commit()
 
-        recipients = _models(
-            db.exec(
-                select(Subscriber)
-                .where(Subscriber.status == "confirmed")
-                .order_by(Subscriber.id)
-                .limit(MAX_RECIPIENTS_PER_RUN)
-            ).all()
+        # ---- 游标续传 ----
+        #
+        # 一批里的多条记录总是**一起**推进的（同一个循环），所以正常情况下
+        # 它们的游标相等。全部相等且已设置 → 从该游标之后继续，避免重复发。
+        # 若游标不一致（极少见：中断后又挤进新记录），退回 0 重发整批 ——
+        # 宁可重复也不漏人。
+        cursors = {it.last_commenter_id for it in items}
+        start_after = 0
+        if len(cursors) == 1:
+            only = next(iter(cursors))
+            if only is not None:
+                start_after = only
+
+        if start_after:
+            logger.info("[通知] 检测到发送游标 %s，从其后继续", start_after)
+
+        recipient_stmt = (
+            select(Subscriber)
+            .where(Subscriber.status == "confirmed")
+            .order_by(Subscriber.id)
+            .limit(MAX_RECIPIENTS_PER_RUN)
         )
+        if start_after:
+            recipient_stmt = recipient_stmt.where(Subscriber.id > start_after)
+
+        recipients = _models(db.exec(recipient_stmt).all())
 
         if not recipients:
-            # 没有订阅者也要把记录标记掉，否则会一直堆着
+            # 没有（剩余的）订阅者也要把记录标记掉，否则会一直堆着。
+            # 注意 sent_count 是累加的：中断续传后这里可能已经不是 0。
             for it in items:
                 it.status = "sent"
                 it.sent_at = now
-                it.sent_count = 0
                 it.updated_at = now
                 db.add(it)
             db.commit()
-            logger.info("[通知] %d 条通知到期，但当前没有已确认订阅者", len(items))
+            logger.info(
+                "[通知] %d 条通知到期，但没有待发送的订阅者（游标之后为空）",
+                len(items),
+            )
             return
 
         # 每个订阅者的退订链接不同，所以邮件要逐封渲染（下面循环内调用）
@@ -370,16 +423,22 @@ async def _send_batch() -> None:
             ok, err = await mailer.try_send_mail(sub.email, s, t, h, unsub)
             if ok:
                 sent += 1
+                # 每成功一封就推进游标并落库。
+                # 这样即使下一行就被 kill，重启后也只是从这一封之后继续，
+                # 不会把已经收到的人重发一遍。
+                for it in items:
+                    it.last_commenter_id = sub.id
+                    it.sent_count = (it.sent_count or 0) + 1
+                    db.add(it)
+                db.commit()
             else:
                 last_error = err
             await asyncio.sleep(SEND_INTERVAL)
 
-        ids = [it.id for it in items]
         if sent > 0:
             for it in items:
                 it.status = "sent"
                 it.sent_at = now
-                it.sent_count = sent
                 it.updated_at = now
                 db.add(it)
             db.commit()

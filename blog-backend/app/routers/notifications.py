@@ -9,8 +9,11 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.deps import get_current_admin
-from app.models import Admin, NotificationOutbox
-from app.services import mailer
+from datetime import timedelta
+
+from app.models import Admin, NotificationOutbox, Subscriber
+from app.schemas.notification import BroadcastResult, SiteUpdateBroadcastRequest
+from app.services import mailer, notifier
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +60,78 @@ def list_notifications(
         "items": [_to_dict(r) for r in items],
         "mail_configured": mailer.mail_configured(),
     }
+
+
+@router.post("/broadcast", response_model=BroadcastResult)
+def broadcast_site_update(
+    payload: SiteUpdateBroadcastRequest,
+    db: Session = Depends(get_session),
+    _admin: Admin = Depends(get_current_admin),
+):
+    """手动发一条「网站更新」公告给所有已确认订阅者。
+
+    为什么不跟部署挂钩（每次部署自动通知）：
+        改个 CSS、修个错别字都算一次部署。自动通知会让订阅者收到一堆
+        "网站更新了"，很快就全退订。所以只做**手动**触发，
+        由你在真的有值得说的变化时点一下。
+
+    防重复提交：同标题 60 秒内只接受一次（`immediate` 时尤其容易手抖）。
+    """
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="标题不能为空")
+
+    recent = db.exec(
+        select(NotificationOutbox).where(
+            NotificationOutbox.event_type == "site.update",
+            NotificationOutbox.title == title,
+            NotificationOutbox.created_at
+            >= datetime.now(timezone.utc) - timedelta(seconds=60),
+        )
+    ).first()
+
+    if recent is not None:
+        raise HTTPException(status_code=409, detail="一分钟内已经发过同标题的公告")
+
+    confirmed = db.exec(
+        select(Subscriber.id).where(Subscriber.status == "confirmed")
+    ).all()
+
+    if not mailer.mail_configured():
+        raise HTTPException(
+            status_code=400,
+            detail="邮件功能未配置（MAIL_FROM / MAIL_PASSWORD 为空），发不出去",
+        )
+
+    ok = notifier.enqueue_site_update(
+        title,
+        (payload.summary or "").strip() or None,
+        payload.path or "/",
+        immediate=payload.immediate,
+    )
+    if not ok:
+        raise HTTPException(status_code=500, detail="入队失败，请查看后端日志")
+
+    # 入队后立刻查回来，把 id 返回给前端
+    row = db.exec(
+        select(NotificationOutbox)
+        .where(NotificationOutbox.event_type == "site.update")
+        .order_by(NotificationOutbox.id.desc())
+        .limit(1)
+    ).first()
+    row_obj = row[0] if row is not None and not isinstance(row, NotificationOutbox) else row
+
+    n = len(confirmed)
+    logger.info("[通知] 管理员发布网站更新公告：%s（订阅者 %d 位）", title, n)
+    return BroadcastResult(
+        ok=True,
+        message=(
+            f"已入队，将发送给 {n} 位已确认订阅者"
+            if n
+            else "已入队，但当前没有已确认订阅者（这条会被直接标记为已发送）"
+        ),
+        notification_id=getattr(row_obj, "id", None),
+    )
 
 
 @router.post("/{notification_id}/retry")

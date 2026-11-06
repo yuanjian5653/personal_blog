@@ -41,6 +41,7 @@ FRONTEND_TGZ="$FRONTEND_DIR/next.tgz"
 MIGRATIONS=(
   "migrate_tools_description.py"
   "migrate_tools_color.py"
+  "migrate_notification_cursor.py"
 )
 
 SKIP_BACKEND=0
