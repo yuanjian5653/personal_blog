@@ -39,6 +39,7 @@ from app.models import (
     Essay,
     EssayLike,
     LifePost,
+    ReplyNotification,
 )
 from app.schemas.comment import (
     CommentCreate,
@@ -471,6 +472,81 @@ def _target_where(
     return col == val
 
 
+def _build_notify_link(db: Session, comment: Comment) -> tuple[str, str, int | None]:
+    """生成通知里可点的前端路径，返回 (target_type, link, target_id)。
+
+    文章页用 slug（前端路由是 /articles/[slug]），所以要查一次文章。
+    只在"有人回复"时才执行，频率很低，不用优化。
+    """
+    if comment.article_id is not None:
+        article = db.get(Article, comment.article_id)
+        slug = getattr(article, "slug", None) if article is not None else None
+        if slug:
+            return ("article", f"/articles/{slug}", comment.article_id)
+        # 文章被删了也要给个能看的落点
+        return ("article", "/articles", comment.article_id)
+    if comment.essay_id is not None:
+        return ("essay", "/essays", comment.essay_id)
+    if comment.life_post_id is not None:
+        return ("life", "/life", comment.life_post_id)
+    return ("guestbook", "/guestbook", None)
+
+
+def _notify_reply(db: Session, comment: Comment, parent_id: int | None) -> None:
+    """给被回复的那条评论的作者发一条站内通知。
+
+    整体 try/except：通知失败绝不能让"发评论"失败。
+    """
+    if parent_id is None:
+        return
+
+    try:
+        parent = db.get(Comment, parent_id)
+        if parent is None:
+            return
+        # 自己回复自己不通知
+        if parent.commenter_id == comment.commenter_id:
+            return
+
+        # 幂等：同一条回复只产生一条通知（comment_id 有唯一索引兜底）
+        exists = db.exec(
+            select(ReplyNotification.id).where(
+                ReplyNotification.comment_id == comment.id
+            )
+        ).first()
+        if exists is not None:
+            return
+
+        target_type, link, target_id = _build_notify_link(db, comment)
+
+        db.add(
+            ReplyNotification(
+                commenter_id=parent.commenter_id,
+                comment_id=comment.id or 0,
+                parent_comment_id=parent_id,
+                target_type=target_type,
+                target_id=target_id,
+                link=link,
+                preview=(comment.content or "").strip()[:200],
+                actor_login=comment.author_login,
+                actor_name=comment.author_name,
+                actor_avatar=comment.author_avatar,
+            )
+        )
+        db.commit()
+        logger.info(
+            "[通知] 回复通知已创建：comment=%s -> commenter=%s",
+            comment.id,
+            parent.commenter_id,
+        )
+    except Exception:
+        logger.exception("[通知] 创建回复通知失败（已忽略，不影响发评论）")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
 def _target_type_of(c: Comment) -> str:
     """判断一条评论属于哪种目标"""
     if c.essay_id is not None:
@@ -660,6 +736,9 @@ def _add_comment(
     db.add(comment)
     db.commit()
     db.refresh(comment)
+
+    # 如果是回复，给被回复的人留一条站内通知（红点）
+    _notify_reply(db, comment, parent_id)
 
     return CommentRead(
         id=comment.id or 0,

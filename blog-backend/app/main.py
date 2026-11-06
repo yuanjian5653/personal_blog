@@ -18,11 +18,12 @@ from app.routers import (
     friendlink,
     life,
     log,
-    notifications,
     music,
     netease,
+    notifications,
     playlist,
     project,
+    reply_notifications,
     site_config,
     subscribe,
     tools,
@@ -120,6 +121,7 @@ app.include_router(tools.router)
 app.include_router(subscribe.router)
 app.include_router(subscribe.admin_router)
 app.include_router(notifications.router)
+app.include_router(reply_notifications.router)
 
 @app.get("/")
 def root():

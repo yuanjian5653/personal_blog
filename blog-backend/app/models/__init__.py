@@ -21,6 +21,7 @@ from app.models.project import Project
 from app.models.tool import Tool
 from app.models.subscriber import Subscriber
 from app.models.notification import NotificationOutbox
+from app.models.reply_notification import ReplyNotification
 
 __all__ = [
     "Admin",
@@ -46,4 +47,5 @@ __all__ = [
     "Tool",
     "Subscriber",
     "NotificationOutbox",
+    "ReplyNotification",
 ]

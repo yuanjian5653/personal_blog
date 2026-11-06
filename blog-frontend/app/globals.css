@@ -42,6 +42,7 @@
 @import "./styles/projects.css";
 @import "./styles/tools.css";          /* 工具页（朴素列表） */
 @import "./styles/subscribe.css";      /* 订阅页 */
+@import "./styles/replyNotify.css";   /* 站内回复通知 */
 /* 后台亮色外壳放最后：它要覆盖 admin-dashboard.css 里
    html[data-card-style="black"] 对 --adm-* 的深色改写
    （两者选择器优先级相同，靠加载顺序决定胜负） */

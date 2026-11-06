@@ -19,6 +19,7 @@ import {
   Wrench,
   X,
 } from "lucide";
+import NoticeBell from "./NoticeBell";
 import ThemeToggle from "./ThemeToggle";
 import { resolveLiquidGeometry } from "@/lib/navGeometry";
 
@@ -177,6 +178,7 @@ export default function Navbar() {
         </div>
 
         <div className="nav-island__actions">
+          <NoticeBell />
           <ThemeToggle />
         </div>
 
