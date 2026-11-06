@@ -1,0 +1,45 @@
+/* ============================================
+   路由切换加载器（app/loading.tsx）
+   ============================================ */
+
+.route-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  /* 给足高度，避免小页面加载时布局往下缩一下又弹回来 */
+  min-height: 46vh;
+  padding: 40px 0;
+}
+
+.route-loading__ring {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--text-secondary) 26%, transparent);
+  /* 只让顶部那一段是强调色，转起来才看得出在转 */
+  border-top-color: var(--accent);
+  animation: routeSpin 0.7s linear infinite;
+}
+
+@keyframes routeSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.route-loading__text {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  /* letter-spacing 会在末尾多出一个字的空隙，用 text-indent 补回来 */
+  text-indent: 0.18em;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading__ring {
+    animation: none;
+  }
+}

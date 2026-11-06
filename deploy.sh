@@ -40,6 +40,7 @@ FRONTEND_TGZ="$FRONTEND_DIR/next.tgz"
 # 例如 scripts/drop_orphan_posts.py 是删表的。
 MIGRATIONS=(
   "migrate_tools_description.py"
+  "migrate_tools_color.py"
 )
 
 SKIP_BACKEND=0

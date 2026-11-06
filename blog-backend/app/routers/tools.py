@@ -36,6 +36,7 @@ from app.schemas.tool import (
     ToolRead,
     ToolReorderItem,
     ToolUpdate,
+    normalize_tool_color,
 )
 from app.services.log_service import apply_updates, log_operation
 
@@ -236,6 +237,12 @@ def create_tool(
     icon = (data.get("icon") or "").strip()
     data["icon"] = icon or None
 
+    # 配色只接受预设名（白名单），"default"/空 一律存 None
+    try:
+        data["color"] = normalize_tool_color(data.get("color"))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     summary = (data.get("summary") or "").strip()
     data["summary"] = summary or None
 
@@ -331,6 +338,12 @@ def update_tool(
         if key in data:
             value = (data[key] or "").strip()
             data[key] = value or None
+
+    if "color" in data:
+        try:
+            data["color"] = normalize_tool_color(data.get("color"))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
     apply_updates(
         db,

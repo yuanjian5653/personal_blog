@@ -66,19 +66,77 @@
 
 /* ---------------- 一行 ---------------- */
 
+/* ---------------- 配色 ----------------
+
+   每个工具可以有自己的强调色（后台「强调色」选择）。
+   色值以 CSS 变量 --tool-hue 的形式注入，未设置时回退到主题的 --accent，
+   所以不选色时观感和以前完全一致。
+
+   用预设色而不是自由色值：本站有玻璃/黑两套主题，
+   中间明度的预设色在两套下都能读，也省得为对比度反复调。
+   ------------------------------------------ */
+
+.tool-row[data-color="amber"] {
+  --tool-hue: #d9a441;
+}
+.tool-row[data-color="mint"] {
+  --tool-hue: #3fbf8f;
+}
+.tool-row[data-color="sky"] {
+  --tool-hue: #3b9dd8;
+}
+.tool-row[data-color="violet"] {
+  --tool-hue: #8b6fe0;
+}
+.tool-row[data-color="rose"] {
+  --tool-hue: #e0637a;
+}
+.tool-row[data-color="cyan"] {
+  --tool-hue: #2fb3bf;
+}
+.tool-row[data-color="lime"] {
+  --tool-hue: #8ab83f;
+}
+
 .tool-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 10px;
+  padding: 14px 12px 14px 14px;
+  border-radius: 10px;
   color: inherit;
   text-decoration: none;
   /* 用 card-text 混出极淡的背景，深浅主题下都不会看不见 */
-  transition: background 0.18s ease;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+/* 左侧竖条：平时半透明，hover 时拉直并变实 —— 很轻的一点"有颜色"的感觉 */
+.tool-row::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  width: 3px;
+  height: 58%;
+  border-radius: 9999px;
+  background: var(--tool-hue, var(--accent));
+  opacity: 0.32;
+  transform: translateY(-50%) scaleY(0.6);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .tool-row:hover {
-  background: color-mix(in srgb, var(--card-text) 5%, transparent);
+  background: color-mix(in srgb, var(--tool-hue, var(--accent)) 8%, transparent);
+}
+
+.tool-row:hover::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
 }
 
 .tool-row:focus-visible {
@@ -95,9 +153,17 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: 9px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--card-text) 6%, transparent);
-  border: 1px solid var(--card-border);
+  color: var(--tool-hue, var(--accent));
+  background: color-mix(
+    in srgb,
+    var(--tool-hue, var(--accent)) 12%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--tool-hue, var(--accent)) 26%, var(--card-border));
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .tool-row__main {
@@ -171,6 +237,7 @@
 
 .tool-row:hover .tool-row__arrow {
   opacity: 0.9;
+  color: var(--tool-hue, var(--accent));
   transform: translateX(2px);
 }
 
@@ -385,5 +452,59 @@
   }
   .tool-detail__back:hover svg {
     transform: none;
+  }
+}
+
+/* ---------------- 后台：强调色色板 ---------------- */
+
+.tool-form__colors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  /* 和同排其它 input 的高度对齐 */
+  min-height: 38px;
+}
+
+.tool-form__swatch {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  /* 未选色的"跟随主题"用主题强调色显示 */
+  background: var(--swatch, var(--accent));
+  border: 1px solid var(--card-border);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tool-form__swatch:hover {
+  transform: scale(1.12);
+}
+
+.tool-form__swatch.is-active {
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--swatch, var(--accent));
+}
+
+/* "跟随主题"不是一个具体颜色，加一道斜纹说明它是自适应 */
+.tool-form__swatch.is-default {
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent) 45%,
+    transparent 45%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-row,
+  .tool-row::before,
+  .tool-row__icon,
+  .tool-form__swatch {
+    transition: none;
   }
 }

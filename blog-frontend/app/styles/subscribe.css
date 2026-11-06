@@ -184,18 +184,12 @@
   font-weight: 600;
 }
 
+/* 返回按钮：效果来自 ui-widgets.css 的 .back-btn，
+   这里只补间距和"它是块级元素"的定位（外面是 <form>/<section> 混排） */
 .subscribe-back {
+  display: inline-flex;
   margin-top: 28px;
-  font-size: 12px;
-}
-
-.subscribe-back a {
-  color: var(--text-secondary);
   text-decoration: none;
-}
-
-.subscribe-back a:hover {
-  color: var(--accent);
 }
 
 /* ---------------- 响应式 ---------------- */

@@ -237,6 +237,71 @@ r = client.put(f"/api/tools/{tool_b['id']}", json={"slug": ""})
 check_status("清空 slug", r, 200)
 check("slug 回退", r.json()["slug"], f"tool-{tool_b['id']}")
 
+# ---------------------------------------------------------------- 配色
+print("\n=== 5b. 强调色（预设白名单）===")
+# 新建时不传 → None
+check("未设置时 color 为 None", tool_a.get("color"), None)
+
+# 合法预设
+r = client.put(f"/api/tools/{tool_a['id']}", json={"color": "amber"})
+check_status("设为 amber", r, 200)
+check("color 已是 amber", r.json()["color"], "amber")
+
+# 大小写与空格归一
+r = client.put(f"/api/tools/{tool_a['id']}", json={"color": "  MINT  "})
+check_status("大小写/空格归一", r, 200)
+check("归一成小写 mint", r.json()["color"], "mint")
+
+# "default" 表示跟随主题 → 存 None
+r = client.put(f"/api/tools/{tool_a['id']}", json={"color": "default"})
+check_status("default 归为 None", r, 200)
+check("default 存成 None", r.json()["color"], None)
+
+# 空串也存 None
+client.put(f"/api/tools/{tool_a['id']}", json={"color": "sky"})
+r = client.put(f"/api/tools/{tool_a['id']}", json={"color": ""})
+check("空串存成 None", r.json()["color"], None)
+
+# 非白名单值必须被拒（防止自由色值 / 样式注入）
+#
+# 两种拒绝方式都算正确：
+#   · 不在白名单 → 路由里 normalize_tool_color 抛 ValueError → 400
+#   · 超过字段 max_length=20 → pydantic 在进路由之前就拦掉 → 422
+# 所以这里断言"被拒"，而不是写死某一个状态码。
+for bad in ("#ff0000", "red", "red; background:url(x)", "<script>"):
+    r = client.put(f"/api/tools/{tool_a['id']}", json={"color": bad})
+    ok = r.status_code in (400, 422)
+    print(f"  [{'OK ' if ok else 'FAIL'}] 非法配色 {bad!r} 被拒 (HTTP {r.status_code})")
+    if not ok:
+        FAILS.append(f"非法配色 {bad!r} 未被拒绝：{r.status_code}")
+
+# 新建时也可以直接带配色
+r = client.post("/api/tools", json={
+    "name": PREFIX + "配色工具",
+    "href": "/subscribe",
+    "kind": "page",
+    "color": "violet",
+})
+check_status("新建带配色", r, 200)
+tool_color = r.json()
+check("新建的 color 是 violet", tool_color["color"], "violet")
+
+# 列表接口也要返回 color（前端列表靠它上色）
+r = client.get("/api/tools")
+row = next((x for x in r.json() if x["id"] == tool_color["id"]), None)
+check_true("列表响应含 color", row is not None and row.get("color") == "violet")
+
+# 详情接口也带 color
+r = client.get(f"/api/tools/{tool_color['id']}")
+check("详情响应含 color", r.json()["color"], "violet")
+
+# 白名单与后端常量一致
+from app.schemas.tool import TOOL_COLORS as _TC  # noqa: E402
+check_true("TOOL_COLORS 含 default", "default" in _TC, str(_TC))
+check_true("TOOL_COLORS 至少 6 种颜色", len(_TC) >= 6, str(len(_TC)))
+
+client.delete(f"/api/tools/{tool_color['id']}")
+
 # ---------------------------------------------------------------- 上下架 + 点击
 print("\n=== 6. 上下架与点击 ===")
 r = client.get("/api/tools")

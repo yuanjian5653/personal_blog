@@ -16,6 +16,35 @@ from pydantic import BaseModel, Field
 
 ToolKind = Literal["link", "page", "app"]
 
+# 工具强调色的**预设白名单**（前端 components/tools/ToolForm.tsx 的
+# TOOL_COLOR_OPTIONS 必须与这里保持一致的 key）。
+#
+# 为什么不让用户随便填 #ff0000 或者 CSS 片段：
+#   1. 本站有玻璃 / 黑两套主题，自由色值很容易在某一套下看不清
+#   2. 颜色最终会进 CSS 变量，白名单能从根上消除样式注入
+TOOL_COLORS = (
+    "default",  # 跟随主题强调色
+    "amber",
+    "mint",
+    "sky",
+    "violet",
+    "rose",
+    "cyan",
+    "lime",
+)
+
+
+def normalize_tool_color(value: str | None) -> str | None:
+    """校验并规范化配色名：不在白名单里就当成"未设置"。"""
+    if not value:
+        return None
+    v = value.strip().lower()
+    if v in ("", "default"):
+        return None
+    if v not in TOOL_COLORS:
+        raise ValueError(f"不支持的配色：{value}")
+    return v
+
 
 class ToolBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=80)
@@ -25,6 +54,7 @@ class ToolBase(BaseModel):
     category: str = Field(default="其他", max_length=40)
     kind: ToolKind = "link"
     icon: str | None = Field(default=None, max_length=40)
+    color: str | None = Field(default=None, max_length=20)
     href: str = Field(..., min_length=1, max_length=500)
     tags: str | None = Field(default=None, max_length=200)
     sort_order: int = 0
@@ -46,6 +76,7 @@ class ToolUpdate(BaseModel):
     category: str | None = Field(default=None, max_length=40)
     kind: ToolKind | None = None
     icon: str | None = Field(default=None, max_length=40)
+    color: str | None = Field(default=None, max_length=20)
     href: str | None = Field(default=None, min_length=1, max_length=500)
     tags: str | None = Field(default=None, max_length=200)
     sort_order: int | None = None
@@ -63,6 +94,7 @@ class ToolRead(BaseModel):
     category: str
     kind: str
     icon: str | None
+    color: str | None
     href: str
     tags: str | None
     sort_order: int

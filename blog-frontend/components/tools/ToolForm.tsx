@@ -10,6 +10,7 @@ import {
   KIND_HINT,
   KIND_LABEL,
   KIND_PLACEHOLDER,
+  TOOL_COLOR_OPTIONS,
   type ToolInput,
   type ToolKind,
 } from "@/lib/tools";
@@ -164,6 +165,33 @@ export default function ToolForm({
             <MorphIcon icon={PreviewIcon} size={17} />
             <small>{selectIcon}</small>
           </span>
+        </div>
+
+        <div className="admin-field">
+          <span>强调色</span>
+          <div className="tool-form__colors">
+            {TOOL_COLOR_OPTIONS.map((c) => {
+              const active = (form.color || "default") === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  className={`tool-form__swatch${active ? " is-active" : ""}${
+                    c.key === "default" ? " is-default" : ""
+                  }`}
+                  style={
+                    c.swatch
+                      ? ({ "--swatch": c.swatch } as React.CSSProperties)
+                      : undefined
+                  }
+                  onClick={() => set("color", c.key)}
+                  title={c.label}
+                  aria-label={c.label}
+                  aria-pressed={active}
+                />
+              );
+            })}
+          </div>
         </div>
 
         <label className="admin-field admin-field--grow">

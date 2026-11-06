@@ -16,10 +16,16 @@ import {
   KIND_HINT,
   KIND_LABEL,
   KIND_PLACEHOLDER,
+  DEFAULT_TOOL_COLOR,
+  TOOL_COLOR_OPTIONS,
   emptyToolInput,
   splitTags,
+  toolColorValue,
   toolToInput,
 } from "../lib/tools.ts";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 let passed = 0;
 const failures = [];
@@ -104,6 +110,58 @@ eq(Object.keys(KIND_ACTION).length, 3, "KIND_ACTION 恰好 3 项");
 eq(KIND_PLACEHOLDER.link.startsWith("http"), true, "link 示例是 http 开头");
 eq(KIND_PLACEHOLDER.page.startsWith("/"), true, "page 示例是 / 开头");
 eq(KIND_PLACEHOLDER.app.startsWith("/"), true, "app 示例是 / 开头");
+
+/* ---------- 配色 ---------- */
+eq(emptyToolInput().color, DEFAULT_TOOL_COLOR, "新建默认配色是 default");
+eq(toolToInput({
+  id: 1, slug: "s", name: "n", summary: null, category: "其他",
+  kind: "link", icon: null, color: "amber", href: "https://x.com",
+  tags: null, sort_order: 0, is_visible: true, click_count: 0,
+  created_at: "", updated_at: "", description: null,
+}).color, "amber", "编辑时回填已有配色");
+eq(toolToInput({
+  id: 1, slug: "s", name: "n", summary: null, category: "其他",
+  kind: "link", icon: null, color: null, href: "https://x.com",
+  tags: null, sort_order: 0, is_visible: true, click_count: 0,
+  created_at: "", updated_at: "", description: null,
+}).color, DEFAULT_TOOL_COLOR, "color 为 null 时回填 default");
+
+eq(TOOL_COLOR_OPTIONS.length >= 6, true, "配色至少 6 种");
+eq(TOOL_COLOR_OPTIONS[0].key, "default", "第一项是 default");
+eq(TOOL_COLOR_OPTIONS[0].swatch, "", "default 没有固定色值（跟随主题）");
+
+const swatchKeys = TOOL_COLOR_OPTIONS.filter((c) => c.key !== "default");
+eq(swatchKeys.every((c) => /^#[0-9a-f]{6}$/i.test(c.swatch)), true,
+   "除 default 外都有 6 位十六进制色值");
+eq(new Set(TOOL_COLOR_OPTIONS.map((c) => c.key)).size, TOOL_COLOR_OPTIONS.length,
+   "key 不重复");
+eq(new Set(TOOL_COLOR_OPTIONS.map((c) => c.label)).size, TOOL_COLOR_OPTIONS.length,
+   "label 不重复");
+eq(TOOL_COLOR_OPTIONS.every((c) => c.key === c.key.toLowerCase()), true,
+   "key 全小写（后端白名单也是小写）");
+
+eq(toolColorValue("amber"), "#d9a441", "toolColorValue 取到色值");
+eq(toolColorValue("default"), "", "default 取到空串（交给 CSS 回退）");
+eq(toolColorValue(null), "", "null 取到空串");
+eq(toolColorValue("nope"), "", "未知 key 取到空串（不抛错）");
+
+/* ---------- 与后端的白名单保持一致 ---------- *
+ * 配色 key 同时存在于前端（用于渲染/色板）和后端（用于校验），
+ * 两边不一致的后果很隐蔽：后台能选出某个颜色，但保存时被后端拒掉。
+ * 所以这里直接读后端源码比对，把漂移挡在测试阶段。
+ */
+const here = dirname(fileURLToPath(import.meta.url));
+const backendSchema = resolve(here, "../../blog-backend/app/schemas/tool.py");
+const schemaSrc = readFileSync(backendSchema, "utf8");
+const m = schemaSrc.match(/TOOL_COLORS\s*=\s*\(([\s\S]*?)\)/);
+if (!m) {
+  failures.push("没能在后端 schemas/tool.py 里解析出 TOOL_COLORS");
+} else {
+  // 直接抽双引号里的内容，注释、逗号、换行都不用手动清理
+  const backendKeys = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+  eq(backendKeys, TOOL_COLOR_OPTIONS.map((c) => c.key),
+     "前后端配色清单完全一致（顺序也一致）");
+}
 
 /* ---------- 输出 ---------- */
 console.log(

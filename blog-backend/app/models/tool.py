@@ -71,6 +71,12 @@ class Tool(SQLModel, table=True):
     # lucide 图标名，如 "Wrench"；前端用静态注册表解析，找不到就回退
     icon: str | None = Field(default=None, max_length=40)
 
+    # 强调色预设名（见 schemas/tool.py 的 TOOL_COLORS）。
+    # 留空/NULL = 跟随主题的 --accent。
+    # 存**预设名**而不是色值：这个站有玻璃/黑两套主题，
+    # 自由色值很容易在某个主题下看不清，白名单也顺带避免了样式注入。
+    color: str | None = Field(default=None, max_length=20)
+
     # 目标地址：link=外部 URL，page=站内路径（/ 开头），app=文件地址
     href: str = Field(max_length=500)
 

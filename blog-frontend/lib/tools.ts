@@ -47,6 +47,41 @@ export const KIND_ACTION: Record<ToolKind, string> = {
   app: "下载",
 };
 
+/**
+ * 工具强调色的预设。
+ *
+ * 为什么是预设而不是自由取色：
+ *   本站有玻璃 / 黑两套主题，自由色值很容易在其中一套下看不清；
+ *   预设色都取了中间明度，两套主题下都能读。
+ *   后端 app/schemas/tool.py 的 TOOL_COLORS 必须与这里的 key 一致。
+ */
+export interface ToolColorOption {
+  key: string;
+  label: string;
+  /** 预览用的色块；空表示跟随主题强调色 */
+  swatch: string;
+}
+
+export const TOOL_COLOR_OPTIONS: ToolColorOption[] = [
+  { key: "default", label: "跟随主题", swatch: "" },
+  { key: "amber", label: "琥珀", swatch: "#d9a441" },
+  { key: "mint", label: "薄荷", swatch: "#3fbf8f" },
+  { key: "sky", label: "天空", swatch: "#3b9dd8" },
+  { key: "violet", label: "紫罗兰", swatch: "#8b6fe0" },
+  { key: "rose", label: "玫红", swatch: "#e0637a" },
+  { key: "cyan", label: "青", swatch: "#2fb3bf" },
+  { key: "lime", label: "青柠", swatch: "#8ab83f" },
+];
+
+export const DEFAULT_TOOL_COLOR = "default";
+
+/** 取某个配色对应的色值；找不到就是空（交给 CSS 回退到 --accent） */
+export function toolColorValue(key: string | null | undefined): string {
+  if (!key) return "";
+  const hit = TOOL_COLOR_OPTIONS.find((c) => c.key === key);
+  return hit?.swatch ?? "";
+}
+
 /** 列表项 */
 export interface Tool {
   id: number;
@@ -56,6 +91,8 @@ export interface Tool {
   category: string;
   kind: ToolKind;
   icon: string | null;
+  /** 强调色预设名；null = 跟随主题 */
+  color: string | null;
   href: string;
   tags: string | null;
   sort_order: number;
@@ -79,6 +116,7 @@ export interface ToolInput {
   category: string;
   kind: ToolKind;
   icon: string;
+  color: string;
   href: string;
   tags: string;
   sort_order: number;
@@ -97,6 +135,7 @@ export function emptyToolInput(): ToolInput {
     category: DEFAULT_CATEGORY,
     kind: "link",
     icon: DEFAULT_ICON_NAME,
+    color: DEFAULT_TOOL_COLOR,
     href: "",
     tags: "",
     sort_order: 0,
@@ -113,6 +152,7 @@ export function toolToInput(tool: ToolDetail): ToolInput {
     category: tool.category,
     kind: tool.kind,
     icon: tool.icon ?? DEFAULT_ICON_NAME,
+    color: tool.color ?? DEFAULT_TOOL_COLOR,
     href: tool.href,
     tags: tool.tags ?? "",
     sort_order: tool.sort_order,

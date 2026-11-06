@@ -115,9 +115,33 @@ export default function SubscribePage() {
         </ul>
       </section>
 
-      <p className="subscribe-back">
-        <Link href="/">← 回首页</Link>
-      </p>
+      {/* 返回按钮：与文章详情页、工具详情页同一套 .back-btn 效果 */}
+      <Link
+        href="/"
+        className="back-btn subscribe-back"
+        style={
+          {
+            "--btn-text": '"返回首页"',
+            "--primary-color": "var(--card-text-sub)",
+            "--hovered-color": "var(--accent)",
+          } as React.CSSProperties
+        }
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2.5}
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
+        <p>返回首页</p>
+      </Link>
     </div>
   );
 }

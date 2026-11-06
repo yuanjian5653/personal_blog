@@ -19,7 +19,13 @@ export default function ToolRow({ tool }: { tool: Tool }) {
   const isApp = tool.kind === "app";
 
   return (
-    <Link href={`/tools/${tool.slug}`} className="tool-row">
+    <Link
+      href={`/tools/${tool.slug}`}
+      className="tool-row"
+      /* 配色交给 CSS 处理（见 tools.css 的 [data-color] 规则），
+         这样不必在 JS 里拼颜色，也避免主题切换时对不上 */
+      data-color={tool.color ?? "default"}
+    >
       <span className="tool-row__icon" aria-hidden="true">
         <MorphIcon icon={Icon} size={17} />
       </span>
