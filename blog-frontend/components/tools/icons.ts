@@ -25,6 +25,7 @@ import {
   Layers,
   Link2,
   ListMusic,
+  Mail,
   Music,
   Palette,
   Rocket,
@@ -70,6 +71,7 @@ export const TOOL_ICONS = {
   Cloud,
   FolderKanban,
   ListMusic,
+  Mail,
 } as const;
 
 export type ToolIconName = keyof typeof TOOL_ICONS;
