@@ -20,7 +20,10 @@ import {
   type StatCard,
 } from "@/lib/admin";
 import AreaChart from "@/components/admin/charts/AreaChart";
+import BarList from "@/components/admin/charts/BarList";
 import DonutChart from "@/components/admin/charts/DonutChart";
+import HeatmapChart from "@/components/admin/charts/HeatmapChart";
+import HourBars from "@/components/admin/charts/HourBars";
 
 /**
  * 卡片图标。
@@ -135,6 +138,25 @@ export default function DashboardPage() {
         <section className="admin-panel">
           <h2 className="admin-panel__title">访客趋势（近30天）</h2>
           <AreaChart data={stats.visitor_trend} color="#14b8a6" />
+        </section>
+      </div>
+
+      {/* 活动热力图（近一年）—— 单独一行，格子需要横向空间 */}
+      <section className="admin-panel">
+        <h2 className="admin-panel__title">活动热力图（近一年）</h2>
+        <HeatmapChart data={stats.heatmap} />
+      </section>
+
+      {/* 热门页面 + 访问时段 */}
+      <div className="chart-grid">
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">热门页面（近30天）</h2>
+          <BarList data={stats.top_pages} color="#6366f1" />
+        </section>
+
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">访问时段分布（近30天）</h2>
+          <HourBars data={stats.hour_distribution} color="#8b5cf6" />
         </section>
       </div>
 

@@ -19,6 +19,26 @@ export interface DistributionSlice {
   value: number;
 }
 
+/** 热力图的一天 */
+export interface HeatmapDay {
+  date: string;
+  views: number;
+  posts: number;
+  comments: number;
+}
+
+/** 一个页面的访问量 */
+export interface PageStat {
+  path: string;
+  value: number;
+}
+
+/** 某个小时的访问量 */
+export interface HourPoint {
+  hour: number;
+  value: number;
+}
+
 export interface DashboardStats {
   cards: StatCard[];
   article_trend: TrendPoint[];
@@ -27,6 +47,13 @@ export interface DashboardStats {
   browser_distribution: DistributionSlice[];
   range_start: string;
   range_end: string;
+  /** 近一年日活动量（热力图） */
+  heatmap: HeatmapDay[];
+  /** 热门页面 Top N */
+  top_pages: PageStat[];
+  /** 24 小时访问分布 */
+  hour_distribution: HourPoint[];
+
 }
 
 /** 后台评论管理里的一行（顶层评论，回复在 replies 里） */

@@ -76,14 +76,20 @@
    中间明度的预设色在两套下都能读，也省得为对比度反复调。
    ------------------------------------------ */
 
-/* 色值的算法：在 --tool-base（生色值）和 --card-text 之间混色。
+/* 色值的算法：把 --tool-base（生色值）朝 --tool-tone 混。
  *
- *   --tool-mix  与 --card-text 的混合比例（100% = 不混，即 default）
+ *   --tool-mix   与 tone 的混合比例（100% = 不混，即 default 跟随主题强调色）
+ *   --tool-tone  往哪个方向调：
+ *                  玻璃（白天）→ 压暗
+ *                  黑玻璃（夜间）→ 提亮
  *
- * 为什么要混 --card-text：本站有玻璃（白天）/ 黑（夜间）两套主题，
- * --card-text 白天是深色、夜间是浅色，混进去之后同一个色值会**自动**
- * 在白天偏深、夜间偏亮 —— 这就是"跟随主题"。
- * 否则就得为 8 个颜色各写两套规则（16 条，还容易漏一个）。
+ * 为什么不是"混 --card-text 自动适应"（我第一版就是那么写的，没效果）：
+ *   本站**整站一直是深色**（--bg-primary: #0f1115），
+ *   而 --text-primary / --accent 在 glass 与 black 两套卡片样式下**完全相同**，
+ *   两套主题只改了 --card-bg / --card-border / --card-shadow。
+ *   所以混 --card-text 算出来两边一模一样 —— 看起来就是"没有日夜效果"。
+ *   改成显式按 data-card-style 给 tone，才是这个项目里其它地方
+ *   （如 .life-mini-card）本来就在用的做法。
  */
 .tool-row,
 .tool-detail {
@@ -91,8 +97,20 @@
   --tool-hue: color-mix(
     in srgb,
     var(--tool-base, var(--accent)) var(--tool-mix),
-    var(--card-text)
+    var(--tool-tone, var(--card-text))
   );
+}
+
+/* 玻璃（白天）：卡片表面偏亮，色值压暗一点才不飘 */
+html[data-card-style="glass"] .tool-row,
+html[data-card-style="glass"] .tool-detail {
+  --tool-tone: #0d0e11;
+}
+
+/* 黑玻璃（夜间）：卡片更暗，色值提亮才够清楚 */
+html[data-card-style="black"] .tool-row,
+html[data-card-style="black"] .tool-detail {
+  --tool-tone: #eef0f4;
 }
 
 .tool-row[data-color="amber"],

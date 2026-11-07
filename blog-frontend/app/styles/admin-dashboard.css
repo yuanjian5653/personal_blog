@@ -629,3 +629,223 @@ a.stat-card:hover {
     max-width: 160px;
   }
 }
+
+/* ==================================================
+   活动热力图
+   ================================================== */
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 窄屏时横向滚动，而不是把格子挤扁 */
+.heatmap__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heatmap__inner {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap__months {
+  display: flex;
+  margin-left: 22px;
+}
+
+.heatmap__month {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--adm-muted, #8b93a1);
+  white-space: nowrap;
+}
+
+.heatmap__body {
+  display: flex;
+  gap: 6px;
+}
+
+.heatmap__dow {
+  display: flex;
+  flex-direction: column;
+  width: 16px;
+}
+
+.heatmap__dow-item {
+  display: flex;
+  align-items: center;
+  font-size: 9px;
+  color: var(--adm-muted, #8b93a1);
+}
+
+.heatmap__grid {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap__col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap__cell {
+  display: block;
+  border-radius: 2px;
+  /* 0 级：几乎看不见的底 */
+  background: rgba(255, 255, 255, 0.05);
+  transition: outline-color 0.15s ease;
+  outline: 1px solid transparent;
+}
+
+.heatmap__cell.is-empty {
+  background: transparent;
+}
+
+.heatmap__cell[data-level="1"] {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.heatmap__cell[data-level="2"] {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.heatmap__cell[data-level="3"] {
+  background: color-mix(in srgb, var(--accent) 68%, transparent);
+}
+.heatmap__cell[data-level="4"] {
+  background: var(--accent);
+}
+
+/* 悬浮 / 键盘聚焦时描个边，方便定位是哪一天 */
+.heatmap__cell:hover:not(.is-empty),
+.heatmap__cell:focus-visible:not(.is-empty) {
+  outline-color: var(--adm-text, #e8e8ea);
+}
+
+.heatmap__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heatmap__legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.heatmap__legend-text {
+  font-size: 10px;
+  color: var(--adm-muted, #8b93a1);
+  margin: 0 3px;
+}
+
+/* ==================================================
+   横向条形排行（热门页面）
+   ================================================== */
+
+.barlist {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barlist__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.barlist__label {
+  flex-shrink: 0;
+  width: 150px;
+  font-size: 11px;
+  color: var(--adm-text, #e8e8ea);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barlist__track {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.barlist__bar {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.barlist__value {
+  flex-shrink: 0;
+  min-width: 32px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--adm-muted, #8b93a1);
+}
+
+/* ==================================================
+   24 小时柱状
+   ================================================== */
+
+.hourbars {
+  display: flex;
+  flex-direction: column;
+}
+
+.hourbars__plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.hourbars__bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  transition: opacity 0.15s ease;
+}
+
+.hourbars__bar:hover {
+  opacity: 1 !important;
+}
+
+.hourbars__axis {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.hourbars__tick {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  line-height: 1;
+  text-align: center;
+  color: var(--adm-muted, #8b93a1);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heatmap__cell,
+  .barlist__bar,
+  .hourbars__bar {
+    transition: none;
+  }
+}

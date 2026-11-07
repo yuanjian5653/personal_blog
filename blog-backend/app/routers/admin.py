@@ -26,6 +26,7 @@ from app.models import (
     LifePost,
     PageView,
 )
+
 from app.schemas.admin import (
     AdminComment,
     AdminCommentList,
@@ -33,6 +34,9 @@ from app.schemas.admin import (
     CommentStatusUpdate,
     DashboardStats,
     DistributionSlice,
+    HeatmapDay,
+    HourPoint,
+    PageStat,
     StatCard,
     TrackRequest,
     TrendPoint,
@@ -46,12 +50,38 @@ router = APIRouter(prefix="/api/admin", tags=["后台管理"])
 
 # 趋势图统计的天数
 TREND_DAYS = 30
+# 热力图看一年
+HEATMAP_DAYS = 365
+# 热门页面取前几名
+TOP_PAGES = 8
+# 站点所在时区（北京时间）。库里存的是 UTC，展示时按这个偏移换过来。
+SITE_TZ_HOURS = 8
 
 
 def _day_keys(days: int) -> list[str]:
     """最近 N 天的日期键（YYYY-MM-DD），从早到晚，含今天"""
     today = datetime.now(timezone.utc).date()
     return [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
+
+
+def _single_column_values(rows):
+    """把 exec(select(单列)) 的结果统一成值列表。
+
+    这个版本的 SQLModel 在这里**不稳定**：单列 select 有时返回标量
+    （datetime），有时返回 Row（要取 [0]）。直接 `for (x,) in rows`
+    会报 "cannot unpack non-iterable datetime.datetime object"。
+    所以统一走这个函数。
+    """
+    out = []
+    for r in rows:
+        if isinstance(r, (datetime, str, int, float)):
+            out.append(r)
+            continue
+        try:
+            out.append(r[0])
+        except (TypeError, KeyError, IndexError):
+            out.append(r)
+    return out
 
 
 def _as_aware(dt: datetime) -> datetime:
@@ -195,6 +225,84 @@ def dashboard_stats(
         for name, n in browser_rows
     ]
 
+    # ---- 活动热力图（近 365 天）----
+    #
+    # 分桶用**北京时间**（UTC+8），而不是库里原样的 UTC：
+    # 热力图是让人看"哪天在忙"，用 UTC 的话凌晨发的文章会算到前一天，
+    # 观感很奇怪。上面那两张 30 天趋势图仍按 UTC 分桶（保持原有行为不变），
+    # 所以边界上可能有一天误差 —— 这是刻意的取舍，不是 bug。
+    def local_date(dt) -> str:
+        return (_as_aware(dt) + timedelta(hours=SITE_TZ_HOURS)).date().isoformat()
+
+    heat_days = _day_keys(HEATMAP_DAYS)
+    heat_set = set(heat_days)
+    heat_start = datetime.now(timezone.utc) - timedelta(days=HEATMAP_DAYS)
+
+    views_by_day = {d: 0 for d in heat_days}
+    for created in _single_column_values(
+        db.exec(
+            select(PageView.created_at).where(PageView.created_at >= heat_start)
+        ).all()
+    ):
+        key = local_date(created)
+        if key in heat_set:
+            views_by_day[key] += 1
+
+    posts_by_day = {d: 0 for d in heat_days}
+    for model in (Article, Essay, LifePost):
+        for created in _single_column_values(
+            db.exec(
+                select(model.created_at).where(model.created_at >= heat_start)
+            ).all()
+        ):
+            key = local_date(created)
+            if key in heat_set:
+                posts_by_day[key] += 1
+
+    comments_by_day = {d: 0 for d in heat_days}
+    for created in _single_column_values(
+        db.exec(
+            select(Comment.created_at).where(Comment.created_at >= heat_start)
+        ).all()
+    ):
+        key = local_date(created)
+        if key in heat_set:
+            comments_by_day[key] += 1
+
+    heatmap = [
+        HeatmapDay(
+            date=d,
+            views=views_by_day[d],
+            posts=posts_by_day[d],
+            comments=comments_by_day[d],
+        )
+        for d in heat_days
+    ]
+
+    # ---- 热门页面（近 30 天）----
+    top_rows = db.exec(
+        select(PageView.path, func.count(PageView.id))
+        .where(PageView.created_at >= start)
+        .group_by(PageView.path)
+        .order_by(func.count(PageView.id).desc())
+        .limit(TOP_PAGES)
+    ).all()
+    top_pages = [
+        PageStat(path=str(r[0]), value=int(r[1] or 0)) for r in top_rows
+    ]
+
+    # ---- 访问时段分布（近 30 天，北京时间，24 个桶）----
+    hour_buckets = [0] * 24
+    for created in _single_column_values(
+        db.exec(
+            select(PageView.created_at).where(PageView.created_at >= start)
+        ).all()
+    ):
+        hour_buckets[(_as_aware(created).hour + SITE_TZ_HOURS) % 24] += 1
+    hour_distribution = [
+        HourPoint(hour=h, value=hour_buckets[h]) for h in range(24)
+    ]
+
     return DashboardStats(
         cards=cards,
         article_trend=[
@@ -205,6 +313,9 @@ def dashboard_stats(
         browser_distribution=browser_distribution,
         range_start=days[0],
         range_end=days[-1],
+        heatmap=heatmap,
+        top_pages=top_pages,
+        hour_distribution=hour_distribution,
     )
 
 

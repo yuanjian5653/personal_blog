@@ -27,6 +27,29 @@ class DistributionSlice(BaseModel):
     value: int
 
 
+class HeatmapDay(BaseModel):
+    """热力图上的一天"""
+
+    date: str          # YYYY-MM-DD
+    views: int         # 页面访问数
+    posts: int         # 新增内容（文章 + 随笔 + 动态）
+    comments: int      # 新增评论
+
+
+class PageStat(BaseModel):
+    """一个页面的访问量（用于热门页面排行）"""
+
+    path: str
+    value: int
+
+
+class HourPoint(BaseModel):
+    """某个小时的访问量"""
+
+    hour: int          # 0-23
+    value: int
+
+
 class DashboardStats(BaseModel):
     """仪表盘一次性返回所有看板数据"""
     cards: list[StatCard]
@@ -37,6 +60,14 @@ class DashboardStats(BaseModel):
     # 趋势区间的起始日期（前端显示用）
     range_start: str
     range_end: str
+
+    # ---- 以下为第二批图表 ----
+    # 活动热力图：近 365 天，按**北京时间**分桶（见路由里的说明）
+    heatmap: list[HeatmapDay] = []
+    # 热门页面 Top N（近 30 天，按访问次数）
+    top_pages: list[PageStat] = []
+    # 访问时段分布：24 小时（近 30 天，北京时间）
+    hour_distribution: list[HourPoint] = []
 
 
 # ============================================================
