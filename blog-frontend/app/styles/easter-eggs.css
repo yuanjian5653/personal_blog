@@ -1,0 +1,157 @@
+/* ============================================
+   彩蛋：暗号输入 + 背景星空
+   ============================================ */
+
+/* ---------------- 搜索框：确认按钮 ---------------- */
+
+.easter-go {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.easter-go:hover {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: #fff;
+}
+
+/* 生效时闪一下边框 */
+.is-flash {
+  animation: easterFlash 0.6s ease-out;
+}
+
+@keyframes easterFlash {
+  0% {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ---------------- 反馈文字 ---------------- */
+
+.easter-feedback {
+  /* 固定一行高度，避免提示出现/消失时首页内容跳动 */
+  min-height: 20px;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.easter-feedback__ok {
+  margin: 0;
+  color: var(--accent);
+}
+
+.easter-feedback__info {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.easter-feedback__bad {
+  margin: 0;
+  color: #f87171;
+}
+
+.easter-feedback__muted {
+  margin: 0;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+/* ---------------- 背景星空 ---------------- */
+
+.starfield {
+  position: fixed;
+  inset: 0;
+  /* 在背景图(-2)之上、页面内容之下；不拦点击 */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.starfield__star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  /* 位置由内联 style 给，这里只管闪烁与漂移 */
+  animation-name: starTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate3d(var(--star-drift, 6px), -4px, 0) scale(1.1);
+  }
+}
+
+/* 流星：一条渐隐的斜线，绝大部分时间是空的 */
+.starfield__shooting {
+  position: absolute;
+  width: 90px;
+  height: 1px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.85) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+  transform: rotate(22deg);
+  animation-name: starShoot;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+@keyframes starShoot {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(22deg);
+  }
+  2% {
+    opacity: 0.9;
+  }
+  12% {
+    opacity: 0;
+    transform: translate3d(220px, 90px, 0) rotate(22deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(220px, 90px, 0) rotate(22deg);
+  }
+}
+
+/* ---------------- 无障碍 ---------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .is-flash {
+    animation: none;
+  }
+  .starfield__star {
+    /* 不闪但保留星星本身，画面不至于完全没变化 */
+    animation: none;
+    opacity: 0.6;
+  }
+  .starfield__shooting {
+    display: none;
+  }
+}

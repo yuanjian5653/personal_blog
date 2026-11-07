@@ -159,6 +159,10 @@ export default function AdminLifePage() {
                 >
                   {formatDateTime(p.created_at)}
                   {p.location && ` · ${p.location}`}
+                  {/* 点赞量（后台只读，用来判断哪条受欢迎） */}
+                  <span className="admin-like-count" title="点赞数">
+                    ♥ {p.likes ?? 0}
+                  </span>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button

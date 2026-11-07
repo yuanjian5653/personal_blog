@@ -934,3 +934,75 @@ html[data-card-style="black"] .life-calendar-day.highlight {
   .life-lightbox-arrow.right { right: 12px; }
   .life-lightbox-hint { display: none; }
 }
+
+/* ==================================================
+   详情页点赞
+   ================================================== */
+
+.life-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.life-detail-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.life-detail-like:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.life-detail-like:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.life-detail-like.is-on {
+  color: #f26d7d;
+  background: rgba(242, 109, 125, 0.14);
+  border-color: rgba(242, 109, 125, 0.4);
+}
+
+.life-detail-like:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.life-detail-like-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+/* 后台列表里的点赞量 */
+.admin-like-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-size: 10px;
+  line-height: 16px;
+  color: #f26d7d;
+  background: rgba(242, 109, 125, 0.14);
+  vertical-align: middle;
+}

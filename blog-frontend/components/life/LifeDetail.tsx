@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MorphIcon } from "morphicons/react";
-import { Clock, MapPin, MessageCircle, Grid3x3, Play } from "lucide";
+import { Clock, Heart, MapPin, MessageCircle, Grid3x3, Play } from "lucide";
 import type { LifePost } from "@/lib/types";
 import { api } from "@/lib/api";
+import { toggleLifeLike } from "@/lib/comments";
 import { formatDateTimeCN } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
 import { useMounted } from "@/lib/useMounted";
@@ -94,6 +95,28 @@ export default function LifeDetail({
   onClose,
 }: Props) {
   const mounted = useMounted();
+
+  // 详情页的点赞：与列表卡片各自独立（从列表点进来时用的是列表给的值）
+  const [likes, setLikes] = useState(post.likes ?? 0);
+  const [liked, setLiked] = useState(post.liked ?? false);
+  const [liking, setLiking] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
+
+  const handleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+    try {
+      const res = await toggleLifeLike(post.id);
+      setLikes(res.likes);
+      setLiked(res.liked);
+      setNeedsLogin(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("登录")) setNeedsLogin(true);
+    } finally {
+      setLiking(false);
+    }
+  };
 
   // 图片墙回退
   const [albumImages, setAlbumImages] = useState<string[]>([]);
@@ -297,6 +320,26 @@ export default function LifeDetail({
                 {post.location}
               </div>
             )}
+
+            {/* 点赞：详情页也能点，不用退回列表 */}
+            <div className="life-detail-actions">
+              <button
+                type="button"
+                className={`life-detail-like${liked ? " is-on" : ""}`}
+                onClick={handleLike}
+                disabled={liking}
+                aria-pressed={liked}
+                aria-label={liked ? "取消点赞" : "点赞"}
+              >
+                <MorphIcon icon={Heart} size={15} />
+                <span>{likes}</span>
+              </button>
+              {needsLogin && (
+                <span className="life-detail-like-hint">
+                  需要先用 GitHub 登录才能点赞
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="life-detail-card life-detail-comments">

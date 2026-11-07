@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import EasterEggHost from "@/components/layout/EasterEggHost";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
@@ -113,6 +114,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
             </div>
           </footer>
+          {/* 彩蛋效果（暗号解锁的背景星空等），全站生效 */}
+          <EasterEggHost />
+
           {/* 全局播放条，固定底部 */}
           <PlayerBar />
         </PlayerProvider>
