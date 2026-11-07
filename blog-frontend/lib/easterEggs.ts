@@ -103,10 +103,6 @@ export function deactivateAll(): void {
   write([]);
 }
 
-export function deactivateEgg(eggId: number): void {
-  write(getEggsSnapshot().filter((e) => e.egg_id !== eggId));
-}
-
 export function subscribeEggs(cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(EGG_EVENT, cb);

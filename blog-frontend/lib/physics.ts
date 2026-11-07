@@ -75,9 +75,6 @@ const DEFAULTS: Required<PhysicsOptions> = {
 };
 
 /** 供测试使用：查看实际生效的物理参数 */
-export function resolveOptions(options: PhysicsOptions = {}): Required<PhysicsOptions> {
-  return { ...DEFAULTS, ...options };
-}
 
 /**
  * 是否已经全部静止（都睡着了）。

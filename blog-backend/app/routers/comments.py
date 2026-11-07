@@ -49,7 +49,6 @@ from app.schemas.comment import (
     EssayLikesResponse,
     LikeResponse,
 )
-from app.services.pageview import client_ip
 from app.services.github_oauth import (
     GitHubOAuthError,
     build_authorize_url,

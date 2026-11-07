@@ -115,10 +115,6 @@ export function getCoverUrl(song: CoverSource): string {
   return `${API_BASE}/api/music/cover/${song.id}`;
 }
 
-export interface PlaylistDetail extends Playlist {
-  songs: Song[];
-}
-
 export interface AdminInfo {
   id: number;
   username: string;
@@ -171,11 +167,6 @@ export interface Essay {
   updated_at: string;
 }
 
-export interface Category {
-  name: string;
-  count: number;
-}
-
 export interface Photo {
   id: number;
   album_id: number;
@@ -200,11 +191,6 @@ export interface Album {
 
 export interface AlbumDetail extends Album {
   photos: Photo[];
-}
-
-export interface Tag {
-  name: string;
-  count: number;
 }
 
 export interface LifePost {

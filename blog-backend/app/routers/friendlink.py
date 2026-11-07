@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlmodel import Session, func, select
+from sqlmodel import Session, select
 
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS

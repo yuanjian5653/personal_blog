@@ -28,6 +28,7 @@ from sqlmodel import Session
 
 from app.config import settings
 from app.database import engine
+from app.db_utils import model as _model, models as _models
 from app.models import NotificationOutbox, Subscriber
 from app.services import mailer
 
@@ -48,32 +49,6 @@ MAX_ATTEMPTS = 3
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _model(row):
-    """把 exec() 的返回解包成模型实例。
-
-    本项目这个版本的 SQLModel，`db.exec(select(Model)).all()` 返回的**不是**
-    模型实例而是 `Row`（`row[0]` 才是模型）。之前用 `isinstance` 判断，
-    结果这些行全被跳过了 —— worker 一条都处理不到。
-    所以统一走这个 helper，兼容两种形态。
-    """
-    if row is None:
-        return None
-    try:
-        first = row[0]
-    except (TypeError, IndexError, KeyError):
-        return row
-    return first if first is not None else row
-
-
-def _models(rows):
-    out = []
-    for r in rows:
-        m = _model(r)
-        if m is not None:
-            out.append(m)
-    return out
 
 
 # ============================================================

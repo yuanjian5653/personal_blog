@@ -56,6 +56,25 @@ function writeBest(value: number): void {
   window.dispatchEvent(new Event(BEST_EVENT));
 }
 
+/* ---------------- 难度曲线 ----------------
+ *
+ * 第一版是"按分数加难度"：接得越多越快越密。
+ * 问题是分数涨得比时间快得多（一颗金星 +5），几秒就变地狱难度。
+ *
+ * 现在改成**按坚持时间**分级：
+ *   · 起始很宽松（约 1 秒一颗，4~5 秒落到篮子上）
+ *   · 每 15 秒升一级，最高 8 级
+ *   · 密度和下落速度都按等级线性变化，不会在某一级突然变脸
+ * ------------------------------------------ */
+const LEVEL_SECONDS = 15;
+const MAX_LEVEL = 8;
+/** 生成间隔（按 60fps 的帧数算）：越大越稀 */
+const SPAWN_FRAMES_START = 58;
+const SPAWN_FRAMES_MIN = 24;
+/** 下落速度（px/帧） */
+const SPEED_START = 1.15;
+const SPEED_PER_LEVEL = 0.2;
+
 const LIVES = 3;
 const BASKET_W = 74;
 const BASKET_H = 16;
@@ -83,6 +102,8 @@ export default function CatchStars({ onClose }: Props) {
   const rafRef = useRef<number>(0);
   // 长按方向：-1 左 / 1 右 / 0 停
   const holdRef = useRef<0 | -1 | 1>(0);
+  // 与 level state 同步的 ref，避免把 level 放进循环依赖导致重复建循环
+  const levelRef = useRef(0);
 
   const stateRef = useRef({
     stars: [] as Star[],
@@ -92,11 +113,15 @@ export default function CatchStars({ onClose }: Props) {
     spawnTimer: 0,
     lastTs: 0,
     running: false,
+    /** 已坚持的秒数，难度按它算 */
+    elapsed: 0,
   });
 
   const [phase, setPhase] = useState<Phase>("start");
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(LIVES);
+  // 只用于显示；循环里发现等级变化时才 setState（不是每帧）
+  const [level, setLevel] = useState(0);
 
   const best = useSyncExternalStore(subscribeBest, readBest, () => 0);
 
@@ -109,10 +134,13 @@ export default function CatchStars({ onClose }: Props) {
     s.lives = LIVES;
     s.spawnTimer = 0;
     s.lastTs = 0;
+    s.elapsed = 0;
     s.running = true;
+    levelRef.current = 0;
     s.basketX = (canvasRef.current?.clientWidth ?? 320) / 2;
     setScore(0);
     setLives(LIVES);
+    setLevel(0);
     setPhase("playing");
   }, []);
 
@@ -174,6 +202,17 @@ export default function CatchStars({ onClose }: Props) {
       const dt = Math.min((ts - (s.lastTs || ts)) / 16.67, 3); // 归一到 60fps 的"帧"
       s.lastTs = ts;
 
+      // 先累计坚持时间，再按它算本周期的难度
+      s.elapsed += dt / 60;
+      const currentLevel = Math.min(
+        MAX_LEVEL,
+        Math.floor(s.elapsed / LEVEL_SECONDS)
+      );
+      if (currentLevel !== levelRef.current) {
+        levelRef.current = currentLevel;
+        setLevel(currentLevel); // 只有升级这一帧会 setState
+      }
+
       ctx.clearRect(0, 0, w, h);
 
       // 长按屏幕按钮的连续移动
@@ -185,15 +224,21 @@ export default function CatchStars({ onClose }: Props) {
       }
 
       // 生成星星：分数越高越密
+      const spawnFrames = Math.max(
+        SPAWN_FRAMES_MIN,
+        SPAWN_FRAMES_START - currentLevel * 4
+      );
+      const fallSpeed = SPEED_START + currentLevel * SPEED_PER_LEVEL;
+
       s.spawnTimer -= dt;
       if (s.spawnTimer <= 0) {
-        const density = Math.max(16, 42 - s.score * 0.6);
-        s.spawnTimer = density;
+        s.spawnTimer = spawnFrames;
         const gold = Math.random() < 0.14;
         s.stars.push({
           x: STAR_R + Math.random() * (w - STAR_R * 2),
           y: -20,
-          vy: (1.6 + Math.random() * 1.2 + s.score * 0.02) * (gold ? 0.85 : 1),
+          // 金星稍微慢一点，给玩家一点反应余量
+          vy: (fallSpeed + Math.random() * 0.45) * (gold ? 0.9 : 1),
           vx: (Math.random() - 0.5) * 0.7,
           gold,
           rot: Math.random() * Math.PI,
@@ -367,6 +412,9 @@ export default function CatchStars({ onClose }: Props) {
               </span>
             </b>
           </span>
+          <span className="cs-stat">
+            难度 <b>{level + 1}</b>
+          </span>
           <span className="cs-stat cs-stat--best">
             最高 <b>{best}</b>
           </span>
@@ -384,7 +432,7 @@ export default function CatchStars({ onClose }: Props) {
                   <b>白星</b> +1 分 · <b>金星</b> +5 分
                 </li>
                 <li>漏掉一颗扣一颗心，共 3 颗心</li>
-                <li>分数越高，星星落得越快</li>
+                <li>每坚持 15 秒难度升一级，撑得越久越难</li>
               </ul>
               <p className="cs-keys">
                 <span className="cs-key">←</span>

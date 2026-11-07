@@ -276,8 +276,8 @@ export default function AdminEasterEggsPage() {
                 )}
               </div>
               <small className="admin-muted">
-                不上传也没关系 —— 前台会自动回退到内置星空。
-                服务器出站只有 1 Mbps，壁纸越大访客加载越慢。
+                **不上传壁纸就什么都不会显示** —— 这个暗号解锁后只会提示一句，
+                背景不变。服务器出站只有 1 Mbps，壁纸越大访客加载越慢。
               </small>
             </div>
           )}
@@ -368,7 +368,7 @@ export default function AdminEasterEggsPage() {
                         "动图"
                       )
                     ) : row.kind === "background" ? (
-                      <span title="没上传壁纸，前台回退到内置星空">回退星空</span>
+                      <span title="没上传壁纸：这个暗号解锁后背景不会变">未上传</span>
                     ) : (
                       "—"
                     )}

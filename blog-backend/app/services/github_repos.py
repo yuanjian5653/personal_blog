@@ -192,6 +192,3 @@ async def fetch_repos(username: str, *, force: bool = False) -> list[dict[str, A
     logger.info("[GitHub] 拉取 %s 的仓库：%d 个", username, len(repos))
     return repos
 
-
-def clear_cache() -> None:
-    _CACHE.clear()

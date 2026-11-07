@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, func, select
 
 from app.database import get_session
+from app.db_utils import model as _unwrap
 from app.models import Commenter, ReplyNotification
 from app.routers.comments import require_commenter
 from app.schemas.reply_notification import (
@@ -31,16 +32,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/notifications", tags=["站内通知"])
 
-
-def _unwrap(row):
-    """exec() 返回 Row，取里面的模型（同 notifier._model 的原因）。"""
-    if row is None:
-        return None
-    try:
-        first = row[0]
-    except (TypeError, IndexError, KeyError):
-        return row
-    return first if first is not None else row
 
 
 def _count_unread(db: Session, commenter_id: int) -> int:
