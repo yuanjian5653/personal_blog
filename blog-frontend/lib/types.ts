@@ -213,4 +213,8 @@ export interface LifePost {
   images: string[];
   location: string | null;
   created_at: string;
+  /** 点赞数（后端实时统计，不存冗余字段） */
+  likes: number;
+  /** 当前登录者是否赞过 */
+  liked: boolean;
 }

@@ -202,6 +202,70 @@
   margin-top: 4px;
 }
 
+/* 右下角的操作区：点赞 + 评论 */
+.life-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.life-card__like {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--card-text-sub);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.life-card__like:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.life-card__like:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* 已点赞：实心红心 + 淡红底 */
+.life-card__like.is-on {
+  color: #f26d7d;
+  background: rgba(242, 109, 125, 0.14);
+  border-color: rgba(242, 109, 125, 0.4);
+}
+
+.life-card__like:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 未登录时点了个赞 */
+.life-card__login-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--card-text-sub);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .life-card__like {
+    transition: none;
+  }
+}
+
 .life-card__location {
   display: inline-flex;
   align-items: center;

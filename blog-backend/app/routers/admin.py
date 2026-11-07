@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlmodel import Session, func, select
 
 from app.database import get_session
+from app.db_utils import count as db_count
 from app.deps import get_current_admin
 from app.models import (
     Admin,
@@ -25,6 +26,7 @@ from app.models import (
     Essay,
     LifePost,
     PageView,
+    Subscriber,
 )
 
 from app.schemas.admin import (
@@ -173,7 +175,17 @@ def dashboard_stats(
     ).all()
     visitor_count = len({v for v in visitor_rows if v})
 
+    # 订阅者只算"已确认"的：pending 还没点确认邮件，unsubscribed 已经不要了
+    subscriber_count = db_count(
+        db.exec(
+            select(func.count())
+            .select_from(Subscriber)
+            .where(Subscriber.status == "confirmed")
+        ).one()
+    )
+
     cards = [
+        StatCard(key="subscribers", label="订阅者", value=subscriber_count),
         StatCard(key="published", label="已发布文章", value=published),
         StatCard(key="drafts", label="草稿", value=drafts),
         StatCard(key="categories", label="分类", value=categories),

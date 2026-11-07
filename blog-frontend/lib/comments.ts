@@ -119,6 +119,16 @@ export function toggleEssayLike(essayId: number): Promise<LikeResponse> {
   return api.post<LikeResponse>(`/api/comments/essay/${essayId}/like`);
 }
 
+/* ---- 生活动态点赞（与随笔共表，接口在 /api/life 下）---- */
+
+export function fetchLifeLikes(postId: number): Promise<LikeResponse> {
+  return api.get<LikeResponse>(`/api/life/${postId}/like`);
+}
+
+export function toggleLifeLike(postId: number): Promise<LikeResponse> {
+  return api.post<LikeResponse>(`/api/life/${postId}/like`);
+}
+
 export function logoutCommenter(): Promise<{ message: string }> {
   return api.post<{ message: string }>("/api/comments/logout");
 }

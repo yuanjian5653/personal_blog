@@ -42,6 +42,7 @@ MIGRATIONS=(
   "migrate_tools_description.py"
   "migrate_tools_color.py"
   "migrate_notification_cursor.py"
+  "migrate_life_like_unique.py"
 )
 
 SKIP_BACKEND=0

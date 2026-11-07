@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { MorphIcon } from "morphicons/react";
-import { Clock, MapPin, MessageCircle } from "lucide";
+import { Clock, Heart, MapPin, MessageCircle } from "lucide";
 import type { LifePost } from "@/lib/types";
 import { formatDateDots } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
+import { toggleLifeLike } from "@/lib/comments";
 
 interface Props {
   post: LifePost;
@@ -23,6 +25,33 @@ export default function LifeCard({
   authorName,
   authorAvatar,
 }: Props) {
+  // 点赞：用列表接口给的初始值，点击后本地即时更新（失败再回滚）
+  const [likes, setLikes] = useState(post.likes ?? 0);
+  const [liked, setLiked] = useState(post.liked ?? false);
+  const [liking, setLiking] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    // 卡片本身是"打开详情"，点赞不能连带打开
+    e.stopPropagation();
+    if (liking) return;
+
+    // 没登录时后端返回 401（提示里带"登录"），直接给一句提示，不弹窗
+    setLiking(true);
+    try {
+      const res = await toggleLifeLike(post.id);
+      setLikes(res.likes);
+      setLiked(res.liked);
+      setNeedsLogin(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("登录")) setNeedsLogin(true);
+      // 其它错误保持原状，不打断浏览
+    } finally {
+      setLiking(false);
+    }
+  };
+
   const total = post.images.length;
   const imgs = post.images.slice(0, MAX_IMAGES);
   const hiddenCount = total - MAX_IMAGES;
@@ -101,10 +130,31 @@ export default function LifeCard({
           ) : (
             <span />
           )}
-          <span className="life-card__comment-btn" title="查看评论">
-            <MorphIcon icon={MessageCircle} size={14} />
+          <span className="life-card__actions">
+            <button
+              type="button"
+              className={`life-card__like${liked ? " is-on" : ""}`}
+              onClick={handleLike}
+              disabled={liking}
+              aria-pressed={liked}
+              aria-label={liked ? "取消点赞" : "点赞"}
+              title={liked ? "取消点赞" : "点赞"}
+            >
+              <MorphIcon icon={Heart} size={14} />
+              <span>{likes}</span>
+            </button>
+
+            <span className="life-card__comment-btn" title="查看评论">
+              <MorphIcon icon={MessageCircle} size={14} />
+            </span>
           </span>
         </div>
+
+        {needsLogin && (
+          <p className="life-card__login-hint">
+            需要先用 GitHub 登录才能点赞
+          </p>
+        )}
       </div>
     </div>
   );

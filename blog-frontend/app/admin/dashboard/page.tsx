@@ -7,6 +7,7 @@ import {
   Eye,
   FileText,
   FolderTree,
+  Mail,
   MessageSquare,
   PenLine,
   Tags,
@@ -31,6 +32,7 @@ import HourBars from "@/components/admin/charts/HourBars";
  * emoji 的字体、颜色和基线在各系统上都不一样，和侧边栏的图标风格也不统一。
  */
 const CARD_ICONS: Record<string, IconNode> = {
+  subscribers: Mail,
   published: FileText,
   drafts: PenLine,
   categories: FolderTree,
@@ -41,6 +43,7 @@ const CARD_ICONS: Record<string, IconNode> = {
 
 /** 卡片点击后跳哪里（有对应管理页的才给链接） */
 const CARD_LINKS: Record<string, string> = {
+  subscribers: "/admin/subscribers",
   published: "/admin/posts",
   drafts: "/admin/posts",
   comments: "/admin/comments",
