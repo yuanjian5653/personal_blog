@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-EggKind = Literal["background", "stars", "game"]
+EggKind = Literal["background", "game"]
 EggTransition = Literal["fade", "zoom", "slide", "blur"]
 AssetKind = Literal["video", "image"]
 

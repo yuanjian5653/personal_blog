@@ -25,9 +25,9 @@ SEEDS = [
     {
         "code": "星空",
         "name": "动态背景",
-        "hint": "抬头看看 —— 整片天都亮了",
+        "hint": "背景变了 —— 去后台传一张你喜欢的动态壁纸",
         "kind": "background",
-        # 没上传壁纸时，前台会自动回退到内置星空
+        # 没上传壁纸时前台不显示背景 —— 记得去后台传一个
         "asset_path": None,
         "asset_kind": None,
         "transition": "fade",

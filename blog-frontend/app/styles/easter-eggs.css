@@ -112,238 +112,6 @@
 }
 
 /* ============================================
-   背景星空
-   ============================================
-
-   第一版星星太小太暗（1~2px、透明度 0.25 起），几乎看不见。
-   这一版靠四样东西做出"惊喜感"：
-
-     1. 三层视差（远 90 / 中 46 / 近 20 颗），近层带发光
-     2. 两团超大的星云渐变缓慢漂移，给黑底一点层次
-     3. 五颗流星，带发光头部和长尾，第一颗来得很快
-     4. 入场：解锁瞬间整体从暗到亮 + 逐颗错峰缩放淡入
-
-   仍然全部是 CSS 动画（不占主线程，页面里有音乐播放器在跑）。
-   ============================================ */
-
-.starfield {
-  position: fixed;
-  inset: 0;
-  /* 在背景图(-2)之上、页面内容之下；不拦点击 */
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  /* 入场：整体亮起来 */
-  animation: starfieldReveal 1.6s ease-out both;
-}
-
-@keyframes starfieldReveal {
-  0% {
-    opacity: 0;
-    filter: brightness(0.2);
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    filter: brightness(1);
-  }
-}
-
-/* ---- 星云 ---- */
-
-.starfield__nebula {
-  position: absolute;
-  border-radius: 50%;
-  /* 用极低透明度的径向渐变，不能太实，否则像贴纸 */
-  opacity: 0.55;
-  will-change: transform;
-}
-
-.starfield__nebula--a {
-  top: -18%;
-  left: -12%;
-  width: 78vw;
-  height: 78vw;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--accent) 26%, transparent) 0%,
-    color-mix(in srgb, #4a6cf7 14%, transparent) 38%,
-    transparent 68%
-  );
-  animation: nebulaDrift 42s ease-in-out infinite alternate;
-}
-
-.starfield__nebula--b {
-  right: -16%;
-  bottom: -22%;
-  width: 88vw;
-  height: 88vw;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, #14b8a6 16%, transparent) 0%,
-    color-mix(in srgb, #8b5cf6 12%, transparent) 42%,
-    transparent 70%
-  );
-  animation: nebulaDrift 58s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes nebulaDrift {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(4%, 3%, 0) scale(1.12);
-  }
-}
-
-/* ---- 三层星星 ---- */
-
-.starfield__layer {
-  position: absolute;
-  inset: 0;
-}
-
-.starfield__star {
-  position: absolute;
-  border-radius: 50%;
-  /* 入场（错峰）+ 闪烁（持续），两个动画并发 */
-  animation-name: starEnter, starTwinkle;
-  animation-duration: 0.9s, var(--twinkle-duration, 4s);
-  animation-timing-function: ease-out, ease-in-out;
-  animation-iteration-count: 1, infinite;
-  animation-fill-mode: both, none;
-  will-change: opacity, transform;
-}
-
-/* 入场：从无到有缩放弹一下 */
-@keyframes starEnter {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  70% {
-    opacity: 1;
-    transform: scale(1.6);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes starTwinkle {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(0.85);
-  }
-  50% {
-    transform: translate3d(var(--star-drift, 6px), -5px, 0) scale(1.15);
-  }
-}
-
-/* 近层：发光。发光只给 20 颗，控制重绘面积 */
-.starfield__star.is-glow {
-  box-shadow:
-    0 0 4px 1px currentColor,
-    0 0 10px 2px color-mix(in srgb, currentColor 55%, transparent);
-}
-
-/* ---- 流星 ---- */
-
-.starfield__shooting {
-  position: absolute;
-  width: 160px;
-  height: 2px;
-  border-radius: 9999px;
-  /* 头亮尾淡 */
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.35) 40%,
-    rgba(255, 255, 255, 0.95) 92%,
-    #fff 100%
-  );
-  /* 头部发光 */
-  box-shadow: 2px 0 10px 2px rgba(255, 255, 255, 0.45);
-  opacity: 0;
-  transform: rotate(20deg);
-  transform-origin: right center;
-  animation-name: starShoot;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.9, 0.4);
-  animation-iteration-count: infinite;
-}
-
-@keyframes starShoot {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) rotate(20deg) scaleX(0.5);
-  }
-  3% {
-    opacity: 1;
-    transform: translate3d(-20px, 8px, 0) rotate(20deg) scaleX(1);
-  }
-  14% {
-    opacity: 0;
-    transform: translate3d(-420px, 160px, 0) rotate(20deg) scaleX(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(-420px, 160px, 0) rotate(20deg) scaleX(1);
-  }
-}
-
-/* ---- 解锁瞬间的"点亮" ---- */
-
-.starfield__burst {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 50% 40%,
-    color-mix(in srgb, var(--accent) 45%, transparent) 0%,
-    transparent 55%
-  );
-  opacity: 0;
-  animation: starBurst 1.8s ease-out forwards;
-}
-
-@keyframes starBurst {
-  0% {
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.85;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* ---------------- 无障碍 ---------------- */
-
-@media (prefers-reduced-motion: reduce) {
-  .is-flash {
-    animation: none;
-  }
-  .starfield {
-    animation: none;
-  }
-  .starfield__nebula {
-    animation: none;
-  }
-  .starfield__star {
-    /* 不闪、不弹，但保留星星本身 */
-    animation: none;
-    opacity: 0.75;
-  }
-  .starfield__shooting,
-  .starfield__burst {
-    display: none;
-  }
-}
-
-/* ============================================
    动态背景层（后台上传的壁纸 / 内置星空）
    ============================================ */
 
@@ -636,6 +404,137 @@
 
 .cs-again:hover {
   filter: brightness(1.12);
+}
+
+/* ---------------- 开始界面 ---------------- */
+
+.cs-over--start {
+  /* 开始界面不需要压得太黑，能看见画布背景更好看 */
+  background: rgba(9, 11, 15, 0.9);
+  gap: 8px;
+  padding: 20px;
+}
+
+.cs-rules {
+  margin: 2px 0 6px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #9aa3b2;
+  text-align: center;
+}
+
+.cs-rules b {
+  color: #e8eefc;
+  font-weight: 600;
+}
+
+.cs-keys {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #9aa3b2;
+}
+
+.cs-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+  color: #e8eefc;
+}
+
+.cs-keys__text {
+  margin-left: 2px;
+}
+
+.cs-hint-mini {
+  margin: 0;
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.cs-over__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs-back {
+  padding: 8px 18px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #9aa3b2;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.cs-back:hover {
+  color: #e8eefc;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+/* ---------------- 移动端方向按钮 ----------------
+ *
+ * 只在"粗指针"设备上出现（手机 / 平板）。
+ * 桌面端有键盘和鼠标，多两个按钮只是干扰。
+ * ------------------------------------------------ */
+
+.cs-touch {
+  display: none;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cs-touch__btn {
+  flex: 1;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: #d6dbe4;
+  cursor: pointer;
+  /* 长按不要触发系统的文本选择 / 长按菜单 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.cs-touch__btn:active {
+  background: color-mix(in srgb, var(--accent, #7c5cff) 40%, transparent);
+  transform: scale(0.97);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .cs-touch {
+    display: flex;
+  }
+}
+
+/* 小屏把画布压矮一点，给按钮留位置 */
+@media (max-width: 520px) {
+  .cs-canvas {
+    height: 260px;
+  }
 }
 
 .cs-foot {

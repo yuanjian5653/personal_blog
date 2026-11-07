@@ -179,12 +179,12 @@ print("\n=== 5. 修改 ===")
 with Session(engine) as db:
     updated = update_egg(
         egg_id,
-        EasterEggUpdate(name="改名后", kind="stars", transition="blur"),
+        EasterEggUpdate(name="改名后", kind="game", transition="blur"),
         db=db,
         admin=admin,
     )
 check("名称已改", updated.name, "改名后")
-check("类型已改", updated.kind, "stars")
+check("类型已改", updated.kind, "game")
 check("动效已改", updated.transition, "blur")
 
 # 改成已存在的暗号 → 409

@@ -1,23 +1,23 @@
 "use client";
 
 import { useMounted } from "@/lib/useMounted";
-import StarField from "./StarField";
 import type { EggEffect } from "@/lib/easterEggs";
 
 /**
  * 动态背景层（暗号解锁）。
  *
- * 三种情况：
- *   1. 后台上传了壁纸（kind=background 且有 asset_path）→ 视频 / 动图铺满
- *   2. 是内置星空（kind=stars）→ 用 StarField
- *   3. kind=background 但还没上传壁纸 → **回退到内置星空**
- *      这样"后台还没配好"的时候前台不会是一片空白
+ * 只做一件事：把后台上传的壁纸铺满背景，并压一层暗色 scrim。
+ *
+ * **没有壁纸时不渲染任何东西**（返回 null）。
+ * 早先这里会回退到内置星空，后来那个星空效果被删掉了 ——
+ * 与其给用户一个"解锁了但看不出变化"的困惑，不如什么都不做。
+ * 后台列表里会明确显示「未上传壁纸」，提示你去传一个。
  *
  * 过渡动效（transition 由后台决定）：
  *   fade  淡入
- *   zoom  从放大 1.15 缩放进入
+ *   zoom  从放大 1.18 + 模糊推进来
  *   slide 从下方推上来
- *   blur  从模糊到清晰
+ *   blur  从模糊 24px 到清晰
  * 都带一点"点亮"的意思，而不是硬切。
  */
 interface Props {
@@ -35,16 +35,10 @@ export default function BackgroundLayer({ egg }: Props) {
   const mounted = useMounted();
   if (!mounted) return null;
 
-  const transition = TRANSITION_CLASS[egg.transition] ?? "is-fade";
+  // 没上传壁纸 → 不渲染（不再回退到星空）
+  if (!egg.asset_path) return null;
 
-  // 没上传壁纸 → 回退到内置星空
-  if (!egg.asset_path) {
-    return (
-      <div className={`bg-layer ${transition}`} aria-hidden="true">
-        <StarField />
-      </div>
-    );
-  }
+  const transition = TRANSITION_CLASS[egg.transition] ?? "is-fade";
 
   return (
     <div className={`bg-layer ${transition}`} aria-hidden="true">

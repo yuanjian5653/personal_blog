@@ -68,7 +68,7 @@ export default function SearchBar() {
 
   // 已解锁的背景类彩蛋名字（游戏类不落盘，所以不会出现在这里）
   const activeNames = activeEggs
-    .filter((e) => e.kind === "background" || e.kind === "stars")
+    .filter((e) => e.kind === "background")
     .map((e) => e.name);
 
   return (

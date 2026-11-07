@@ -8,7 +8,7 @@
  */
 import { api } from "./api";
 
-export type EggKind = "background" | "stars" | "game";
+export type EggKind = "background" | "game";
 export type EggTransition = "fade" | "zoom" | "slide" | "blur";
 export type AssetKind = "video" | "image";
 
@@ -41,13 +41,11 @@ export interface EasterEggInput {
 
 export const KIND_LABEL: Record<EggKind, string> = {
   background: "动态背景",
-  stars: "内置星空",
   game: "小游戏",
 };
 
 export const KIND_HINT: Record<EggKind, string> = {
-  background: "用后台上传的动态壁纸铺满背景；没上传时自动回退到内置星空",
-  stars: "纯代码的星空效果，不占带宽",
+  background: "用后台上传的动态壁纸铺满背景。没上传壁纸时不会有效果",
   game: "目前是「接星星」小游戏",
 };
 

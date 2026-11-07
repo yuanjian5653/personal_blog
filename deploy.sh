@@ -44,6 +44,7 @@ MIGRATIONS=(
   "migrate_notification_cursor.py"
   "migrate_life_like_unique.py"
   "seed_easter_eggs.py"
+  "migrate_egg_drop_stars.py"
 )
 
 SKIP_BACKEND=0

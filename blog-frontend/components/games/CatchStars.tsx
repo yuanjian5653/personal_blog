@@ -7,30 +7,30 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { MorphIcon } from "morphicons/react";
+import { ArrowLeft, ArrowRight } from "lucide";
 
 /**
  * 接星星（暗号「游戏」解锁）
  *
- * 玩法：底下一个篮子左右移动接住掉落的星星。
- *   · 白星 +1 分
- *   · 金星 +5 分（偶尔出现）
- *   · 漏掉一颗扣 1 条命，3 条命用光结束
- *   · 越高分落得越快（难度自动上涨）
+ * 三个阶段：
+ *   start    开始界面 —— 规则 + 最高分 + 「开始游戏」
+ *   playing  进行中
+ *   over     结束 —— 本局得分 + 「再来一局」/「回开始界面」
  *
- * 为什么用 canvas 而不是 DOM 元素：
- *   同时最多十几颗星，DOM 也能做，但 canvas 只用一次重绘，
- *   而且不用为了性能给每个星星加 will-change。页面里还有音乐播放器，省一点是一点。
+ * 操作两套并存：
+ *   · 键盘：← → 或 A / D 移动；空格 / 回车开始；Esc 关闭
+ *   · 触摸：拖动画面移动；**另外给两个常驻按钮**（粗指针设备才显示）
+ *     手机上单靠拖动不好控制，按钮可以长按连续移动
  *
- * 为什么把循环放在 ref 里而不是 React state：
- *   requestAnimationFrame 每帧都 setState 会让整棵组件树重渲染。
- *   只在"分数/生命变化"时才同步到 React 状态，其余时间纯 canvas 绘制。
+ * 为什么循环里不 setState：
+ *   requestAnimationFrame 每帧 setState 会让整棵树重渲染。
+ *   只在"分数 / 生命 / 阶段"变化时同步到 React，其余时间纯 canvas 绘制。
  */
 
 const BEST_KEY = "blog:catch-stars-best";
 const BEST_EVENT = "blog:catch-stars-best-change";
 
-/** 读最高分。注意：给 useSyncExternalStore 用的快照是**数字**，
- *  基本类型按值比较，所以不需要额外缓存引用。 */
 function readBest(): number {
   if (typeof window === "undefined") return 0;
   try {
@@ -55,6 +55,7 @@ function writeBest(value: number): void {
   }
   window.dispatchEvent(new Event(BEST_EVENT));
 }
+
 const LIVES = 3;
 const BASKET_W = 74;
 const BASKET_H = 16;
@@ -71,16 +72,18 @@ interface Star {
   vr: number;
 }
 
+type Phase = "start" | "playing" | "over";
+
 interface Props {
   onClose: () => void;
 }
 
 export default function CatchStars({ onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const wrapRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
+  // 长按方向：-1 左 / 1 右 / 0 停
+  const holdRef = useRef<0 | -1 | 1>(0);
 
-  // 循环里用的可变状态（不触発渲染）
   const stateRef = useRef({
     stars: [] as Star[],
     basketX: 0,
@@ -89,30 +92,28 @@ export default function CatchStars({ onClose }: Props) {
     spawnTimer: 0,
     lastTs: 0,
     running: false,
-    over: false,
   });
 
+  const [phase, setPhase] = useState<Phase>("start");
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(LIVES);
-  const [over, setOver] = useState(false);
 
-
-  // 最高分：localStorage 是外部数据源，用 useSyncExternalStore 读，
-  // 避免"在 effect 里同步 setState"（会多一轮渲染，也被项目 lint 拦）。
   const best = useSyncExternalStore(subscribeBest, readBest, () => 0);
 
-  const reset = useCallback(() => {
+  /* ---------------- 开局 ---------------- */
+
+  const startGame = useCallback(() => {
     const s = stateRef.current;
     s.stars = [];
     s.score = 0;
     s.lives = LIVES;
     s.spawnTimer = 0;
-    s.over = false;
+    s.lastTs = 0;
     s.running = true;
     s.basketX = (canvasRef.current?.clientWidth ?? 320) / 2;
     setScore(0);
     setLives(LIVES);
-    setOver(false);
+    setPhase("playing");
   }, []);
 
   /* ---------------- 主循环 ---------------- */
@@ -137,15 +138,12 @@ export default function CatchStars({ onClose }: Props) {
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    reset();
-
     const drawStar = (s: Star) => {
       const r = s.gold ? GOLD_R : STAR_R;
       ctx.save();
       ctx.translate(s.x, s.y);
       ctx.rotate(s.rot);
       ctx.beginPath();
-      // 五角星
       for (let i = 0; i < 5; i += 1) {
         const outer = (Math.PI / 2) * -1 + (i * Math.PI * 2) / 5;
         const inner = outer + Math.PI / 5;
@@ -163,15 +161,28 @@ export default function CatchStars({ onClose }: Props) {
     const tick = (ts: number) => {
       const s = stateRef.current;
       rafRef.current = requestAnimationFrame(tick);
-      if (!s.running) return;
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+
+      // 未开始时只清屏（保持一块干净的深色画布）
+      if (!s.running) {
+        ctx.clearRect(0, 0, w, h);
+        return;
+      }
+
       const dt = Math.min((ts - (s.lastTs || ts)) / 16.67, 3); // 归一到 60fps 的"帧"
       s.lastTs = ts;
 
-      // 画背景
       ctx.clearRect(0, 0, w, h);
+
+      // 长按屏幕按钮的连续移动
+      if (holdRef.current !== 0) {
+        s.basketX = Math.min(
+          Math.max(s.basketX + holdRef.current * 7 * dt, BASKET_W / 2),
+          w - BASKET_W / 2
+        );
+      }
 
       // 生成星星：分数越高越密
       s.spawnTimer -= dt;
@@ -198,7 +209,6 @@ export default function CatchStars({ onClose }: Props) {
         st.x += st.vx * dt;
         st.rot += st.vr * dt;
 
-        // 碰到底线
         if (st.y >= basketY - 6) {
           const inBasket =
             st.x > s.basketX - BASKET_W / 2 - 4 &&
@@ -210,11 +220,9 @@ export default function CatchStars({ onClose }: Props) {
             s.lives -= 1;
             setLives(s.lives);
             if (s.lives <= 0) {
-              s.over = true;
               s.running = false;
-              setOver(true);
-              // 只在破纪录时写；写完靠事件通知 useSyncExternalStore 重读
               if (s.score > readBest()) writeBest(s.score);
+              setPhase("over");
             }
           }
           s.stars.splice(i, 1);
@@ -242,14 +250,48 @@ export default function CatchStars({ onClose }: Props) {
     };
 
     rafRef.current = requestAnimationFrame(tick);
-
     return () => {
       cancelAnimationFrame(rafRef.current);
       ro.disconnect();
     };
-  }, [reset]);
+  }, []);
 
-  /* ---------------- 操作：鼠标 / 触摸 / 键盘 ---------------- */
+  /* ---------------- 输入：键盘 ---------------- */
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const s = stateRef.current;
+      const canvas = canvasRef.current;
+      const w = canvas?.clientWidth ?? 320;
+
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      // 开始 / 结束阶段：空格或回车开局
+      if (!s.running && (e.key === " " || e.key === "Enter")) {
+        e.preventDefault();
+        startGame();
+        return;
+      }
+      if (!s.running) return;
+
+      const step = 30;
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        s.basketX = Math.max(BASKET_W / 2, s.basketX - step);
+        e.preventDefault();
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        s.basketX = Math.min(w - BASKET_W / 2, s.basketX + step);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, startGame]);
+
+  /* ---------------- 输入：拖动画面 ---------------- */
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -258,41 +300,41 @@ export default function CatchStars({ onClose }: Props) {
     const moveTo = (clientX: number) => {
       const rect = canvas.getBoundingClientRect();
       const half = BASKET_W / 2;
-      const x = clientX - rect.left;
       stateRef.current.basketX = Math.min(
-        Math.max(x, half),
+        Math.max(clientX - rect.left, half),
         rect.width - half
       );
     };
 
     const onPointer = (e: PointerEvent) => {
+      if (!stateRef.current.running) return;
       e.preventDefault();
       moveTo(e.clientX);
     };
-    const onKey = (e: KeyboardEvent) => {
-      const s = stateRef.current;
-      const w = canvas.clientWidth;
-      const step = 28;
-      if (e.key === "ArrowLeft" || e.key === "a") {
-        s.basketX = Math.max(BASKET_W / 2, s.basketX - step);
-        e.preventDefault();
-      } else if (e.key === "ArrowRight" || e.key === "d") {
-        s.basketX = Math.min(w - BASKET_W / 2, s.basketX + step);
-        e.preventDefault();
-      } else if (e.key === "Escape") {
-        onClose();
-      }
-    };
 
-    canvas.addEventListener("pointermove", onPointer);
     canvas.addEventListener("pointerdown", onPointer);
-    window.addEventListener("keydown", onKey);
+    canvas.addEventListener("pointermove", onPointer);
     return () => {
-      canvas.removeEventListener("pointermove", onPointer);
       canvas.removeEventListener("pointerdown", onPointer);
-      window.removeEventListener("keydown", onKey);
+      canvas.removeEventListener("pointermove", onPointer);
     };
-  }, [onClose]);
+  }, []);
+
+  /* ---------------- 输入：屏幕按钮（长按连续移动） ---------------- */
+
+  const startHold = (dir: -1 | 1) => {
+    holdRef.current = dir;
+  };
+  const endHold = () => {
+    holdRef.current = 0;
+  };
+
+  // 组件卸载时确保不残留按住状态
+  useEffect(() => {
+    return () => {
+      holdRef.current = 0;
+    };
+  }, []);
 
   return (
     <div className="cs-overlay" role="dialog" aria-modal="true" aria-label="接星星">
@@ -300,9 +342,14 @@ export default function CatchStars({ onClose }: Props) {
         <header className="cs-head">
           <div className="cs-title">
             ✦ 接星星
-            <span className="cs-sub">移动鼠标 / 手指接住它们</span>
+            <span className="cs-sub">接住掉下来的星星，别让它们落地</span>
           </div>
-          <button type="button" className="cs-close" onClick={onClose} aria-label="关闭游戏">
+          <button
+            type="button"
+            className="cs-close"
+            onClick={onClose}
+            aria-label="关闭游戏"
+          >
             ✕
           </button>
         </header>
@@ -315,7 +362,9 @@ export default function CatchStars({ onClose }: Props) {
             生命{" "}
             <b>
               {"♥".repeat(Math.max(0, lives))}
-              <span className="cs-stat--empty">{"♡".repeat(Math.max(0, LIVES - lives))}</span>
+              <span className="cs-stat--empty">
+                {"♡".repeat(Math.max(0, LIVES - lives))}
+              </span>
             </b>
           </span>
           <span className="cs-stat cs-stat--best">
@@ -323,10 +372,34 @@ export default function CatchStars({ onClose }: Props) {
           </span>
         </div>
 
-        <div className="cs-canvas-wrap" ref={wrapRef}>
+        <div className="cs-canvas-wrap">
           <canvas ref={canvasRef} className="cs-canvas" />
 
-          {over && (
+          {/* 开始界面 */}
+          {phase === "start" && (
+            <div className="cs-over cs-over--start">
+              <p className="cs-over__title">接星星</p>
+              <ul className="cs-rules">
+                <li>
+                  <b>白星</b> +1 分 · <b>金星</b> +5 分
+                </li>
+                <li>漏掉一颗扣一颗心，共 3 颗心</li>
+                <li>分数越高，星星落得越快</li>
+              </ul>
+              <p className="cs-keys">
+                <span className="cs-key">←</span>
+                <span className="cs-key">→</span>
+                <span className="cs-keys__text">或 A / D 移动</span>
+              </p>
+              <button type="button" className="cs-again" onClick={startGame}>
+                开始游戏
+              </button>
+              <p className="cs-hint-mini">空格 / 回车也可以开始</p>
+            </div>
+          )}
+
+          {/* 结束界面 */}
+          {phase === "over" && (
             <div className="cs-over">
               <p className="cs-over__title">星星掉光了</p>
               <p className="cs-over__score">
@@ -335,16 +408,51 @@ export default function CatchStars({ onClose }: Props) {
                   <span className="cs-over__new">新纪录！</span>
                 ) : null}
               </p>
-              <button type="button" className="cs-again" onClick={reset}>
-                再来一局
-              </button>
+              <div className="cs-over__actions">
+                <button type="button" className="cs-again" onClick={startGame}>
+                  再来一局
+                </button>
+                <button
+                  type="button"
+                  className="cs-back"
+                  onClick={() => setPhase("start")}
+                >
+                  回开始界面
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        <p className="cs-foot">
-          白星 +1 · 金星 +5 · 漏掉扣一颗心（Esc 关闭）
-        </p>
+        {/* 移动端专用：长按连续移动（粗指针设备才显示） */}
+        {phase === "playing" && (
+          <div className="cs-touch">
+            <button
+              type="button"
+              className="cs-touch__btn"
+              aria-label="向左"
+              onPointerDown={() => startHold(-1)}
+              onPointerUp={endHold}
+              onPointerCancel={endHold}
+              onPointerLeave={endHold}
+            >
+              <MorphIcon icon={ArrowLeft} size={20} />
+            </button>
+            <button
+              type="button"
+              className="cs-touch__btn"
+              aria-label="向右"
+              onPointerDown={() => startHold(1)}
+              onPointerUp={endHold}
+              onPointerCancel={endHold}
+              onPointerLeave={endHold}
+            >
+              <MorphIcon icon={ArrowRight} size={20} />
+            </button>
+          </div>
+        )}
+
+        <p className="cs-foot">Esc 关闭 · 拖动画布也能移动</p>
       </div>
     </div>
   );

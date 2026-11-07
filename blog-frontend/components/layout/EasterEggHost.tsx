@@ -17,7 +17,7 @@ import CatchStars from "@/components/games/CatchStars";
  *
  * 两类彩蛋走两条不同的路：
  *
- *   background / stars（背景类）
+ *   background（背景类）
  *     存进 localStorage，用 useSyncExternalStore 订阅 → 常驻，刷新仍在。
  *
  *   game（游戏类）
@@ -46,9 +46,7 @@ export default function EasterEggHost() {
   }, []);
 
   // 只取最后一个背景类彩蛋（多个同时开时，后解锁的覆盖先解锁的）
-  const bgEggs = active.filter(
-    (e) => e.kind === "background" || e.kind === "stars"
-  );
+  const bgEggs = active.filter((e) => e.kind === "background");
   const bgEgg = bgEggs.length ? bgEggs[bgEggs.length - 1] : null;
 
   return (

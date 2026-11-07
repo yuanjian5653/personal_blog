@@ -8,9 +8,8 @@
    只有一个 `POST /api/easter-eggs/check` 用来校验用户输入的暗号。
    后台接口才返回完整数据（含 code）。
 
-2. **三种 kind**
-   background  动态背景 —— 用后台上传的壁纸；没上传时前台回退到内置星空
-   stars       内置星空（保留着，方便想用纯代码效果时选）
+2. **两种 kind**
+   background  动态背景 —— 用后台上传的壁纸；没上传时不显示任何东西
    game        小游戏（目前只有「接星星」）
 
 3. **过渡动效存在后台**
@@ -29,7 +28,7 @@ from sqlmodel import Field, SQLModel
 from app.models._base import utcnow
 
 # 彩蛋类型
-EGG_KINDS = ("background", "stars", "game")
+EGG_KINDS = ("background", "game")
 
 # 启用时的过渡动效
 EGG_TRANSITIONS = ("fade", "zoom", "slide", "blur")
@@ -57,7 +56,7 @@ class EasterEgg(SQLModel, table=True):
     # background / stars / game
     kind: str = Field(default="background", max_length=20)
 
-    # 动态壁纸的地址（/media/wallpapers/xxx.mp4）。为空时 background 回退到内置星空。
+    # 动态壁纸的地址（/media/wallpapers/xxx.mp4）。为空时不显示任何背景。
     asset_path: str | None = Field(default=None, max_length=500)
     # video / image
     asset_kind: str | None = Field(default=None, max_length=20)
