@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import {
   EASTER_EGGS,
@@ -17,11 +15,14 @@ import {
  * 首页搜索框 —— 实际上是「输入暗号」的入口。
  *
  * 反馈策略：
- *   · 解锁成功 → 一行提示 + 金色高亮（3 秒后淡出）
+ *   · 解锁成功 → 一行提示 + 边框闪一下
  *   · 暗号不对 → 一行"没这个暗号"（不弹窗，不打断）
  *   · 游戏类暗号 → 老实说还没做，别假装能玩
  *
- * 输入框本身保持原来的玻璃外观，只把"装饰"变成"能用"。
+ * 关于焦点样式：外层圆角容器的边框和阴影是**内联 style**，
+ * 普通 CSS 优先级压不过内联声明，所以聚焦态必须用 !important
+ * （见 easter-eggs.css 的 .search-shell:focus-within）。
+ * 否则点进输入框完全看不出被选中了。
  */
 export default function SearchBar() {
   const [value, setValue] = useState("");
@@ -65,7 +66,7 @@ export default function SearchBar() {
     <div className="w-full max-w-xl mx-auto">
       <form onSubmit={handleSubmit}>
         <div
-          className={`flex items-center gap-3 h-12 px-5 rounded-full${
+          className={`search-shell flex items-center gap-3 h-12 px-5 rounded-full${
             flash ? " is-flash" : ""
           }`}
           style={{
@@ -78,7 +79,7 @@ export default function SearchBar() {
           }}
         >
           <svg
-            className="w-5 h-5 flex-shrink-0"
+            className="search-shell__icon w-5 h-5 flex-shrink-0"
             style={{ color: "var(--text-secondary)" }}
             fill="none"
             stroke="currentColor"
@@ -98,7 +99,7 @@ export default function SearchBar() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="输入暗号探索更多..."
-            className="flex-1 bg-transparent border-none outline-none text-sm"
+            className="search-shell__input flex-1 bg-transparent border-none outline-none text-sm"
             style={{ color: "var(--text-primary)" }}
             maxLength={40}
             aria-label="输入暗号"
