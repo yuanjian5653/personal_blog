@@ -1,21 +1,19 @@
 /**
  * lib/easterEggs.ts 的纯函数测试。
  *
- * 只测不依赖浏览器的部分：暗号归一化、匹配、"关闭"暗号、注册表完整性，
- * 以及 submitCode 的判定分支（Node 里没有 window，所以不会真的写 localStorage，
- * 这正好让我们能安全地测返回值类型）。
+ * 暗号已经从"前端写死的注册表"改成"后端可管理"，
+ * 所以这里只测不依赖网络的归一化与"关闭"暗号判断；
+ * 匹配逻辑（code → egg）在后端，由 scripts/test_easter_eggs.py 覆盖。
  *
  * 运行：
  *   node --experimental-strip-types --loader ./scripts/ts-resolve-hook.mjs \
  *        scripts/test-easter-eggs.mjs
  */
 import {
-  EASTER_EGGS,
   EGG_OFF_CODES,
-  findEgg,
+  EGG_STORAGE_KEY,
   isOffCode,
   normalizeCode,
-  submitCode,
 } from "../lib/easterEggs.ts";
 
 let passed = 0;
@@ -31,89 +29,42 @@ function eq(actual, expected, label) {
 /* ---------- 1. normalizeCode ---------- */
 eq(normalizeCode("星空"), "星空", "中文原样");
 eq(normalizeCode("  星空  "), "星空", "去首尾空格");
+eq(normalizeCode("St ars"), "stars", "去中间空格 + 小写");
 eq(normalizeCode("STARS"), "stars", "转小写");
-eq(normalizeCode("St ars"), "stars", "去掉中间空格");
 eq(normalizeCode(""), "", "空串");
 eq(normalizeCode("　星空　"), "星空", "全角空格也算空白");
-// 全角字母 → 半角
 eq(normalizeCode("ＳＴＡＲＳ"), "stars", "全角字母转半角");
 
-/* ---------- 2. findEgg ---------- */
-eq(findEgg("星空")?.id, "stars", "中文暗号");
-eq(findEgg("  星空 ")?.id, "stars", "带空格也能认");
-eq(findEgg("STARS")?.id, "stars", "大写英文别名");
-eq(findEgg("star")?.id, "stars", "单数英文");
-eq(findEgg("xingkong")?.id, "stars", "拼音");
-eq(findEgg("游戏")?.id, "game", "游戏暗号");
-eq(findEgg("GAME")?.id, "game", "游戏英文");
-eq(findEgg("随便打的") ?? null, null, "错的暗号返回 null");
-eq(findEgg("") ?? null, null, "空串返回 null");
-eq(findEgg("   ") ?? null, null, "全空格返回 null");
-
-/* ---------- 3. 关闭暗号 ---------- */
+/* ---------- 2. 关闭暗号 ---------- */
 eq(isOffCode("关闭"), true, "关闭");
 eq(isOffCode("关掉"), true, "关掉");
-eq(isOffCode("OFF"), true, "OFF");
-eq(isOffCode("close"), true, "close");
+eq(isOffCode("OFF"), true, "OFF 大写");
+eq(isOffCode(" close "), true, "带空格的 close");
+eq(isOffCode("reset"), true, "reset");
 eq(isOffCode("星空"), false, "星空不是关闭暗号");
 eq(isOffCode(""), false, "空串不是关闭暗号");
+eq(isOffCode("   "), false, "全空格不是关闭暗号");
 
-/* ---------- 4. submitCode 分支 ---------- */
-eq(submitCode("星空").type, "effect", "星空 → effect");
-eq(submitCode("游戏").type, "game", "游戏 → game");
-eq(submitCode("关闭").type, "off", "关闭 → off");
-eq(submitCode("不存在的暗号").type, "unknown", "未知 → unknown");
-eq(submitCode("").type, "unknown", "空串 → unknown");
-
-// 解锁 effect 时要把 egg 带回来（前端要靠它显示名字和提示）
-const unlocked = submitCode("星空");
-eq(unlocked.type === "effect" ? unlocked.egg.name : null, "星空", "结果里带名字");
+/* ---------- 3. 常量完整性 ---------- */
+eq(EGG_OFF_CODES.length > 0, true, "关闭暗号列表非空");
 eq(
-  unlocked.type === "effect" ? unlocked.egg.hint.length > 0 : false,
+  EGG_OFF_CODES.every((c) => normalizeCode(c).length > 0),
   true,
-  "结果里带提示语"
-);
-
-/* ---------- 5. 注册表完整性 ---------- */
-eq(new Set(EASTER_EGGS.map((e) => e.id)).size, EASTER_EGGS.length, "id 不重复");
-eq(
-  EASTER_EGGS.every((e) => e.codes.length > 0),
-  true,
-  "每个彩蛋至少一个暗号"
+  "每个关闭暗号归一化后非空"
 );
 eq(
-  EASTER_EGGS.every((e) => e.codes.every((c) => normalizeCode(c).length > 0)),
-  true,
-  "所有暗号归一化后非空"
+  new Set(EGG_OFF_CODES.map(normalizeCode)).size,
+  EGG_OFF_CODES.length,
+  "关闭暗号彼此不重复"
 );
-eq(
-  EASTER_EGGS.every((e) => e.name.length > 0 && e.hint.length > 0),
-  true,
-  "名字和提示都不为空"
-);
-eq(
-  EASTER_EGGS.every((e) => e.kind === "effect" || e.kind === "game"),
-  true,
-  "kind 只有两种取值"
-);
-// 防止同一个暗号被两个彩蛋抢走（findEgg 只会返回第一个）
-const allCodes = EASTER_EGGS.flatMap((e) => e.codes.map(normalizeCode));
-eq(
-  new Set(allCodes).size,
-  allCodes.length,
-  "不同彩蛋的暗号不冲突"
-);
-// "关闭"类暗号不能和彩蛋暗号撞
-const offNormalized = EGG_OFF_CODES.map(normalizeCode);
-eq(
-  offNormalized.some((c) => allCodes.includes(c)),
-  false,
-  "关闭暗号不与彩蛋暗号冲突"
-);
+eq(typeof EGG_STORAGE_KEY, "string", "存储 key 是字符串");
+eq(EGG_STORAGE_KEY.length > 0, true, "存储 key 非空");
+// 换了存储 key 会让所有老用户的效果一次性失效，所以断言它带版本号
+eq(EGG_STORAGE_KEY.endsWith(":v2"), true, "存储 key 带版本号（v2）");
 
 /* ---------- 输出 ---------- */
 console.log(
-  `\n[${failures.length === 0 ? "通过" : "失败"}] 暗号与彩蛋 ${passed} 项断言`
+  `\n[${failures.length === 0 ? "通过" : "失败"}] 暗号归一化与关闭 ${passed} 项断言`
 );
 if (failures.length > 0) {
   for (const f of failures) console.log("  ✗ " + f);

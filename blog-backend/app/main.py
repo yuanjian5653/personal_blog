@@ -14,6 +14,7 @@ from app.routers import (
     article,
     auth,
     comments,
+    easter_eggs,
     essay,
     friendlink,
     life,
@@ -122,6 +123,8 @@ app.include_router(subscribe.router)
 app.include_router(subscribe.admin_router)
 app.include_router(notifications.router)
 app.include_router(reply_notifications.router)
+app.include_router(easter_eggs.router)
+app.include_router(easter_eggs.admin_router)
 
 @app.get("/")
 def root():

@@ -22,6 +22,7 @@ from app.models.tool import Tool
 from app.models.subscriber import Subscriber
 from app.models.notification import NotificationOutbox
 from app.models.reply_notification import ReplyNotification
+from app.models.easter_egg import EasterEgg
 
 __all__ = [
     "Admin",
@@ -48,4 +49,5 @@ __all__ = [
     "Subscriber",
     "NotificationOutbox",
     "ReplyNotification",
+    "EasterEgg",
 ]

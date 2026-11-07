@@ -161,3 +161,21 @@
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--accent);
 }
+
+/* 暗号彩蛋页：把暗号显示成代码样式，一眼看出这是"要输入的东西" */
+.admin-code {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* 已关闭的彩蛋用暗一点的徽标 */
+.admin-badge--muted {
+  opacity: 0.55;
+}

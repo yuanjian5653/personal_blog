@@ -342,3 +342,318 @@
     display: none;
   }
 }
+
+/* ============================================
+   动态背景层（后台上传的壁纸 / 内置星空）
+   ============================================ */
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  /* 与星空同层：背景图之上、页面内容之下 */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-layer__media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 壁纸是氛围，稍微放大一点避免边缘露黑 */
+  transform: scale(1.02);
+  display: block;
+}
+
+/* 压一层暗，保证任何壁纸上文字都读得清 */
+.bg-layer__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(9, 11, 15, 0.55) 0%,
+    rgba(9, 11, 15, 0.35) 45%,
+    rgba(9, 11, 15, 0.7) 100%
+  );
+}
+
+/* ---------------- 过渡动效（由后台 transition 决定） ----------------
+ *
+ * 每种都带一点"点亮"的意思，而不是硬切。
+ * 时长统一 0.9s，比页面切换动画略慢，让人注意到"背景变了"。
+ * ------------------------------------------------------------------ */
+
+.bg-layer.is-fade {
+  animation: bgFade 1s ease-out both;
+}
+
+@keyframes bgFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bg-layer.is-zoom {
+  animation: bgZoom 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bgZoom {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.bg-layer.is-slide {
+  animation: bgSlide 0.95s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bgSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bg-layer.is-blur {
+  animation: bgBlur 1.2s ease-out both;
+}
+
+@keyframes bgBlur {
+  0% {
+    opacity: 0;
+    filter: blur(24px) saturate(1.6);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-layer {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   接星星（暗号「游戏」）
+   ============================================ */
+
+.cs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(6, 8, 12, 0.72);
+  backdrop-filter: blur(8px);
+  animation: csOverlayIn 0.25s ease-out both;
+}
+
+@keyframes csOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cs-panel {
+  width: min(520px, 100%);
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(18, 21, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  animation: csPanelIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes csPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cs-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cs-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e8eefc;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cs-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: #8b93a1;
+}
+
+.cs-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #b9c0cc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cs-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.cs-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0 10px;
+  font-size: 12px;
+  color: #8b93a1;
+}
+
+.cs-stat b {
+  color: #e8eefc;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-stat--empty {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.cs-stat--best {
+  margin-left: auto;
+}
+
+.cs-canvas-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(124, 92, 255, 0.16) 0%,
+    rgba(9, 11, 15, 0.9) 60%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.cs-canvas {
+  display: block;
+  width: 100%;
+  height: 340px;
+  /* 手机上拖动不要连带滚动页面 */
+  touch-action: none;
+  cursor: none;
+}
+
+.cs-over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(9, 11, 15, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.cs-over__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e8eefc;
+}
+
+.cs-over__score {
+  margin: 0;
+  font-size: 13px;
+  color: #b9c0cc;
+}
+
+.cs-over__score b {
+  color: #ffd76a;
+  font-size: 17px;
+}
+
+.cs-over__new {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  color: #1f2937;
+  background: #ffd76a;
+}
+
+.cs-again {
+  margin-top: 4px;
+  padding: 8px 22px;
+  border-radius: 9999px;
+  border: none;
+  background: var(--accent, #7c5cff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.cs-again:hover {
+  filter: brightness(1.12);
+}
+
+.cs-foot {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .cs-canvas {
+    height: 280px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-overlay,
+  .cs-panel {
+    animation: none;
+  }
+}

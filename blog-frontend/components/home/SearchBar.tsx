@@ -3,7 +3,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import {
-  EASTER_EGGS,
   getEggsServerSnapshot,
   getEggsSnapshot,
   submitCode,
@@ -28,6 +27,8 @@ export default function SearchBar() {
   const [value, setValue] = useState("");
   const [result, setResult] = useState<UnlockResult | null>(null);
   const [flash, setFlash] = useState(false);
+  // 校验是网络请求，避免连点
+  const [checking, setChecking] = useState(false);
 
   // localStorage 是"外部数据源"，用 useSyncExternalStore 读才不会触发
   // react-hooks/set-state-in-effect（在 effect 里同步 setState 会多一轮渲染）。
@@ -44,23 +45,31 @@ export default function SearchBar() {
     return () => window.clearTimeout(timer);
   }, [result]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!value.trim()) return;
+    const code = value.trim();
+    if (!code || checking) return;
 
-    const res = submitCode(value);
-    setResult(res);
-    setValue("");
-    if (res.type === "effect" || res.type === "off") {
-      // 让输入框边框闪一下，暗示"生效了"
-      setFlash(true);
-      window.setTimeout(() => setFlash(false), 600);
+    setChecking(true);
+    try {
+      // 暗号现在由后台校验（前端拿不到暗号列表）
+      const res = await submitCode(code);
+      setResult(res);
+      setValue("");
+      if (res.type === "effect" || res.type === "off") {
+        // 让输入框边框闪一下，暗示"生效了"
+        setFlash(true);
+        window.setTimeout(() => setFlash(false), 600);
+      }
+    } finally {
+      setChecking(false);
     }
   };
 
-  const activeNames = EASTER_EGGS.filter((e) => activeEggs.includes(e.id)).map(
-    (e) => e.name
-  );
+  // 已解锁的背景类彩蛋名字（游戏类不落盘，所以不会出现在这里）
+  const activeNames = activeEggs
+    .filter((e) => e.kind === "background" || e.kind === "stars")
+    .map((e) => e.name);
 
   return (
     <div className="w-full max-w-xl mx-auto">
@@ -108,8 +117,13 @@ export default function SearchBar() {
 
           {/* 有内容时才显示提示，平时保持原来的干净外观 */}
           {value.trim() && (
-            <button type="submit" className="easter-go" aria-label="确认暗号">
-              进入
+            <button
+              type="submit"
+              className="easter-go"
+              aria-label="确认暗号"
+              disabled={checking}
+            >
+              {checking ? "…" : "进入"}
             </button>
           )}
         </div>

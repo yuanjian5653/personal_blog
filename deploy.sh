@@ -43,6 +43,7 @@ MIGRATIONS=(
   "migrate_tools_color.py"
   "migrate_notification_cursor.py"
   "migrate_life_like_unique.py"
+  "seed_easter_eggs.py"
 )
 
 SKIP_BACKEND=0

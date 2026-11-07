@@ -92,6 +92,8 @@ class Settings:
     PHOTO_DIR: Path = BASE_DIR / os.getenv("PHOTO_DIR", "media/photos")
 
     THUMB_DIR: Path = BASE_DIR / os.getenv("THUMB_DIR", "media/thumbs")
+    # 动态壁纸（暗号彩蛋用）。原样存，不转码 —— 服务器上没有 ffmpeg
+    WALLPAPER_DIR: Path = BASE_DIR / os.getenv("WALLPAPER_DIR", "media/wallpapers")
 
     # ---- 邮件推送（订阅通知用，阿里云 DirectMail 的 SMTP）----
     #
@@ -149,7 +151,14 @@ class Settings:
 
     def ensure_dirs(self):
         """确保媒体目录存在"""
-        for d in (self.MEDIA_ROOT, self.MUSIC_DIR, self.COVER_DIR, self.PHOTO_DIR, self.THUMB_DIR,):
+        for d in (
+            self.MEDIA_ROOT,
+            self.MUSIC_DIR,
+            self.COVER_DIR,
+            self.PHOTO_DIR,
+            self.THUMB_DIR,
+            self.WALLPAPER_DIR,
+        ):
             d.mkdir(parents=True, exist_ok=True)
 
 
