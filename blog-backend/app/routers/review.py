@@ -172,6 +172,10 @@ def decide(
         )
 
     apply_decision(obj, payload.decision)
+    # 驳回时把理由落到内容上（成员在后台能看到）；通过时清空。
+    obj.review_note = (
+        payload.reason if payload.decision == "reject" else None
+    )
     db.add(obj)
 
     log_operation(

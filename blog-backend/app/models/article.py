@@ -45,5 +45,8 @@ class Article(SQLModel, table=True):
     # 历史数据迁移时统一置为 approved —— 线上表现不变，只有之后成员新提交的才进审核
     review_status: str = Field(default="approved", max_length=20, index=True)
 
+    # 审核意见（驳回理由）。通过时清空。成员在后台能看到这一句。
+    review_note: str | None = Field(default=None, max_length=500)
+
     created_at: datetime = Field(default_factory=utcnow, index=True)
     updated_at: datetime = Field(default_factory=utcnow)

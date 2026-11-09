@@ -18,6 +18,7 @@ class PhotoRead(BaseModel):
         from_attributes = True
     review_status: str = "approved"
     status: str = "published"
+    review_note: str | None = None
 
 class AlbumRead(BaseModel):
     id: int

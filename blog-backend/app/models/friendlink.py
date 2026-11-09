@@ -45,6 +45,9 @@ class FriendLink(SQLModel, table=True):
     # 历史数据迁移时统一置为 approved —— 线上表现不变，只有之后成员新提交的才进审核
     review_status: str = Field(default="approved", max_length=20, index=True)
 
+    # 审核意见（驳回理由）。通过时清空。成员在后台能看到这一句。
+    review_note: str | None = Field(default=None, max_length=500)
+
     # 是否对公众可见（与 review_status 正交：草稿/待审/已发布是两条轴）
     status: str = Field(default="published", max_length=20, index=True)
 

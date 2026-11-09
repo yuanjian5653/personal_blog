@@ -19,6 +19,7 @@ class EssayRead(BaseModel):
         from_attributes = True
     review_status: str = "approved"
     status: str = "published"
+    review_note: str | None = None
 
 class EssayCreate(BaseModel):
     title: str = Field(default="", max_length=200)
