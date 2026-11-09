@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
+from sqlmodel import Session
+from app.database import get_session
 from app.deps import get_current_admin
 from app.models import Admin
 from app.services.image_service import compress_image, generate_thumbnail
@@ -56,18 +58,25 @@ async def _save_and_compress(file: UploadFile) -> dict:
 @router.post("/image")
 async def upload_single(
     file: UploadFile = File(...),
+    db: Session = Depends(get_session),
     current_admin: Admin = Depends(get_current_admin),
 ):
     """单图上传"""
-    return await _save_and_compress(file)
+    ensure_upload_quota(db, current_admin)
+    result = await _save_and_compress(file)
+    record_upload(db, int(current_admin.id or 0), "image", result.get("name"), result.get("size") or 0)
+    db.commit()
+    return result
 
 
 @router.post("/images")
 async def upload_multiple(
     files: list[UploadFile] = File(...),
+    db: Session = Depends(get_session),
     current_admin: Admin = Depends(get_current_admin),
 ):
     """多图上传"""
+    ensure_upload_quota(db, current_admin)
     results = []
     for f in files:
         try:
@@ -75,6 +84,10 @@ async def upload_multiple(
         except Exception as e:
             logger.error("[上传] %s 失败：%s", f.filename, e)
             continue
+    for item in results:
+        record_upload(db, int(current_admin.id or 0), "image", item.get("name"), item.get("size") or 0)
+    if results:
+        db.commit()
     return results
 
 
@@ -99,12 +112,14 @@ WALLPAPER_RECOMMEND_BYTES = 3 * 1024 * 1024
 @router.post("/wallpaper")
 async def upload_wallpaper(
     file: UploadFile = File(...),
+    db: Session = Depends(get_session),
     current_admin: Admin = Depends(get_current_admin),
 ):
     """上传动态壁纸（原样保存，不压缩不转码）。
 
     返回 `asset_kind` 让前台决定用 <video> 还是 <img>。
     """
+    ensure_upload_quota(db, current_admin)
     original = Path(file.filename or "")
     ext = original.suffix.lower()
     if ext not in WALLPAPER_EXTENSIONS:

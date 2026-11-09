@@ -52,3 +52,4 @@ __all__ = [
     "ReplyNotification",
     "EasterEgg",
 ]
+from app.models.upload_log import UploadLog

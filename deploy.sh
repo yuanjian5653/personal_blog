@@ -49,6 +49,7 @@ MIGRATIONS=(
   "migrate_member_roles.py"
   "migrate_review_status.py"
   "migrate_review_note.py"
+  "migrate_upload_log.py"
 )
 
 SKIP_BACKEND=0

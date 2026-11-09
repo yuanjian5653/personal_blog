@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
+from app.services.quota import ensure_upload_quota, record_upload
 from app.services.review import public_conditions, stamp_new_content
 from app.deps import (
     get_current_admin,
@@ -194,6 +195,9 @@ async def upload_photos(
         raise HTTPException(status_code=404, detail="图片组不存在")
 
     existing = db.exec(select(Photo).where(Photo.album_id == album_id)).all()
+    # 上传前先看配额（超出直接 429，不浪费磁盘和 CPU）
+    ensure_upload_quota(db, current_admin)
+
     max_order = max((p.sort_order for p in existing), default=-1)
 
     # 确保目录存在
@@ -230,6 +234,14 @@ async def upload_photos(
                 tmp.unlink()
 
         max_order += 1
+        # 每成功保存一张就记一笔（配额统计靠它）
+        record_upload(
+            db,
+            current_admin.id,
+            "album",
+            dest.name,
+            dest.stat().st_size if dest.exists() else 0,
+        )
         photo = Photo(
             album_id=album_id,
             file_path=new_name,
