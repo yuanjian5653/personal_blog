@@ -70,6 +70,25 @@ def cleanup():
         if not ids:
             return
 
+        # ---- 先按**标题前缀**删测试内容 ----
+        # 不能只按"测试账号 id"删：测试里有一篇是 **真实管理员** 创建的
+        # （用来验证"管理员能改成员的文章"），它的 author_id 是你的账号，
+        # 按 id 过滤会漏掉 —— 每跑一次测试就留一篇 __mt_ 垃圾文章。
+        from sqlalchemy import text as sql_text
+
+        conn = db.connection()
+        for table, col in (("articles", "title"), ("essays", "title")):
+            conn.execute(
+                sql_text(f"DELETE FROM {table} WHERE {col} LIKE :p"),
+                {"p": PFX + "%"},
+            )
+        conn.execute(
+            sql_text("DELETE FROM life_posts WHERE content LIKE :p"),
+            {"p": PFX + "%"},
+        )
+        db.commit()
+
+        # ---- 再按 id 清掉测试账号的会话与内容 ----
         for aid in ids:
             for s in db.exec(
                 select(AdminSession).where(AdminSession.admin_id == aid)
@@ -355,6 +374,19 @@ check_true("返回 display_name", "display_name" in body)
 # ------------------------------------------------------------------ 收尾
 client.cookies.clear()
 cleanup()
+
+# 断言：跑完必须不留垃圾。
+# 这条是补的 —— 之前清理只按"测试账号 id"删，漏掉了测试里由**真实管理员**
+# 创建的那篇（用来验证"管理员能改成员的文章"），于是每跑一次测试
+# 首页就多一篇 __mt_ 文章。
+from sqlalchemy import text as _sql_text  # noqa: E402
+
+with Session(engine) as _db:
+    _left = _db.connection().execute(
+        _sql_text("SELECT COUNT(*) FROM articles WHERE title LIKE :p"),
+        {"p": PFX + "%"},
+    ).scalar()
+check("跑完测试不留下 __mt_ 垃圾", _left, 0)
 
 print()
 if FAILS:
