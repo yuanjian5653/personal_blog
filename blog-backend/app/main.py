@@ -120,6 +120,27 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 #   Referrer-Policy         跨站时不泄漏站内路径
 #   Permissions-Policy      关掉用不到的敏感能力（摄像头/麦克风/定位）
 @app.middleware("http")
+async def no_store_api(request, call_next):
+    """API 响应一律禁止缓存。
+
+    起因：内容被驳回后前台还能看到 —— 排查发现前端有 60 秒的
+    sessionStorage 缓存，nginx 也可能缓存 /api 响应。
+    只要有任何一层缓存，审核状态的变化就会延迟生效，
+    严重时"已驳回的内容"在缓存窗口内仍然对外可见。
+
+    这里从最外层堵死：API 响应带 Cache-Control: no-store，
+    nginx 和浏览器都不会留存副本。前端的内存缓存另说（下一轮处理）。
+    """
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        # 让中间层（nginx）也不要存
+        response.headers["X-Accel-Expires"] = "0"
+    return response
+
+
+@app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
