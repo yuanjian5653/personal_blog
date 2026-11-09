@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import ImagePicker from "@/components/admin/ImagePicker";
 
 /**
  * 个人资料表单（成员视角的「关于内容」）
@@ -141,7 +142,12 @@ export default function MyProfileForm() {
           }
         >
           <span>{f.label}</span>
-          {f.textarea ? (
+          {f.key === "avatar_url" || f.key === "about_banner" ? (
+            <ImagePicker
+              value={(profile?.[f.key] as string) ?? ""}
+              onChange={(url) => setField(f.key, url)}
+            />
+          ) : f.textarea ? (
             <textarea
               rows={f.rows ?? 4}
               value={(profile?.[f.key] as string) ?? ""}

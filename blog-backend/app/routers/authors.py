@@ -41,6 +41,30 @@ def _site_author_name(db: Session) -> str | None:
     return (cfg.config_value or "").strip() or None
 
 
+def _profile_avatars(db: Session) -> dict[int, str]:
+    """每个账号在关于页里设置的头像。"""
+    rows = db.exec(select(AuthorProfile)).all()
+    out: dict[int, str] = {}
+    for r in rows:
+        prof = r if isinstance(r, AuthorProfile) else r[0]
+        if isinstance(prof, AuthorProfile) and prof.avatar_url:
+            url = prof.avatar_url.strip()
+            if url:
+                out[prof.admin_id] = url
+    return out
+
+
+def _site_author_avatar(db: Session) -> str | None:
+    """站长在「关于内容」里设置的头像（site_config.author_avatar）。"""
+    row = db.exec(
+        select(SiteConfig).where(SiteConfig.config_key == "author_avatar")
+    ).first()
+    cfg = row if isinstance(row, SiteConfig) else (row[0] if row else None)
+    if cfg is None:
+        return None
+    return (cfg.config_value or "").strip() or None
+
+
 def _profile_nicknames(db: Session) -> dict[int, str]:
     """每个账号在关于页里设置的昵称。"""
     rows = db.exec(select(AuthorProfile)).all()
@@ -64,7 +88,9 @@ def list_authors(db: Session = Depends(get_session)):
     admins = [a for a in admins if isinstance(a, Admin)]
 
     nicknames = _profile_nicknames(db)
+    avatars = _profile_avatars(db)
     site_name = _site_author_name(db)
+    site_avatar = _site_author_avatar(db)
 
     out: list[AuthorPublic] = []
     for a in admins:
@@ -92,7 +118,8 @@ def list_authors(db: Session = Depends(get_session)):
             AuthorPublic(
                 id=aid,
                 name=display,
-                avatar=None,
+                avatar=avatars.get(aid)
+                or (site_avatar if a.role == ROLE_ADMIN else None),
                 is_admin=a.role == ROLE_ADMIN,
                 has_content=has,
             )

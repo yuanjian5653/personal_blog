@@ -1,6 +1,6 @@
 "use client";
 
-import AuthorChip from "@/components/AuthorChip";
+import AuthorName from "@/components/AuthorName";
 import { useEffect, useState } from "react";
 
 import type { Essay } from "@/lib/types";
@@ -144,7 +144,6 @@ export default function EssayItem({
           <div className="essay-item-head">
             <span className="essay-item-time">
               {relativeTime(essay.created_at)}
-              <AuthorChip authorId={essay.author_id} />
             </span>
             <span className="flex items-center">
               {images.length > 0 && (
@@ -159,6 +158,10 @@ export default function EssayItem({
           {/* 折叠时只显示一行（超出省略号）；展开后完整显示 */}
           <p className="essay-item-content">
             {essay.content || essay.title || "（无内容）"}
+          </p>
+          {/* 署名：像名人名句那样，正文后面接一行「—— 作者」 */}
+          <p className="essay-item-sign">
+            <AuthorName authorId={essay.author_id} />
           </p>
         </button>
 

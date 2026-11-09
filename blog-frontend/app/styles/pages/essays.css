@@ -401,3 +401,17 @@
     animation: none;
   }
 }
+
+/* 署名：正文后一行「—— 作者」，右对齐、弱化，像名人名句 */
+.essay-item-sign {
+  margin: 2px 0 0;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0.62;
+}
+
+.essay-item-sign__name {
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
