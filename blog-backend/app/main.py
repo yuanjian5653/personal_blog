@@ -13,12 +13,14 @@ from app.routers import (
     album,
     article,
     auth,
+    authors,
     comments,
     easter_eggs,
     essay,
     friendlink,
     life,
     log,
+    members,
     music,
     netease,
     notifications,
@@ -150,6 +152,8 @@ app.include_router(notifications.router)
 app.include_router(reply_notifications.router)
 app.include_router(easter_eggs.router)
 app.include_router(easter_eggs.admin_router)
+app.include_router(members.router)
+app.include_router(authors.router)
 
 @app.get("/")
 def root():

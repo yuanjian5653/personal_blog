@@ -21,6 +21,10 @@ class Album(SQLModel, table=True):
     # 日期标签，比如 "2025.10"
     date_label: str | None = Field(default=None, max_length=20)
     sort_order: int = Field(default=0)
+    # 内容作者（阶段 1：多成员共用一套后台，靠它区分归属）
+    # NULL = 迁移前的历史数据，展示时按站长处理
+    author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
+
     created_at: datetime = Field(default_factory=utcnow)
 
 
@@ -34,4 +38,8 @@ class Photo(SQLModel, table=True):
     title: str | None = Field(default=None, max_length=200)
     description: str | None = Field(default=None, max_length=500)
     sort_order: int = Field(default=0)
+    # 内容作者（阶段 1：多成员共用一套后台，靠它区分归属）
+    # NULL = 迁移前的历史数据，展示时按站长处理
+    author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
+
     created_at: datetime = Field(default_factory=utcnow, index=True)

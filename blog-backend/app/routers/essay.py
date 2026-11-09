@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, func, select
 
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, Essay
 from app.schemas.essay import EssayCreate, EssayRead, EssayUpdate
 from app.services.log_service import (
@@ -64,6 +68,10 @@ def get_essay(essay_id: int, db: Session = Depends(get_session)):
     e = db.get(Essay, essay_id)
     if not e:
         raise HTTPException(status_code=404, detail="随笔不存在")
+
+    require_content_owner(current_admin, e.author_id)
+
+    require_content_owner(current_admin, e.author_id)
     return _to_read(e)
 
 
@@ -86,6 +94,7 @@ def create_essay(
     current_admin: Admin = Depends(get_current_admin),
 ):
     e = Essay(
+        author_id=current_admin.id,
         title=data.title,
         content=data.content,
         excerpt=data.excerpt,

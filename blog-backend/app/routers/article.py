@@ -11,7 +11,11 @@ from sqlmodel import Session, func, select
 
 from app.constants import MARKDOWN_EXTENSIONS
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, Article
 from app.schemas.article import (
     ArticleCreate,
@@ -50,9 +54,11 @@ def list_articles(
     category: str | None = None,
     tags: str | None = None,      # 逗号分隔的多个标签
     status: str = "published",
+    mine: bool = False,           # true = 只返回当前登录者自己的（后台用）
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """
     文章列表（支持分类 + 多标签筛选）
@@ -68,6 +74,11 @@ def list_articles(
             stmt = stmt.where(func.find_in_set(tag, Article.tags) > 0)
     if status:
         stmt = stmt.where(Article.status == status)
+    # 后台「只看我的」：成员账号必须带登录态
+    if mine:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = stmt.where(Article.author_id == viewer.id)
     stmt = (
         stmt.order_by(Article.is_pinned.desc(), Article.created_at.desc())
         .offset(offset)
@@ -207,6 +218,7 @@ def create_article(
 
     article = Article(
         **payload,
+        author_id=current_admin.id,
         slug=slug,
         word_count=wc,
         read_time=rt,
@@ -238,6 +250,9 @@ def update_article(
     article = db.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
+
+    # 成员只能改自己的；管理员不受限
+    require_content_owner(current_admin, article.author_id)
 
     update_data = data.model_dump(exclude_unset=True)
 
@@ -291,6 +306,8 @@ def delete_article(
     article = db.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
+
+    require_content_owner(current_admin, article.author_id)
 
     log_operation(
         db, current_admin.id, "delete", "article", article_id,

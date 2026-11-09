@@ -6,7 +6,11 @@ from sqlmodel import Session, func, select
 
 from app.database import get_session
 from app.db_utils import count as db_count
-from app.deps import get_current_admin
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, Commenter, EssayLike, LifePost
 # 点赞的登录态与"随笔点赞"共用同一套（定义在 comments.py）
 from app.routers.comments import get_current_commenter, require_commenter
@@ -113,6 +117,10 @@ def get_life_post(post_id: int, db: Session = Depends(get_session)):
     p = db.get(LifePost, post_id)
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
+
+    require_content_owner(current_admin, p.author_id)
+
+    require_content_owner(current_admin, p.author_id)
     return _to_read(p)
 
 
@@ -123,6 +131,7 @@ def create_life_post(
     current_admin: Admin = Depends(get_current_admin),
 ):
     p = LifePost(
+        author_id=current_admin.id,
         content=data.content,
         images=dumps_json_list(data.images),
         location=data.location,

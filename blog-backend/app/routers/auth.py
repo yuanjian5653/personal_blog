@@ -229,7 +229,12 @@ def login(
 
     return LoginResponse(
         message="登录成功",
-        admin=AdminInfo(id=admin.id, username=admin.username),
+        admin=AdminInfo(
+            id=admin.id,
+            username=admin.username,
+            role=getattr(admin, 'role', 'admin'),
+            display_name=admin.shown_name if hasattr(admin, 'shown_name') else admin.username,
+        ),
     )
 
 
@@ -261,4 +266,13 @@ def logout(
 @router.get("/me", response_model=AdminInfo)
 def get_me(current_admin: Admin = Depends(get_current_admin)):
     """当前登录的管理员信息；未登录返回 401。"""
-    return AdminInfo(id=current_admin.id, username=current_admin.username)
+    return AdminInfo(
+        id=current_admin.id,
+        username=current_admin.username,
+        role=getattr(current_admin, "role", "admin"),
+        display_name=(
+            current_admin.shown_name
+            if hasattr(current_admin, "shown_name")
+            else current_admin.username
+        ),
+    )

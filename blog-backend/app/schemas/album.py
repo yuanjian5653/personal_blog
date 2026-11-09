@@ -10,6 +10,9 @@ class PhotoRead(BaseModel):
     description: str | None = None
     sort_order: int
     created_at: datetime
+    # 内容作者（成员标签用）。列表接口只给 id，
+    # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
+    author_id: int | None = None
 
     class Config:
         from_attributes = True
@@ -25,6 +28,9 @@ class AlbumRead(BaseModel):
     photo_count: int = 0          # 组内图片数
     preview_photos: list[str] = []  # ← 新增：最多 3 张预览图
     created_at: datetime
+    # 内容作者（成员标签用）。列表接口只给 id，
+    # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
+    author_id: int | None = None
 
     class Config:
         from_attributes = True
@@ -32,6 +38,9 @@ class AlbumRead(BaseModel):
 
 class AlbumDetail(AlbumRead):
     photos: list[PhotoRead] = []
+    # 内容作者（成员标签用）。列表接口只给 id，
+    # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
+    author_id: int | None = None
 
 
 class AlbumCreate(BaseModel):

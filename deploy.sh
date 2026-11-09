@@ -46,6 +46,7 @@ MIGRATIONS=(
   "seed_easter_eggs.py"
   "migrate_egg_drop_stars.py"
   "migrate_admin_lockout.py"
+  "migrate_member_roles.py"
 )
 
 SKIP_BACKEND=0

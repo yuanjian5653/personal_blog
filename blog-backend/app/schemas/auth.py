@@ -12,6 +12,9 @@ class LoginRequest(BaseModel):
 
 
 class AdminInfo(BaseModel):
+    # 角色与显示名：前端据此决定后台菜单、以及是否显示"只看我的"
+    role: str = "admin"
+    display_name: str | None = None
     """返回给前端的管理员信息（绝不包含密码哈希）"""
     id: int
     username: str

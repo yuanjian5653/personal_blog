@@ -23,7 +23,11 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, FriendLink
 from app.schemas.friendlink import (
     FriendLinkCreate,
@@ -87,6 +91,10 @@ def record_click(link_id: int, db: Session = Depends(get_session)):
     link = db.get(FriendLink, link_id)
     if link is None:
         raise HTTPException(status_code=404, detail="友链不存在")
+
+    require_content_owner(current_admin, link.author_id)
+
+    require_content_owner(current_admin, link.author_id)
     # 复用 weight 之外的独立计数没有建表字段，这里先不累加，
     # 只做存在性校验并返回成功 —— 避免"假装记了其实没记"。
     return {"ok": True}

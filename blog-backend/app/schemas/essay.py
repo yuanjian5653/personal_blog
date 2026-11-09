@@ -11,6 +11,9 @@ class EssayRead(BaseModel):
     likes: int = 0
     created_at: datetime
     updated_at: datetime
+    # 内容作者（成员标签用）。列表接口只给 id，
+    # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
+    author_id: int | None = None
 
     class Config:
         from_attributes = True

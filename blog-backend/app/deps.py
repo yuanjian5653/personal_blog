@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import Admin, AdminSession
+from app.models.admin import ROLE_ADMIN, STATUS_ACTIVE
 
 
 def get_current_admin(
@@ -80,6 +81,20 @@ def get_current_admin(
             detail="管理员不存在",
         )
 
+    # ---- 5. 账号必须是 active ----
+    # 被停用（disabled）或待审核（pending）的账号，即使手里有有效 session 也不能用。
+    # 这样管理员一禁用某个成员，对方下一次请求就立刻失效；
+    # 另外改角色/禁用时会主动删掉该账号所有 session（见 routers/members.py），
+    # 这里是第二道保险。
+    if getattr(admin, "status", STATUS_ACTIVE) != STATUS_ACTIVE:
+        # 顺手清掉这条 session，避免每次请求都白查一遍
+        db.delete(db_session)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="账号已被停用或尚未通过审核",
+        )
+
     return admin
 
 
@@ -101,3 +116,67 @@ def get_current_admin_optional(
         return get_current_admin(session_token=session_token, db=db)
     except HTTPException:
         return None
+
+
+# ============================================================
+# 角色与权限
+# ============================================================
+
+def get_current_staff(
+    admin: Admin = Depends(get_current_admin),
+) -> Admin:
+    """当前登录的**后台账号**（管理员或成员都算）。
+
+    语义上等同于 get_current_admin，单独起个名字是为了在
+    "成员也能用"的接口上读起来更清楚：
+        current = Depends(get_current_staff)
+    与之对应的 get_current_admin 现在也表示"任何后台账号"，
+    真正需要管理员权限的地方请用 require_admin_role。
+    """
+    return admin
+
+
+def require_admin_role(
+    admin: Admin = Depends(get_current_admin),
+) -> Admin:
+    """必须是管理员（role=admin）。成员访问会得到 403。
+
+    用在所有"站点级"的接口上：站点配置、音乐、工具、项目、
+    成员管理、内容审核、订阅管理、通知队列、操作日志。
+    """
+    if getattr(admin, "role", ROLE_ADMIN) != ROLE_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要管理员权限",
+        )
+    return admin
+
+
+def is_admin_role(admin: Admin) -> bool:
+    """是不是管理员（不抛异常，给路由内部做分支判断用）。"""
+    return getattr(admin, "role", ROLE_ADMIN) == ROLE_ADMIN
+
+
+def can_edit_content(admin: Admin, author_id: int | None) -> bool:
+    """这个账号能不能编辑/删除某条内容。
+
+    规则：
+      · 管理员       → 任何内容
+      · 成员         → 只能动自己发的
+      · author_id 为空（迁移前的历史数据）→ 只有管理员能动
+        （历史数据都属于站长，成员不该碰）
+    """
+    if is_admin_role(admin):
+        return True
+    if author_id is None:
+        return False
+    return author_id == admin.id
+
+
+def require_content_owner(admin: Admin, author_id: int | None) -> None:
+    """不是自己的内容就抛 403。"""
+    if not can_edit_content(admin, author_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只能修改自己发布的内容",
+        )

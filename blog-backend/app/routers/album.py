@@ -76,6 +76,10 @@ def get_album(album_id: int, db: Session = Depends(get_session)):
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    require_content_owner(current_admin, album.author_id)
+
+    require_content_owner(current_admin, album.author_id)
+
     photos = db.exec(
         select(Photo)
         .where(Photo.album_id == album_id)
@@ -236,6 +240,8 @@ def delete_photo(
     photo = db.get(Photo, photo_id)
     if not photo or photo.album_id != album_id:
         raise HTTPException(status_code=404, detail="照片不存在")
+
+    require_content_owner(current_admin, photo.author_id)
 
     log_operation(
         db, current_admin.id, "delete", "photo", photo_id,

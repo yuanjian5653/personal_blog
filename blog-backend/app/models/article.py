@@ -37,5 +37,9 @@ class Article(SQLModel, table=True):
 
     status: str = Field(default="published", max_length=20, index=True)
 
+    # 内容作者（阶段 1：多成员共用一套后台，靠它区分归属）
+    # NULL = 迁移前的历史数据，展示时按站长处理
+    author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
+
     created_at: datetime = Field(default_factory=utcnow, index=True)
     updated_at: datetime = Field(default_factory=utcnow)
