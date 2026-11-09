@@ -40,7 +40,7 @@ const MENU: Array<{
   { href: "/admin/posts", label: "文章管理", icon: FileText },
   { href: "/admin/essays", label: "随笔管理", icon: NotebookPen },
   { href: "/admin/life", label: "生活动态", icon: Inbox },
-  { href: "/admin/profile", label: "关于内容", icon: BookUser },
+  { href: "/admin/profile", label: "关于内容", icon: BookUser, adminOnly: true },
 
   // 媒体
   { href: "/admin/photos", label: "图片管理", icon: ImageIcon },
@@ -65,6 +65,23 @@ const MENU: Array<{
 ];
 
 /** 路径 → 顶栏标题。用最长前缀匹配，子页面（如 /admin/posts/new）也能拿到标题。 */
+/**
+ * 管理员专属的路由前缀 —— 从 MENU 的 adminOnly 标记派生，避免两处口径不一致。
+ *
+ * 用它做两件事：
+ *   ① 过滤右上角标签栏（那里渲染的是 sessionStorage 里的历史标签，
+ *      不做过滤的话，同浏览器里管理员开过的「日志」「评论」标签
+ *      会留在成员的可点列表里）
+ *   ② 路由守卫：成员直接敲 URL 进来时重定向回仪表盘
+ */
+const ADMIN_ONLY_PREFIXES = MENU.filter((m) => m.adminOnly).map((m) => m.href);
+
+function isAdminOnlyPath(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
+
 const PATH_TITLES: Array<[string, string]> = [
   ["/admin/dashboard", "仪表盘"],
   ["/admin/profile", "关于内容"],
@@ -120,10 +137,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // 惰性初始化：客户端首次渲染就把已存标签读进来，省掉一次额外渲染。
   // SSR 阶段 sessionStorage 不存在，loadTabs() 返回 []，与客户端首帧一致。
   const [tabs, setTabs] = useState<AdminTab[]>(() => loadTabs());
+  // 成员视角下要隐藏管理员专属路由的标签（见 ADMIN_ONLY_PREFIXES 的注释）
+  const isAdminRole = (admin?.role ?? "admin") === "admin";
+  const visibleTabs = isAdminRole
+    ? tabs
+    : tabs.filter((tab) => !isAdminOnlyPath(tab.href, ADMIN_ONLY_PREFIXES));
   // 侧边栏折叠。初始 false，避免 SSR/首帧不一致
   const [collapsed, setCollapsed] = useState(false);
 
   const isLoginPage = pathname === "/admin/login";
+
+  // 路由守卫：成员直接敲 /admin/logs 这类地址时，回仪表盘
+  // （后端也会 403，但让用户看到一屏报错没有意义）
+  useEffect(() => {
+    if (isLoginPage || checking || !admin) return;
+    if (isAdminRole) return;
+    if (!isAdminOnlyPath(pathname, ADMIN_ONLY_PREFIXES)) return;
+    router.replace("/admin/dashboard");
+  }, [isLoginPage, checking, admin, isAdminRole, pathname, router]);
 
   // 认证守卫：拿当前登录态，未登录则跳登录页。
   // 所有 setState 都在异步回调里，不在 effect 主体里同步执行。
@@ -331,10 +362,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* 标签栏 */}
         <div className="admin-tabs">
-          {tabs.length === 0 ? (
+          {visibleTabs.length === 0 ? (
             <span className="admin-tabs__empty">无打开的页面</span>
           ) : (
-            tabs.map((tab) => {
+            visibleTabs.map((tab) => {
               const active = tab.href === pathname;
               return (
                 <Link
