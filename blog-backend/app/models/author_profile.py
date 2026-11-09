@@ -25,6 +25,8 @@ class AuthorProfile(SQLModel, table=True):
     # 一个账号一份档案，直接用 admin_id 当主键
     admin_id: int = Field(foreign_key="admin.id", primary_key=True)
 
+    # 昵称：作者标签上显示的就是它（关于页里让人自己填）
+    nickname: str | None = Field(default=None, max_length=60)
     avatar_url: str | None = Field(default=None, max_length=500)
     bio: str | None = Field(default=None, max_length=300)
 

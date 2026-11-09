@@ -50,6 +50,7 @@ MIGRATIONS=(
   "migrate_review_status.py"
   "migrate_review_note.py"
   "migrate_upload_log.py"
+  "migrate_author_nickname.py"
 )
 
 SKIP_BACKEND=0

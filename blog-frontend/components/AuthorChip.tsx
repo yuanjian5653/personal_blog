@@ -23,8 +23,8 @@ export default function AuthorChip({ authorId, className = "" }: Props) {
   const author = authors.get(authorId);
   if (!author) return null;
 
-  const withContent = Array.from(authors.values()).filter((a) => a.has_content);
-  if (withContent.length <= 1) return null;
+  // 你要求"只要通过审核的作品都显示作者标签"，
+  // 所以不再判断作者数量 —— 单人站也显示（名称来自关于页的昵称）。
 
   return (
     <span className={`author-chip ${className}`.trim()} title={author.name}>
