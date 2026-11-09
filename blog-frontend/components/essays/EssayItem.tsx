@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorChip from "@/components/AuthorChip";
 import { useEffect, useState } from "react";
 
 import type { Essay } from "@/lib/types";
@@ -143,6 +144,7 @@ export default function EssayItem({
           <div className="essay-item-head">
             <span className="essay-item-time">
               {relativeTime(essay.created_at)}
+              <AuthorChip authorId={essay.author_id} />
             </span>
             <span className="flex items-center">
               {images.length > 0 && (

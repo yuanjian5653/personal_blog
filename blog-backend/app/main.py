@@ -25,6 +25,7 @@ from app.routers import (
     netease,
     notifications,
     playlist,
+    profile,
     project,
     reply_notifications,
     review,
@@ -177,6 +178,7 @@ app.include_router(easter_eggs.admin_router)
 app.include_router(members.router)
 app.include_router(authors.router)
 app.include_router(review.router)
+app.include_router(profile.router)
 
 @app.get("/")
 def root():

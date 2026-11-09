@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, ShieldCheck, Sparkles, Users, Wrench, type IconNode } from "lucide";
+import { BookUser, Clock, ExternalLink, FileText, FolderGit2, IdCard, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, ShieldCheck, Sparkles, Users, Wrench, type IconNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
 import { setRole } from "@/lib/useRole";
@@ -41,6 +41,7 @@ const MENU: Array<{
   { href: "/admin/essays", label: "随笔管理", icon: NotebookPen },
   { href: "/admin/life", label: "生活动态", icon: Inbox },
   { href: "/admin/profile", label: "关于内容", icon: BookUser, adminOnly: true },
+  { href: "/admin/my-profile", label: "我的资料", icon: IdCard },
 
   // 媒体
   { href: "/admin/photos", label: "图片管理", icon: ImageIcon },

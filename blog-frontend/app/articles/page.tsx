@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorChip from "@/components/AuthorChip";
 import {Suspense, useMemo, useState} from "react";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import Link from "next/link";
@@ -376,6 +377,7 @@ function ArticleCard({article: a}: { article: ArticleListItem }) {
               <path d="M12 6v6l4 2"/>
             </svg>
               {formatDateShort(a.created_at)}
+                <AuthorChip authorId={a.author_id} />
           </span>
                     <span className="tl-card-likes">
             <svg
