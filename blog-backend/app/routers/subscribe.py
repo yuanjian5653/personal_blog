@@ -62,18 +62,24 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _client_ip(request: Request) -> str | None:
-    """取真实客户端 IP。
+def _parse_xff(xff: str | None) -> str | None:
+    """从 X-Forwarded-For 里取真实客户端 IP（取**最后一段**）。
 
-    优先 X-Forwarded-For 的第一段（nginx 反代时会带上），
-    取不到再退回直连地址。X-Forwarded-For 可能是
-    "client, proxy1, proxy2"，只有第一段是真的客户端。
+    nginx 用 $proxy_add_x_forwarded_for 时会把真实地址**追加**在末尾，
+    客户端自己伪造的值会被排在前面。所以取最后一段才拿得到真实 IP，
+    取第一段等于让攻击者用假 IP 绕过订阅的频率限制。
     """
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+    if not xff:
+        return None
+    parts = [p.strip() for p in xff.split(",") if p.strip()]
+    return parts[-1] if parts else None
+
+
+def _client_ip(request: Request) -> str | None:
+    """取真实客户端 IP（用于订阅频率限制）。"""
+    real = _parse_xff(request.headers.get("x-forwarded-for"))
+    if real:
+        return real
     if request.client:
         return request.client.host
     return None

@@ -267,6 +267,45 @@ check_true(
 )
 check_true("auth.py 使用 settings.COOKIE_SAMESITE", "samesite=settings.COOKIE_SAMESITE" in src)
 
+# ------------------------------------------------------------------ 9. XFF 伪造
+print("\n=== 9. X-Forwarded-For 伪造无法绕过 IP 限速 ===")
+#
+# nginx 的 $proxy_add_x_forwarded_for 会把真实 IP **追加在末尾**，
+# 客户端自己伪造的值排在前面。所以必须取最后一段。
+# 如果取第一段，攻击者换着假 IP 就能绕过 IP 限速。
+pf = auth_module._parse_xff
+
+check("无头 → None", pf(None), None)
+check("空串 → None", pf(""), None)
+check("单个值原样返回", pf("1.2.3.4"), "1.2.3.4")
+check(
+    "伪造值 + 真实 IP → 取真实（最后一段）",
+    pf("1.2.3.4, 5.6.7.8"),
+    "5.6.7.8",
+)
+check("带空格与尾逗号", pf(" 1.2.3.4 , 5.6.7.8 , "), "5.6.7.8")
+check("多层伪造 → 仍取最后一段", pf("a, b, 9.9.9.9"), "9.9.9.9")
+
+# subscribe.py 里也有一份同样的解析，必须一致
+from app.routers import subscribe as subscribe_module  # noqa: E402
+
+check(
+    "订阅模块的解析与登录模块一致",
+    subscribe_module._parse_xff("1.2.3.4, 5.6.7.8"),
+    pf("1.2.3.4, 5.6.7.8"),
+)
+check_true(
+    "auth.py 不再用第一段",
+    'xff.split(",")[0]' not in (BACKEND / "app" / "routers" / "auth.py").read_text(
+        encoding="utf-8"
+    ),
+)
+check_true(
+    "subscribe.py 不再用第一段",
+    'xff.split(",")[0]'
+    not in (BACKEND / "app" / "routers" / "subscribe.py").read_text(encoding="utf-8"),
+)
+
 # ------------------------------------------------------------------ 收尾
 cleanup()
 auth_module._ip_failures.clear()
