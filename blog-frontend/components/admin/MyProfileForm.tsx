@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 /**
- * 我的资料（关于页信息）
+ * 个人资料表单（成员视角的「关于内容」）
  *
  * 版式与「关于内容」(/admin/profile) 保持一致的四段式：
  *   ① 个人信息   ② 社交链接   ③ 关于页面   ④ 其他设置
+ *
+ * 由 /admin/profile 在「成员」身份下渲染；管理员那边仍编辑站点级配置。
  *
  * 区别只在于数据落到哪里：
  *   /admin/profile    → site_config 全局配置（首页那张个人卡片，仅管理员）
@@ -77,7 +79,7 @@ const ABOUT: FieldDef[] = [
   },
 ];
 
-export default function MyProfilePage() {
+export default function MyProfileForm() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);

@@ -47,7 +47,6 @@ const TAB_RULES: Array<{ test: (h: string) => boolean; label: (h: string) => str
 const PATH_LABELS: Record<string, string> = {
   "/admin/dashboard": "仪表盘",
   "/admin/profile": "关于内容",
-  "/admin/my-profile": "我的资料",
   "/admin/posts": "文章管理",
   "/admin/essays": "随笔管理",
   "/admin/life": "生活动态",
