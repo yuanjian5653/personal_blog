@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, Sparkles, Users, Wrench, type IconNode } from "lucide";
+import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, ShieldCheck, Sparkles, Users, Wrench, type IconNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
 import { setRole } from "@/lib/useRole";
@@ -54,6 +54,7 @@ const MENU: Array<{
   { href: "/admin/projects", label: "项目管理", icon: FolderGit2, adminOnly: true },
   { href: "/admin/friends", label: "友链管理", icon: Link2 },
   { href: "/admin/members", label: "成员管理", icon: Users, adminOnly: true },
+  { href: "/admin/review", label: "内容审核", icon: ShieldCheck, adminOnly: true },
   { href: "/admin/tools", label: "工具管理", icon: Wrench, adminOnly: true },
   { href: "/admin/subscribers", label: "订阅管理", icon: Mail, adminOnly: true },
   { href: "/admin/notifications", label: "通知队列", icon: Send, adminOnly: true },
