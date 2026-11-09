@@ -22,7 +22,6 @@ from app.services import notifier
 
 router = APIRouter(prefix="/api/essays", tags=["随笔"])
 
-
 def _to_read(e: Essay) -> EssayRead:
     """数据库记录 → 响应对象（解析 images JSON）
 
@@ -40,21 +39,22 @@ def _to_read(e: Essay) -> EssayRead:
         updated_at=e.updated_at,
     )
 
-
 @router.get("", response_model=list[EssayRead])
 def list_essays(
     limit: int = 200,
     offset: int = 0,
+    mine: bool = False,
     db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
 ):
-    stmt = (
-        select(Essay)
-        .order_by(Essay.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-    )
+    """说说列表。mine=true 时只返回当前登录者自己的（后台用）。"""
+    stmt = select(Essay)
+    if mine:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = stmt.where(Essay.author_id == viewer.id)
+    stmt = stmt.order_by(Essay.created_at.desc()).offset(offset).limit(limit)
     return [_to_read(e) for e in db.exec(stmt).all()]
-
 
 @router.get("/random", response_model=EssayRead | None)
 def random_essay(db: Session = Depends(get_session)):
@@ -62,18 +62,13 @@ def random_essay(db: Session = Depends(get_session)):
     e = db.exec(stmt).first()
     return _to_read(e) if e else None
 
-
 @router.get("/{essay_id}", response_model=EssayRead)
 def get_essay(essay_id: int, db: Session = Depends(get_session)):
     e = db.get(Essay, essay_id)
     if not e:
         raise HTTPException(status_code=404, detail="随笔不存在")
 
-    require_content_owner(current_admin, e.author_id)
-
-    require_content_owner(current_admin, e.author_id)
     return _to_read(e)
-
 
 @router.post("/{essay_id}/like")
 def like_essay(essay_id: int, db: Session = Depends(get_session)):
@@ -85,7 +80,6 @@ def like_essay(essay_id: int, db: Session = Depends(get_session)):
     db.add(e)
     db.commit()
     return {"likes": e.likes}
-
 
 @router.post("", response_model=EssayRead)
 def create_essay(
@@ -109,7 +103,6 @@ def create_essay(
 
     notifier.enqueue_essay_created(e)
 
-
 @router.put("/{essay_id}", response_model=EssayRead)
 def update_essay(
     essay_id: int,
@@ -120,6 +113,9 @@ def update_essay(
     e = db.get(Essay, essay_id)
     if not e:
         raise HTTPException(status_code=404, detail="随笔不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, e.author_id)
 
     update = data.model_dump(exclude_unset=True)
     # images 是数组，落库前先序列化成 JSON 字符串
@@ -132,7 +128,6 @@ def update_essay(
     db.refresh(e)
     return _to_read(e)
 
-
 @router.delete("/{essay_id}")
 def delete_essay(
     essay_id: int,
@@ -142,6 +137,10 @@ def delete_essay(
     e = db.get(Essay, essay_id)
     if not e:
         raise HTTPException(status_code=404, detail="随笔不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, e.author_id)
+
     log_operation(db, current_admin.id, "delete", "essay", essay_id, None)
     db.delete(e)
     db.commit()

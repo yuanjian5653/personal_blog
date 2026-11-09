@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, Sparkles, Wrench, type IconNode } from "lucide";
+import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, Sparkles, Users, Wrench, type IconNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
+import { setRole } from "@/lib/useRole";
 import type { AdminInfo } from "@/lib/types";
 import {
   AdminTab,
@@ -25,7 +26,13 @@ import {
  * 图标统一用 lucide-react（项目已有依赖），不再用 emoji ——
  * emoji 的字体、颜色、基线在各系统上都不一样，放进导航很难对齐。
  */
-const MENU: Array<{ href: string; label: string; icon: IconNode }> = [
+const MENU: Array<{
+  href: string;
+  label: string;
+  icon: IconNode;
+  /** 仅管理员可见（成员只会看到内容相关的几项） */
+  adminOnly?: boolean;
+}> = [
   // 总览
   { href: "/admin/dashboard", label: "仪表盘", icon: LayoutDashboard },
 
@@ -37,23 +44,24 @@ const MENU: Array<{ href: string; label: string; icon: IconNode }> = [
 
   // 媒体
   { href: "/admin/photos", label: "图片管理", icon: ImageIcon },
-  { href: "/admin/music", label: "音乐管理", icon: Music },
+  { href: "/admin/music", label: "音乐管理", icon: Music, adminOnly: true },
 
   // 互动
-  { href: "/admin/comments", label: "评论管理", icon: MessageSquare },
-  { href: "/admin/guestbook", label: "杂谈管理", icon: Inbox },
+  { href: "/admin/comments", label: "评论管理", icon: MessageSquare, adminOnly: true },
+  { href: "/admin/guestbook", label: "杂谈管理", icon: Inbox, adminOnly: true },
 
   // 展示与扩展
-  { href: "/admin/projects", label: "项目管理", icon: FolderGit2 },
+  { href: "/admin/projects", label: "项目管理", icon: FolderGit2, adminOnly: true },
   { href: "/admin/friends", label: "友链管理", icon: Link2 },
-  { href: "/admin/tools", label: "工具管理", icon: Wrench },
-  { href: "/admin/subscribers", label: "订阅管理", icon: Mail },
-  { href: "/admin/notifications", label: "通知队列", icon: Send },
-  { href: "/admin/easter-eggs", label: "暗号彩蛋", icon: Sparkles },
+  { href: "/admin/members", label: "成员管理", icon: Users, adminOnly: true },
+  { href: "/admin/tools", label: "工具管理", icon: Wrench, adminOnly: true },
+  { href: "/admin/subscribers", label: "订阅管理", icon: Mail, adminOnly: true },
+  { href: "/admin/notifications", label: "通知队列", icon: Send, adminOnly: true },
+  { href: "/admin/easter-eggs", label: "暗号彩蛋", icon: Sparkles, adminOnly: true },
 
   // 系统
-  { href: "/admin/site", label: "站点配置", icon: Settings },
-  { href: "/admin/logs", label: "操作日志", icon: Clock },
+  { href: "/admin/site", label: "站点配置", icon: Settings, adminOnly: true },
+  { href: "/admin/logs", label: "操作日志", icon: Clock, adminOnly: true },
 ];
 
 /** 路径 → 顶栏标题。用最长前缀匹配，子页面（如 /admin/posts/new）也能拿到标题。 */
@@ -127,6 +135,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (cancelled) return;
         if (!a) router.replace("/admin/login");
         else setAdmin(a);
+      setRole(a?.role);
       })
       .finally(() => {
         if (!cancelled) setChecking(false);
@@ -240,7 +249,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* 菜单（扁平列表，无分组标题） */}
         <nav className="admin-nav">
           <ul>
-            {MENU.map((item) => {
+            {MENU.filter((item) => !item.adminOnly || (admin?.role ?? "admin") === "admin").map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <li key={item.href}>

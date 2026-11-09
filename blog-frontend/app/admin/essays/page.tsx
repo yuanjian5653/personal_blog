@@ -1,5 +1,7 @@
 "use client";
 
+import { withMine } from "@/lib/useRole";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -14,7 +16,7 @@ export default function AdminEssaysPage() {
 
   const load = () => {
     api
-      .get<Essay[]>("/api/essays")
+      .get<Essay[]>(withMine("/api/essays"))
       .then(setEssays)
       .catch(() => setEssays([]));
   };

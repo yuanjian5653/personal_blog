@@ -14,7 +14,11 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, Album, Photo
 from app.schemas.album import (
     AlbumCreate, AlbumDetail, AlbumRead, AlbumUpdate,
@@ -27,12 +31,20 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/albums", tags=["图片组"])
 
-
 @router.get("", response_model=list[AlbumRead])
-def list_albums(db: Session = Depends(get_session)):
-    """图片组列表，包含最多 3 张预览图"""
+def list_albums(
+    mine: bool = False,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
+    """图片组列表，包含最多 3 张预览图。mine=true 只看自己的（后台用）。"""
+    stmt = select(Album)
+    if mine:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = stmt.where(Album.author_id == viewer.id)
     albums = db.exec(
-        select(Album).order_by(Album.sort_order, Album.created_at.desc())
+        stmt.order_by(Album.sort_order, Album.created_at.desc())
     ).all()
 
     result = []
@@ -68,17 +80,12 @@ def list_albums(db: Session = Depends(get_session)):
         result.append(item)
     return result
 
-
 @router.get("/{album_id}", response_model=AlbumDetail)
 def get_album(album_id: int, db: Session = Depends(get_session)):
     """图片组详情，包含全部图片"""
     album = db.get(Album, album_id)
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
-
-    require_content_owner(current_admin, album.author_id)
-
-    require_content_owner(current_admin, album.author_id)
 
     photos = db.exec(
         select(Photo)
@@ -90,7 +97,6 @@ def get_album(album_id: int, db: Session = Depends(get_session)):
     detail.photo_count = len(photos)
     detail.photos = [PhotoRead.model_validate(p) for p in photos]
     return detail
-
 
 @router.post("", response_model=AlbumRead)
 def create_album(
@@ -110,7 +116,6 @@ def create_album(
     db.refresh(album)
     return AlbumRead.model_validate(album)
 
-
 @router.put("/{album_id}", response_model=AlbumRead)
 def update_album(
     album_id: int,
@@ -123,13 +128,15 @@ def update_album(
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, album.author_id)
+
     update_data = data.model_dump(exclude_unset=True)
     apply_updates(db, album, update_data, current_admin.id, "album", album_id)
 
     db.commit()
     db.refresh(album)
     return AlbumRead.model_validate(album)
-
 
 @router.delete("/{album_id}")
 def delete_album(
@@ -142,6 +149,9 @@ def delete_album(
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, album.author_id)
+
     # 先删照片
     for photo in db.exec(select(Photo).where(Photo.album_id == album_id)).all():
         db.delete(photo)
@@ -153,7 +163,6 @@ def delete_album(
     db.delete(album)
     db.commit()
     return {"message": "已删除"}
-
 
 @router.post("/{album_id}/photos", response_model=list[PhotoRead])
 async def upload_photos(
@@ -228,7 +237,6 @@ async def upload_photos(
 
     return [PhotoRead.model_validate(p) for p in created]
 
-
 @router.delete("/{album_id}/photos/{photo_id}")
 def delete_photo(
     album_id: int,
@@ -241,6 +249,7 @@ def delete_photo(
     if not photo or photo.album_id != album_id:
         raise HTTPException(status_code=404, detail="照片不存在")
 
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
     require_content_owner(current_admin, photo.author_id)
 
     log_operation(

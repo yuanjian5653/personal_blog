@@ -58,6 +58,7 @@ const PATH_LABELS: Record<string, string> = {
   "/admin/notifications": "通知队列",
   "/admin/easter-eggs": "暗号彩蛋",
   "/admin/friends": "友链管理",
+  "/admin/members": "成员管理",
   "/admin/comments": "评论管理",
   "/admin/guestbook": "杂谈管理",
   "/admin/site": "站点配置",

@@ -1,5 +1,7 @@
 "use client";
 
+import { withMine } from "@/lib/useRole";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { LifePost } from "@/lib/types";
@@ -33,7 +35,7 @@ export default function AdminLifePage() {
 
   const load = () => {
     api
-      .get<LifePost[]>("/api/life")
+      .get<LifePost[]>(withMine("/api/life"))
       .then(setPosts)
       .catch(() => setPosts([]));
   };

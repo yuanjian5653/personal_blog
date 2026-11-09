@@ -26,7 +26,6 @@ from app.services import notifier
 
 router = APIRouter(prefix="/api/life", tags=["生活"])
 
-
 def _to_read(p: LifePost, likes: int = 0, liked: bool = False) -> LifePostRead:
     """把数据库记录转成响应对象，解析 images JSON"""
     return LifePostRead(
@@ -38,7 +37,6 @@ def _to_read(p: LifePost, likes: int = 0, liked: bool = False) -> LifePostRead:
         likes=likes,
         liked=liked,
     )
-
 
 def _like_counts(db: Session, post_ids: list[int]) -> dict[int, int]:
     """一次查出多条动态的点赞数，避免每条一次 count（N+1）。"""
@@ -58,7 +56,6 @@ def _like_counts(db: Session, post_ids: list[int]) -> dict[int, int]:
         if pid is not None:
             out[int(pid)] = int(n or 0)
     return out
-
 
 def _liked_ids(db: Session, post_ids: list[int], viewer: Commenter | None) -> set[int]:
     """当前登录者赞过哪些（未登录返回空集）。"""
@@ -80,25 +77,27 @@ def _liked_ids(db: Session, post_ids: list[int], viewer: Commenter | None) -> se
             out.add(int(val))
     return out
 
-
 @router.get("", response_model=list[LifePostRead])
 def list_life_posts(
     limit: int = 100,
     offset: int = 0,
+    mine: bool = False,
     db: Session = Depends(get_session),
     viewer: Commenter | None = Depends(get_current_commenter),
+    staff: Admin | None = Depends(get_current_admin_optional),
 ):
     """动态列表，按时间倒序。带上点赞数与"我是否赞过"。
 
     点赞数用一条 GROUP BY 查出来（不是每条一次 count），
     liked 也是一条 in 查询 —— 列表页只有一两次额外查询。
     """
-    stmt = (
-        select(LifePost)
-        .order_by(LifePost.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-    )
+    stmt = select(LifePost)
+    if mine:
+        # 注意：这里的 viewer 是**评论者**（点赞用），后台过滤要用 staff
+        if staff is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = stmt.where(LifePost.author_id == staff.id)
+    stmt = stmt.order_by(LifePost.created_at.desc()).offset(offset).limit(limit)
     posts = [r if isinstance(r, LifePost) else r[0] for r in db.exec(stmt).all()]
     posts = [p for p in posts if isinstance(p, LifePost)]
 
@@ -111,18 +110,13 @@ def list_life_posts(
         for p in posts
     ]
 
-
 @router.get("/{post_id}", response_model=LifePostRead)
 def get_life_post(post_id: int, db: Session = Depends(get_session)):
     p = db.get(LifePost, post_id)
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
 
-    require_content_owner(current_admin, p.author_id)
-
-    require_content_owner(current_admin, p.author_id)
     return _to_read(p)
-
 
 @router.post("", response_model=LifePostRead)
 def create_life_post(
@@ -145,7 +139,6 @@ def create_life_post(
 
     notifier.enqueue_life_created(p)
 
-
 @router.put("/{post_id}", response_model=LifePostRead)
 def update_life_post(
     post_id: int,
@@ -156,6 +149,9 @@ def update_life_post(
     p = db.get(LifePost, post_id)
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, p.author_id)
 
     update = data.model_dump(exclude_unset=True)
     # images 是数组，落库前先序列化成 JSON 字符串
@@ -168,7 +164,6 @@ def update_life_post(
     db.refresh(p)
     return _to_read(p)
 
-
 @router.delete("/{post_id}")
 def delete_life_post(
     post_id: int,
@@ -178,11 +173,14 @@ def delete_life_post(
     p = db.get(LifePost, post_id)
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(current_admin, p.author_id)
+
     log_operation(db, current_admin.id, "delete", "life", post_id, None)
     db.delete(p)
     db.commit()
     return {"message": "已删除"}
-
 
 # ============================================================
 # 点赞
@@ -227,7 +225,6 @@ def toggle_life_like(
     )
 
     return LikeResponse(likes=total, liked=liked)
-
 
 @router.get("/{post_id}/like", response_model=LikeResponse)
 def read_life_likes(

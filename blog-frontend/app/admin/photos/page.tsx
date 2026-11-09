@@ -1,5 +1,7 @@
 "use client";
 
+import { withMine } from "@/lib/useRole";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -19,7 +21,7 @@ export default function AdminPhotosPage() {
 
   const loadAlbums = () => {
     api
-      .get<Album[]>("/api/albums")
+      .get<Album[]>(withMine("/api/albums"))
       .then(setAlbums)
       .catch(() => {})
       .finally(() => setLoading(false));

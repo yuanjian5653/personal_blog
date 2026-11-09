@@ -45,14 +45,12 @@ MAX_COVER_SIZE = 5 * 1024 * 1024  # 5MB
 # 封面图存放目录（复用 media 根目录下的 friends/）
 COVER_DIR = settings.MEDIA_ROOT / "friends"
 
-
 def _sort_key(link: FriendLink):
     """排序：权重大的在前；权重相同按 sort_order 小的在前；再按 id 稳定排序。
 
     加 id 兜底是为了避免"权重与 sort_order 都相同"时每次查询顺序不一样。
     """
     return (-link.weight, link.sort_order, link.id or 0)
-
 
 def _normalize_url(url: str) -> str:
     """补全协议头。
@@ -70,17 +68,30 @@ def _normalize_url(url: str) -> str:
         return u
     return f"https://{u}"
 
-
 # ============================================================
 # 公开接口
 # ============================================================
 
 @router.get("", response_model=list[FriendLinkRead])
-def list_friend_links(db: Session = Depends(get_session)):
-    """前台友链列表：只返回可见的，按权重倒序"""
+def list_friend_links(
+    mine: bool = False,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
+    """友链列表。
+
+    默认只返回可见的（前台用）。
+    mine=true 时返回"当前登录者添加的"（含不可见的），供成员在后台管理自己的。
+    """
+    if mine:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = select(FriendLink).where(FriendLink.author_id == viewer.id)
+        rows = db.exec(stmt).all()
+        return sorted(rows, key=_sort_key)
+
     rows = db.exec(select(FriendLink).where(FriendLink.is_visible == True)).all()  # noqa: E712
     return sorted(rows, key=_sort_key)
-
 
 @router.post("/{link_id}/click")
 def record_click(link_id: int, db: Session = Depends(get_session)):
@@ -92,13 +103,9 @@ def record_click(link_id: int, db: Session = Depends(get_session)):
     if link is None:
         raise HTTPException(status_code=404, detail="友链不存在")
 
-    require_content_owner(current_admin, link.author_id)
-
-    require_content_owner(current_admin, link.author_id)
     # 复用 weight 之外的独立计数没有建表字段，这里先不累加，
     # 只做存在性校验并返回成功 —— 避免"假装记了其实没记"。
     return {"ok": True}
-
 
 # ============================================================
 # 后台接口
@@ -112,7 +119,6 @@ def list_all_friend_links(
     """后台列表：包含不可见的，同样按权重倒序"""
     rows = db.exec(select(FriendLink)).all()
     return sorted(rows, key=_sort_key)
-
 
 @router.post("", response_model=FriendLinkRead)
 def create_friend_link(
@@ -145,7 +151,6 @@ def create_friend_link(
     db.commit()
     return link
 
-
 @router.put("/{link_id}", response_model=FriendLinkRead)
 def update_friend_link(
     link_id: int,
@@ -157,6 +162,11 @@ def update_friend_link(
     link = db.get(FriendLink, link_id)
     if link is None:
         raise HTTPException(status_code=404, detail="友链不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(admin, link.author_id)
+
+    # 成员只能改自己添加的；管理员不受限
 
     data = payload.model_dump(exclude_unset=True)
     if "url" in data and data["url"] is not None:
@@ -184,7 +194,6 @@ def update_friend_link(
     db.refresh(link)
     return link
 
-
 @router.delete("/{link_id}")
 def delete_friend_link(
     link_id: int,
@@ -195,6 +204,9 @@ def delete_friend_link(
     link = db.get(FriendLink, link_id)
     if link is None:
         raise HTTPException(status_code=404, detail="友链不存在")
+
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
+    require_content_owner(admin, link.author_id)
 
     name = link.name
     db.delete(link)
@@ -210,7 +222,6 @@ def delete_friend_link(
     )
     db.commit()
     return {"message": "已删除"}
-
 
 @router.post("/upload-cover")
 async def upload_cover(

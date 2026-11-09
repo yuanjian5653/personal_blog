@@ -7,6 +7,7 @@ import type { LifePost } from "@/lib/types";
 import { formatDateDots } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
 import { toggleLifeLike } from "@/lib/comments";
+import { useAuthors } from "@/lib/authors";
 
 interface Props {
   post: LifePost;
@@ -25,6 +26,13 @@ export default function LifeCard({
   authorName,
   authorAvatar,
 }: Props) {
+  // 动态的真实作者：多成员之后，卡片上的人应该是"发这条动态的人"，
+  // 而不是站点站长。author_id 为空（迁移前的老数据）时退回站点配置。
+  const authors = useAuthors();
+  const realAuthor = post.author_id != null ? authors.get(post.author_id) : undefined;
+  const shownName = realAuthor?.name || authorName;
+  const shownAvatar = realAuthor?.avatar || authorAvatar;
+
   // 点赞：用列表接口给的初始值，点击后本地即时更新（失败再回滚）
   const [likes, setLikes] = useState(post.likes ?? 0);
   const [liked, setLiked] = useState(post.liked ?? false);
@@ -75,18 +83,18 @@ export default function LifeCard({
           <div className="life-card__avatar">
             {authorAvatar ? (
               <img
-                src={resolveImageUrl(authorAvatar)}
-                alt={authorName}
+                src={resolveImageUrl(shownAvatar)}
+                alt={shownName}
                 onError={(e) =>
                   ((e.target as HTMLImageElement).style.display = "none")
                 }
               />
             ) : (
-              authorName[0] || "我"
+              shownName[0] || "我"
             )}
           </div>
           <div className="life-card__meta">
-            <div className="life-card__name">{authorName}</div>
+            <div className="life-card__name">{shownName}</div>
             <div className="life-card__date">
               <MorphIcon icon={Clock} size={11} />
               {formatDateDots(post.created_at)}

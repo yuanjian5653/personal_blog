@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/articles", tags=["文章"])
 
-
 def calc_stats(content: str) -> tuple[int, int]:
     """计算字数和阅读时长"""
     text = re.sub(r"[#*`>\-\[\]()!]", "", content)
@@ -40,14 +39,12 @@ def calc_stats(content: str) -> tuple[int, int]:
     read_time = max(1, round(word_count / 400))
     return word_count, read_time
 
-
 def make_slug(title: str) -> str:
     """生成 slug"""
     slug = re.sub(r"[^\w\u4e00-\u9fa5]+", "-", title).strip("-")
     if not slug:
         slug = uuid.uuid4().hex[:8]
     return slug[:100]
-
 
 @router.get("", response_model=list[ArticleListItem])
 def list_articles(
@@ -121,14 +118,12 @@ def list_tags(db: Session = Depends(get_session)):
         for name, cnt in sorted(counter.items(), key=lambda x: -x[1])
     ]
 
-
 @router.get("/slug/{slug}", response_model=ArticleRead)
 def get_by_slug(slug: str, db: Session = Depends(get_session)):
     article = db.exec(select(Article).where(Article.slug == slug)).first()
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
     return article
-
 
 @router.get("/{article_id}", response_model=ArticleRead)
 def get_article(article_id: int, db: Session = Depends(get_session)):
@@ -190,7 +185,6 @@ def increment_view(article_id: int, db: Session = Depends(get_session)):
     db.commit()
     return {"view_count": article.view_count}
 
-
 @router.post("/{article_id}/like")
 def increment_like(article_id: int, db: Session = Depends(get_session)):
     article = db.get(Article, article_id)
@@ -200,7 +194,6 @@ def increment_like(article_id: int, db: Session = Depends(get_session)):
     db.add(article)
     db.commit()
     return {"like_count": article.like_count}
-
 
 @router.post("", response_model=ArticleRead)
 def create_article(
@@ -239,7 +232,6 @@ def create_article(
 
     return article
 
-
 @router.put("/{article_id}", response_model=ArticleRead)
 def update_article(
     article_id: int,
@@ -251,14 +243,13 @@ def update_article(
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
 
-    # 成员只能改自己的；管理员不受限
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
     require_content_owner(current_admin, article.author_id)
 
     update_data = data.model_dump(exclude_unset=True)
 
     # 记录改动前的发布状态：用来判断"这次是不是第一次发布"
     was_published = (article.status or "") == "published"
-
 
     # slug 唯一性
     if "slug" in update_data and update_data["slug"]:
@@ -296,7 +287,6 @@ def update_article(
 
     return article
 
-
 @router.delete("/{article_id}")
 def delete_article(
     article_id: int,
@@ -307,6 +297,7 @@ def delete_article(
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
 
+    # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
     require_content_owner(current_admin, article.author_id)
 
     log_operation(
@@ -320,7 +311,6 @@ def delete_article(
 # ==================== Markdown 导入 ====================
 
 MAX_DOCUMENT_SIZE = 20 * 1024 * 1024  # 20MB
-
 
 def _decode_text(raw: bytes) -> str:
     """把上传的纯文本解码成 str。
@@ -352,7 +342,6 @@ def _decode_text(raw: bytes) -> str:
             detail="文件编码无法识别，请另存为 UTF-8 后再上传",
         )
 
-
 def _title_from_markdown(text: str, fallback: str) -> str:
     """从 Markdown 里推断标题。
 
@@ -381,7 +370,6 @@ def _title_from_markdown(text: str, fallback: str) -> str:
             return cleaned[:200]
 
     return fallback
-
 
 @router.post("/parse-document")
 async def parse_document(

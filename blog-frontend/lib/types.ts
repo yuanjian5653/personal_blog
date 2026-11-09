@@ -118,6 +118,9 @@ export function getCoverUrl(song: CoverSource): string {
 export interface AdminInfo {
   id: number;
   username: string;
+  /** 后端 /api/auth/me 现在会返回；老缓存里可能没有，读的时候要用 ?? 兜底 */
+  role?: "admin" | "member";
+  display_name?: string | null;
 }
 
 export interface Article {
@@ -137,6 +140,8 @@ export interface Article {
   status: string;
   created_at: string;
   updated_at: string;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }
 
 export interface ArticleListItem {
@@ -154,6 +159,8 @@ export interface ArticleListItem {
   like_count: number;
   status: string;
   created_at: string;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }
 
 export interface Essay {
@@ -165,6 +172,8 @@ export interface Essay {
   likes: number;
   created_at: string;
   updated_at: string;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }
 
 export interface Photo {
@@ -175,6 +184,8 @@ export interface Photo {
   description: string | null;
   sort_order: number;
   created_at: string;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }
 
 export interface Album {
@@ -187,6 +198,8 @@ export interface Album {
   photo_count: number;
   preview_photos: string[];      // ← 新增
   created_at: string;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }
 
 export interface AlbumDetail extends Album {
@@ -203,4 +216,6 @@ export interface LifePost {
   likes: number;
   /** 当前登录者是否赞过 */
   liked: boolean;
+  /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
+  author_id?: number | null;
 }

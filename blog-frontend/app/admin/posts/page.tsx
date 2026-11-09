@@ -1,5 +1,7 @@
 "use client";
 
+import { withMine } from "@/lib/useRole";
+
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -21,7 +23,7 @@ export default function AdminPostsPage() {
 
   const load = () => {
     api
-      .get<ArticleListItem[]>(`/api/articles?status=`)
+      .get<ArticleListItem[]>(withMine("/api/articles?status="))
       .then(setArticles)
       .catch(() => setArticles([]));
   };
