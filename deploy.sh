@@ -47,6 +47,7 @@ MIGRATIONS=(
   "migrate_egg_drop_stars.py"
   "migrate_admin_lockout.py"
   "migrate_member_roles.py"
+  "migrate_review_status.py"
 )
 
 SKIP_BACKEND=0

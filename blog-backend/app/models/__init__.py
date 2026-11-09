@@ -1,4 +1,5 @@
 from app.models.admin import Admin
+from app.models.author_profile import AuthorProfile
 from app.models.session import AdminSession
 from app.models.log import OperationLog
 from app.models.site_config import SiteConfig
