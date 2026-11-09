@@ -49,15 +49,17 @@ def list_essays(
     offset: int = 0,
     mine: bool = False,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """说说列表。mine=true 时只返回当前登录者自己的（后台用）。"""
     stmt = select(Essay)
     # 访客只看已发布且过审的；后台账号不受限（要看自己的草稿/待审）
-    if viewer is None:
+    if visitor or viewer is None:
         stmt = stmt.where(*public_conditions(Essay))
     if mine:
-        if viewer is None:
+        if visitor or viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = stmt.where(Essay.author_id == viewer.id)
     stmt = stmt.order_by(Essay.created_at.desc()).offset(offset).limit(limit)
@@ -78,6 +80,8 @@ def random_essay(db: Session = Depends(get_session)):
 def get_essay(
     essay_id: int,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     e = db.get(Essay, essay_id)
@@ -85,7 +89,7 @@ def get_essay(
         raise HTTPException(status_code=404, detail="随笔不存在")
 
     # 待审/草稿对访客一律 404（不暴露"存在但没通过"）
-    if viewer is None and not is_publicly_visible(e):
+    if (visitor or viewer is None) and not is_publicly_visible(e):
         raise HTTPException(status_code=404, detail="随笔不存在")
 
     return _to_read(e)

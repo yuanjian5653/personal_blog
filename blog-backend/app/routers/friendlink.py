@@ -77,6 +77,8 @@ def _normalize_url(url: str) -> str:
 def list_friend_links(
     mine: bool = False,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """友链列表。
@@ -85,7 +87,7 @@ def list_friend_links(
     mine=true 时返回"当前登录者添加的"（含不可见的），供成员在后台管理自己的。
     """
     if mine:
-        if viewer is None:
+        if visitor or viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = select(FriendLink).where(FriendLink.author_id == viewer.id)
         rows = db.exec(stmt).all()
@@ -93,7 +95,7 @@ def list_friend_links(
 
     stmt = select(FriendLink).where(FriendLink.is_visible == True)  # noqa: E712
     # 访客只看已发布且过审的（成员提交的待审友链不能出现在前台）
-    if viewer is None:
+    if visitor or viewer is None:
         stmt = stmt.where(*public_conditions(FriendLink))
     rows = db.exec(stmt).all()
     return sorted(rows, key=_sort_key)

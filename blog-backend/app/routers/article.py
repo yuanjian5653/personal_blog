@@ -56,6 +56,8 @@ def list_articles(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """
@@ -73,11 +75,11 @@ def list_articles(
     if status:
         stmt = stmt.where(Article.status == status)
     # 访客只看已发布且过审的（后台账号不受限）
-    if viewer is None:
+    if visitor or viewer is None:
         stmt = stmt.where(*public_conditions(Article))
     # 后台「只看我的」：成员账号必须带登录态
     if mine:
-        if viewer is None:
+        if visitor or viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = stmt.where(Article.author_id == viewer.id)
     stmt = (
@@ -126,6 +128,8 @@ def list_tags(db: Session = Depends(get_session)):
 def get_by_slug(
     slug: str,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     article = db.exec(select(Article).where(Article.slug == slug)).first()
@@ -135,7 +139,7 @@ def get_by_slug(
     # 之前只给 get_article（按 id）加了守卫，漏了这一条 ——
     # 结果是被驳回/草稿的文章只要知道 URL 就能打开，前端列表里也能通过
     # "相关推荐/最近文章"的链接点进去。两条路径必须一起守。
-    if viewer is None and not is_publicly_visible(article):
+    if (visitor or viewer is None) and not is_publicly_visible(article):
         raise HTTPException(status_code=404, detail="文章不存在")
     return article
 
@@ -143,13 +147,15 @@ def get_by_slug(
 def get_article(
     article_id: int,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     article = db.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="文章不存在")
     # 待审/草稿对访客一律 404 —— 不暴露"存在但没通过"
-    if viewer is None and not is_publicly_visible(article):
+    if (visitor or viewer is None) and not is_publicly_visible(article):
         raise HTTPException(status_code=404, detail="文章不存在")
     return article
 

@@ -87,6 +87,8 @@ def list_life_posts(
     mine: bool = False,
     db: Session = Depends(get_session),
     viewer: Commenter | None = Depends(get_current_commenter),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     staff: Admin | None = Depends(get_current_admin_optional),
 ):
     """动态列表，按时间倒序。带上点赞数与"我是否赞过"。
@@ -96,11 +98,11 @@ def list_life_posts(
     """
     stmt = select(LifePost)
     # 访客只看已发布且过审的
-    if staff is None:
+    if visitor or staff is None:
         stmt = stmt.where(*public_conditions(LifePost))
     if mine:
         # 注意：这里的 viewer 是**评论者**（点赞用），后台过滤要用 staff
-        if staff is None:
+        if visitor or staff is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = stmt.where(LifePost.author_id == staff.id)
     stmt = stmt.order_by(LifePost.created_at.desc()).offset(offset).limit(limit)

@@ -36,12 +36,14 @@ router = APIRouter(prefix="/api/albums", tags=["图片组"])
 def list_albums(
     mine: bool = False,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """图片组列表，包含最多 3 张预览图。mine=true 只看自己的（后台用）。"""
     stmt = select(Album)
     if mine:
-        if viewer is None:
+        if visitor or viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = stmt.where(Album.author_id == viewer.id)
     albums = db.exec(
@@ -52,7 +54,7 @@ def list_albums(
     for a in albums:
         photo_stmt = select(Photo).where(Photo.album_id == a.id)
         # 访客看不到待审/草稿照片（后台账号要能看全）
-        if viewer is None:
+        if visitor or viewer is None:
             photo_stmt = photo_stmt.where(*public_conditions(Photo))
         photos = db.exec(
             photo_stmt.order_by(Photo.sort_order, Photo.created_at)
@@ -87,6 +89,8 @@ def list_albums(
 def get_album(
     album_id: int,
     db: Session = Depends(get_session),
+    # visitor=True 表示这是前台请求，必须按访客视角过滤（即使浏览器带着管理员 Cookie）
+    visitor: bool = False,
     viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """图片组详情，包含全部图片（访客看不到待审/草稿照片）"""
@@ -95,7 +99,7 @@ def get_album(
         raise HTTPException(status_code=404, detail="图片组不存在")
 
     photo_stmt = select(Photo).where(Photo.album_id == album_id)
-    if viewer is None:
+    if visitor or viewer is None:
         photo_stmt = photo_stmt.where(*public_conditions(Photo))
     photos = db.exec(
         photo_stmt.order_by(Photo.sort_order, Photo.created_at)
