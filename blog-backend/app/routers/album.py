@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
+from app.services.review import public_conditions, stamp_new_content
 from app.deps import (
     get_current_admin,
     get_current_admin_optional,
@@ -49,10 +50,12 @@ def list_albums(
 
     result = []
     for a in albums:
+        photo_stmt = select(Photo).where(Photo.album_id == a.id)
+        # 访客看不到待审/草稿照片（后台账号要能看全）
+        if viewer is None:
+            photo_stmt = photo_stmt.where(*public_conditions(Photo))
         photos = db.exec(
-            select(Photo)
-            .where(Photo.album_id == a.id)
-            .order_by(Photo.sort_order, Photo.created_at)
+            photo_stmt.order_by(Photo.sort_order, Photo.created_at)
         ).all()
 
         item = AlbumRead.model_validate(a)
@@ -256,6 +259,7 @@ def delete_photo(
         db, current_admin.id, "delete", "photo", photo_id,
         changes={"file_path": {"old": photo.file_path, "new": None}},
     )
+    stamp_new_content(photo, current_admin, db)
     db.delete(photo)
     db.commit()
     return {"message": "已删除"}

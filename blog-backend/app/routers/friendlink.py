@@ -20,6 +20,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session, select
 
+from app.services.review import public_conditions, stamp_new_content
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
@@ -90,7 +91,11 @@ def list_friend_links(
         rows = db.exec(stmt).all()
         return sorted(rows, key=_sort_key)
 
-    rows = db.exec(select(FriendLink).where(FriendLink.is_visible == True)).all()  # noqa: E712
+    stmt = select(FriendLink).where(FriendLink.is_visible == True)  # noqa: E712
+    # 访客只看已发布且过审的（成员提交的待审友链不能出现在前台）
+    if viewer is None:
+        stmt = stmt.where(*public_conditions(FriendLink))
+    rows = db.exec(stmt).all()
     return sorted(rows, key=_sort_key)
 
 @router.post("/{link_id}/click")
@@ -136,6 +141,7 @@ def create_friend_link(
         raise HTTPException(status_code=400, detail="名称不能为空")
 
     link = FriendLink(**data)
+    stamp_new_content(link, admin, db)
     db.add(link)
     db.commit()
     db.refresh(link)

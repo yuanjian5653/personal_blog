@@ -11,6 +11,7 @@ from sqlmodel import Session, func, select
 
 from app.constants import MARKDOWN_EXTENSIONS
 from app.database import get_session
+from app.services.review import is_publicly_visible, public_conditions, stamp_new_content
 from app.deps import (
     get_current_admin,
     get_current_admin_optional,
@@ -71,6 +72,9 @@ def list_articles(
             stmt = stmt.where(func.find_in_set(tag, Article.tags) > 0)
     if status:
         stmt = stmt.where(Article.status == status)
+    # 访客只看已发布且过审的（后台账号不受限）
+    if viewer is None:
+        stmt = stmt.where(*public_conditions(Article))
     # 后台「只看我的」：成员账号必须带登录态
     if mine:
         if viewer is None:
@@ -126,9 +130,16 @@ def get_by_slug(slug: str, db: Session = Depends(get_session)):
     return article
 
 @router.get("/{article_id}", response_model=ArticleRead)
-def get_article(article_id: int, db: Session = Depends(get_session)):
+def get_article(
+    article_id: int,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
     article = db.get(Article, article_id)
     if not article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    # 待审/草稿对访客一律 404 —— 不暴露"存在但没通过"
+    if viewer is None and not is_publicly_visible(article):
         raise HTTPException(status_code=404, detail="文章不存在")
     return article
 
@@ -150,7 +161,9 @@ def get_related(
     if not my_tags:
         # 没有标签，返回最新的其他文章
         stmt = (
+            # 相关推荐里也不能出现草稿/待审
             select(Article)
+            .where(*public_conditions(Article))
             .where(Article.status == "published")
             .where(Article.id != article_id)
             .order_by(Article.created_at.desc())
@@ -216,6 +229,7 @@ def create_article(
         word_count=wc,
         read_time=rt,
     )
+    stamp_new_content(article, current_admin, db)
     db.add(article)
     db.flush()
 

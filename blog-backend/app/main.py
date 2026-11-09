@@ -27,6 +27,7 @@ from app.routers import (
     playlist,
     project,
     reply_notifications,
+    review,
     site_config,
     subscribe,
     tools,
@@ -154,6 +155,7 @@ app.include_router(easter_eggs.router)
 app.include_router(easter_eggs.admin_router)
 app.include_router(members.router)
 app.include_router(authors.router)
+app.include_router(review.router)
 
 @app.get("/")
 def root():

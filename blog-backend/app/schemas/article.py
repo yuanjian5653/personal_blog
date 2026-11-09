@@ -25,7 +25,7 @@ class ArticleRead(BaseModel):
 
     class Config:
         from_attributes = True
-
+    review_status: str = "approved"
 
 class ArticleListItem(BaseModel):
     """列表页用（不含 content）"""

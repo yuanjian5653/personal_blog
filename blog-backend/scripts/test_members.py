@@ -33,6 +33,11 @@ from app.main import app  # noqa: E402
 from app.models import Admin, AdminSession, Article  # noqa: E402
 
 guard("test_members.py")
+
+# 记下开始时间：清理时用它删掉本次测试产生的事件，
+# 否则会污染 test_notifier（本地没有 worker 消费，pending 会堆积）
+from datetime import datetime, timezone  # noqa: E402
+TEST_START = datetime.now(timezone.utc).replace(tzinfo=None)
 init_db()
 
 engine = create_engine(settings.DATABASE_URL, echo=False)

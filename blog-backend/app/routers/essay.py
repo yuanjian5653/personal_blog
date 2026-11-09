@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, func, select
 
 from app.database import get_session
+from app.services.review import is_publicly_visible, public_conditions, stamp_new_content
 from app.deps import (
     get_current_admin,
     get_current_admin_optional,
@@ -37,6 +38,9 @@ def _to_read(e: Essay) -> EssayRead:
         likes=e.likes,
         created_at=e.created_at,
         updated_at=e.updated_at,
+        author_id=e.author_id,
+        review_status=e.review_status,
+        status=e.status,
     )
 
 @router.get("", response_model=list[EssayRead])
@@ -49,6 +53,9 @@ def list_essays(
 ):
     """说说列表。mine=true 时只返回当前登录者自己的（后台用）。"""
     stmt = select(Essay)
+    # 访客只看已发布且过审的；后台账号不受限（要看自己的草稿/待审）
+    if viewer is None:
+        stmt = stmt.where(*public_conditions(Essay))
     if mine:
         if viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
@@ -58,14 +65,27 @@ def list_essays(
 
 @router.get("/random", response_model=EssayRead | None)
 def random_essay(db: Session = Depends(get_session)):
-    stmt = select(Essay).order_by(func.rand()).limit(1)
+    stmt = (
+        select(Essay)
+        .where(*public_conditions(Essay))
+        .order_by(func.rand())
+        .limit(1)
+    )
     e = db.exec(stmt).first()
     return _to_read(e) if e else None
 
 @router.get("/{essay_id}", response_model=EssayRead)
-def get_essay(essay_id: int, db: Session = Depends(get_session)):
+def get_essay(
+    essay_id: int,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
     e = db.get(Essay, essay_id)
     if not e:
+        raise HTTPException(status_code=404, detail="随笔不存在")
+
+    # 待审/草稿对访客一律 404（不暴露"存在但没通过"）
+    if viewer is None and not is_publicly_visible(e):
         raise HTTPException(status_code=404, detail="随笔不存在")
 
     return _to_read(e)
@@ -94,6 +114,7 @@ def create_essay(
         excerpt=data.excerpt,
         images=dumps_json_list(data.images),
     )
+    stamp_new_content(e, current_admin, db)
     db.add(e)
     db.flush()
     log_operation(db, current_admin.id, "create", "essay", e.id, None)

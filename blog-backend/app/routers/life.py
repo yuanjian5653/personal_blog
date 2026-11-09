@@ -4,6 +4,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, func, select
 
+from app.services.review import is_publicly_visible, public_conditions, stamp_new_content
 from app.database import get_session
 from app.db_utils import count as db_count
 from app.deps import (
@@ -36,6 +37,8 @@ def _to_read(p: LifePost, likes: int = 0, liked: bool = False) -> LifePostRead:
         created_at=p.created_at,
         likes=likes,
         liked=liked,
+        review_status=p.review_status,
+        status=p.status,
     )
 
 def _like_counts(db: Session, post_ids: list[int]) -> dict[int, int]:
@@ -92,6 +95,9 @@ def list_life_posts(
     liked 也是一条 in 查询 —— 列表页只有一两次额外查询。
     """
     stmt = select(LifePost)
+    # 访客只看已发布且过审的
+    if staff is None:
+        stmt = stmt.where(*public_conditions(LifePost))
     if mine:
         # 注意：这里的 viewer 是**评论者**（点赞用），后台过滤要用 staff
         if staff is None:
@@ -116,6 +122,9 @@ def get_life_post(post_id: int, db: Session = Depends(get_session)):
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
 
+    if not is_publicly_visible(p):
+        raise HTTPException(status_code=404, detail="动态不存在")
+
     return _to_read(p)
 
 @router.post("", response_model=LifePostRead)
@@ -130,14 +139,18 @@ def create_life_post(
         images=dumps_json_list(data.images),
         location=data.location,
     )
+    stamp_new_content(p, current_admin, db)
     db.add(p)
     db.flush()
     log_operation(db, current_admin.id, "create", "life", p.id, None)
     db.commit()
     db.refresh(p)
-    return _to_read(p)
-
-    notifier.enqueue_life_created(p)
+    result = _to_read(p)
+    # 注意：这里原来是 `return` 之后又调 notifier —— 那段代码永远执行不到。
+    # 现在把它放到 return 之前，且只在内容真的公开时才推送（待审的不推）。
+    if p.status == "published":
+        notifier.enqueue_life_created(p)
+    return result
 
 @router.put("/{post_id}", response_model=LifePostRead)
 def update_life_post(

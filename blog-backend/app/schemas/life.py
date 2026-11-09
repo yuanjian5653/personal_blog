@@ -17,7 +17,8 @@ class LifePostRead(BaseModel):
 
     class Config:
         from_attributes = True
-
+    review_status: str = "approved"
+    status: str = "published"
 
 class LifePostCreate(BaseModel):
     content: str = ""

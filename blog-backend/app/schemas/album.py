@@ -16,7 +16,8 @@ class PhotoRead(BaseModel):
 
     class Config:
         from_attributes = True
-
+    review_status: str = "approved"
+    status: str = "published"
 
 class AlbumRead(BaseModel):
     id: int
