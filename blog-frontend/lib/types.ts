@@ -142,6 +142,9 @@ export interface Article {
   updated_at: string;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
   author_id?: number | null;
+  /** 审核意见（驳回理由）。通过后清空 */
+  review_note?: string | null;
+  review_status?: string;
 }
 
 export interface ArticleListItem {
@@ -174,6 +177,9 @@ export interface Essay {
   updated_at: string;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
   author_id?: number | null;
+  /** 审核意见（驳回理由）。通过后清空 */
+  review_note?: string | null;
+  review_status?: string;
 }
 
 export interface Photo {
@@ -186,6 +192,9 @@ export interface Photo {
   created_at: string;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
   author_id?: number | null;
+  /** 审核意见（驳回理由）。通过后清空 */
+  review_note?: string | null;
+  review_status?: string;
 }
 
 export interface Album {
@@ -200,6 +209,9 @@ export interface Album {
   created_at: string;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
   author_id?: number | null;
+  /** 审核意见（驳回理由）。通过后清空 */
+  review_note?: string | null;
+  review_status?: string;
 }
 
 export interface AlbumDetail extends Album {
@@ -218,4 +230,7 @@ export interface LifePost {
   liked: boolean;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
   author_id?: number | null;
+  /** 审核意见（驳回理由）。通过后清空 */
+  review_note?: string | null;
+  review_status?: string;
 }

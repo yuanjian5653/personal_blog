@@ -1,6 +1,7 @@
 "use client";
 
 import { withMine } from "@/lib/useRole";
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -95,6 +96,10 @@ export default function AdminEssaysPage() {
                   >
                     ♡ {e.likes}
                   </span>
+                  <ReviewStatusBadge
+                    status={e.review_status}
+                    note={e.review_note}
+                  />
                 </div>
 
                 {/* 操作 */}
