@@ -1,6 +1,7 @@
 "use client";
 
 import { withMine } from "@/lib/useRole";
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
@@ -200,6 +201,10 @@ export default function AdminPostsPage() {
                   style={{ color: "var(--text-secondary)" }}
                 >
                   <span>{formatDateTime(a.created_at)}</span>
+                  <ReviewStatusBadge
+                    status={a.review_status}
+                    note={a.review_note}
+                  />
                   <span>👁 {a.view_count}</span>
                   <span>♡ {a.like_count}</span>
                 </div>

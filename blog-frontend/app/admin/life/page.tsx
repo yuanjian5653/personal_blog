@@ -1,6 +1,7 @@
 "use client";
 
-import { withMine } from "@/lib/useRole";
+import { withMine, getRole } from "@/lib/useRole";
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -160,6 +161,10 @@ export default function AdminLifePage() {
                   style={{ color: "var(--text-secondary)" }}
                 >
                   {formatDateTime(p.created_at)}
+                  <ReviewStatusBadge
+                    status={p.review_status}
+                    note={p.review_note}
+                  />
                   {p.location && ` · ${p.location}`}
                   {/* 点赞量（后台只读，用来判断哪条受欢迎） */}
                   <span className="admin-like-count" title="点赞数">
@@ -307,7 +312,7 @@ export default function AdminLifePage() {
                 className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
                 style={{ background: "var(--adm-blue)", color: "#fff" }}
               >
-                {saving ? "保存中..." : "保存"}
+                {saving ? "提交中..." : getRole() === "member" ? "提交" : "保存"}
               </button>
             </div>
           </div>

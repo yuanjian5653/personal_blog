@@ -163,7 +163,10 @@ export interface ArticleListItem {
   status: string;
   created_at: string;
   /** 内容作者（成员标签用；由 /api/authors 映射成名字） */
-  author_id?: number | null;
+  author_id?: number | null;  /** 审核状态（后台列表徽章用） */
+  review_status?: string;
+  /** 驳回理由 */
+  review_note?: string | null;
 }
 
 export interface Essay {
