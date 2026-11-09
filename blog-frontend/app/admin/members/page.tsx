@@ -7,11 +7,7 @@ import { Plus, RefreshCw, Trash2, UserCog } from "lucide";
 import {
   Member,
   MemberCreateInput,
-  MemberRole,
-  MemberStatus,
   ROLE_HINT,
-  ROLE_LABEL,
-  STATUS_LABEL,
   createMember,
   deleteMember,
   emptyMemberInput,
@@ -21,10 +17,15 @@ import {
 } from "@/lib/members";
 
 /**
- * 成员管理（仅管理员可见/可用）。
+ * 成员管理（仅管理员）。
  *
- * 后端的三条保护规则在这里也会撞到，所以要把错误信息原样显示出来，
- * 而不是笼统提示"操作失败" —— 比如"这是最后一个启用中的管理员"。
+ * 样式遵循后台既有页面的约定（与 friends / easter-eggs 两页一致）：
+ *   · 骨架用 Tailwind 工具类：space-y-4 / flex items-center justify-between
+ *   · 面板用 .admin-panel + .admin-panel__title
+ *   · 表单用 .admin-filters > .admin-field，label 里的文字必须包在 <span> 里
+ *     （.admin-field 的排版规则是按 span + input 写的）
+ *   · 表格用 .admin-table，单元格里的次要信息用 .admin-muted text-xs
+ *   · 操作入口用 .admin-link / .admin-link--danger，不用 select（后台没有 select 样式）
  */
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -41,8 +42,6 @@ export default function MembersPage() {
   );
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
     try {
       setMembers(await fetchMembers());
     } catch (e) {
@@ -52,8 +51,7 @@ export default function MembersPage() {
     }
   }, []);
 
-  // 首次加载：异步结果在回调里 setState（effect 体内不能同步 setState，
-  // 否则触发 project 的 react-hooks/set-state-in-effect 规则）
+  // 首次加载：异步结果在回调里 setState（effect 体内不能同步 setState）
   useEffect(() => {
     let alive = true;
     fetchMembers()
@@ -92,13 +90,13 @@ export default function MembersPage() {
     }
   };
 
-  const handleUpdate = async (
-    m: Member,
-    patch: { role?: MemberRole; status?: MemberStatus }
-  ) => {
+  const handleUpdate = async (m: Member, role: "admin" | "member" | undefined, status?: "active" | "disabled") => {
     setError("");
     try {
-      await updateMember(m.id, patch);
+      await updateMember(m.id, {
+        ...(role ? { role } : {}),
+        ...(status ? { status } : {}),
+      });
       flash(`已更新 ${m.display_name || m.username}`);
       await load();
     } catch (e) {
@@ -140,19 +138,21 @@ export default function MembersPage() {
   };
 
   return (
-    <div className="admin-page">
-      <header className="admin-page__head">
-        <div>
-          <h1 className="admin-page__title">成员管理</h1>
-          <p className="admin-muted">
-            管理员拥有全部权限；成员只能管理自己的内容。
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* 头部 */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-2xl font-bold">成员管理</h1>
         <div className="admin-actions">
+          <span className="admin-muted text-xs">
+            {members.length ? `共 ${members.length} 个账号` : ""}
+          </span>
           <button
             type="button"
             className="admin-btn admin-btn--ghost"
-            onClick={() => void load()}
+            onClick={() => {
+              setError("");
+              void load();
+            }}
           >
             <MorphIcon icon={RefreshCw} size={14} /> 刷新
           </button>
@@ -167,84 +167,78 @@ export default function MembersPage() {
             <MorphIcon icon={Plus} size={14} /> 新建账号
           </button>
         </div>
-      </header>
+      </div>
 
       {error && <p className="admin-error">{error}</p>}
       {notice && <p className="admin-ok">{notice}</p>}
 
       {/* 初始密码只显示这一次 */}
       {newPassword && (
-        <div className="admin-panel">
-          <p className="admin-panel__title">账号已创建 —— 初始密码只显示这一次</p>
-          <p className="admin-muted">
+        <div className="admin-panel space-y-2">
+          <div className="admin-panel__title">
+            账号已创建 —— 初始密码只显示这一次
+          </div>
+          <p className="text-sm">
             登录名 <code className="admin-code">{newPassword.user}</code>
-            ，初始密码{" "}
-            <code className="admin-code">{newPassword.pw}</code>
+            ，初始密码 <code className="admin-code">{newPassword.pw}</code>
           </p>
-          <p className="admin-muted">
-            请立刻把它发给对方，并提醒 ta 登录后自行修改。
+          <p className="admin-muted text-xs">
+            请立刻发给对方，并提醒 ta 登录后自行修改。数据库里只有 bcrypt 哈希，
+            这个明文再也拿不到。
           </p>
-          <button
-            type="button"
-            className="admin-btn admin-btn--ghost"
-            onClick={() => setNewPassword(null)}
-          >
-            我已记下
-          </button>
+          <div className="admin-actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn--ghost"
+              onClick={() => setNewPassword(null)}
+            >
+              我已记下
+            </button>
+          </div>
         </div>
       )}
 
+      {/* 新建表单 */}
       {showForm && (
-        <div className="admin-panel">
-          <p className="admin-panel__title">新建账号</p>
+        <div className="admin-panel space-y-3">
+          <div className="admin-panel__title">新建账号</div>
+
           <div className="admin-filters">
             <label className="admin-field">
-              登录名
+              <span>登录名 *</span>
               <input
-                className="admin-input"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 placeholder="英文数字，用于登录"
+                maxLength={50}
               />
             </label>
+
             <label className="admin-field">
-              显示名
+              <span>显示名</span>
               <input
-                className="admin-input"
                 value={form.display_name ?? ""}
                 onChange={(e) =>
                   setForm({ ...form, display_name: e.target.value })
                 }
                 placeholder="文章上显示的署名"
+                maxLength={60}
               />
             </label>
-            <label className="admin-field">
-              初始密码（至少 12 位）
+
+            <label className="admin-field admin-field--grow">
+              <span>初始密码 *（至少 12 位）</span>
               <input
-                className="admin-input"
                 type="text"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 placeholder="创建后只显示一次"
               />
             </label>
+
             <label className="admin-field">
-              角色
-              <select
-                className="admin-input"
-                value={form.role}
-                onChange={(e) =>
-                  setForm({ ...form, role: e.target.value as MemberRole })
-                }
-              >
-                <option value="member">成员</option>
-                <option value="admin">管理员</option>
-              </select>
-            </label>
-            <label className="admin-field">
-              每月上传上限（张）
+              <span>每月上传上限（张）</span>
               <input
-                className="admin-input"
                 type="number"
                 min={0}
                 value={form.upload_quota ?? 30}
@@ -254,7 +248,13 @@ export default function MembersPage() {
               />
             </label>
           </div>
-          <p className="admin-muted">{ROLE_HINT[form.role]}</p>
+
+          <div className="admin-actions">
+            <span className="admin-muted text-xs">
+              角色默认「成员」：{ROLE_HINT.member}
+            </span>
+          </div>
+
           <div className="admin-actions">
             <button
               type="button"
@@ -262,7 +262,7 @@ export default function MembersPage() {
               disabled={saving || !form.username || form.password.length < 12}
               onClick={() => void handleCreate()}
             >
-              {saving ? "创建中…" : "创建"}
+              {saving ? "创建中…" : "创建成员"}
             </button>
             <button
               type="button"
@@ -275,96 +275,130 @@ export default function MembersPage() {
         </div>
       )}
 
-      {loading ? (
-        <p className="admin-muted">加载中…</p>
-      ) : (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>账号</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>内容</th>
-              <th>最近登录</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id}>
-                <td>
-                  <div className="admin-cell-content">
-                    {m.display_name || m.username}
-                  </div>
-                  <div className="admin-cell-sub">
-                    <code className="admin-code">{m.username}</code>
-                  </div>
-                </td>
-                <td>
-                  <select
-                    className="admin-input admin-input--compact"
-                    value={m.role}
-                    disabled={!m.editable}
-                    onChange={(e) =>
-                      void handleUpdate(m, {
-                        role: e.target.value as MemberRole,
-                      })
-                    }
-                  >
-                    <option value="admin">管理员</option>
-                    <option value="member">成员</option>
-                  </select>
-                </td>
-                <td>
-                  <select
-                    className="admin-input admin-input--compact"
-                    value={m.status}
-                    disabled={!m.editable}
-                    onChange={(e) =>
-                      void handleUpdate(m, {
-                        status: e.target.value as MemberStatus,
-                      })
-                    }
-                  >
-                    <option value="active">{STATUS_LABEL.active}</option>
-                    <option value="disabled">{STATUS_LABEL.disabled}</option>
-                  </select>
-                </td>
-                <td className="admin-cell-sub">{m.content_count} 篇/条</td>
-                <td className="admin-cell-time">
-                  {m.last_login_at
-                    ? new Date(m.last_login_at).toLocaleString("zh-CN")
-                    : "从未"}
-                </td>
-                <td>
-                  <div className="admin-actions">
-                    <button
-                      type="button"
-                      className="admin-link"
-                      onClick={() => void handleResetPassword(m)}
+      {/* 列表 */}
+      <div className="admin-panel admin-panel--flush">
+        {loading ? (
+          <p className="admin-muted p-6">加载中…</p>
+        ) : members.length === 0 ? (
+          <p className="admin-muted p-6">
+            还没有成员。点右上角「新建账号」加一个，对方就能登录后台发文了。
+          </p>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>账号</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>内容</th>
+                <th>最近登录</th>
+                <th style={{ width: 210 }}>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id}>
+                  <td>
+                    <div className="admin-user">
+                      <span className="admin-user__name">
+                        {m.display_name || m.username}
+                      </span>
+                      <span className="admin-muted text-xs">
+                        <code className="admin-code">{m.username}</code>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        m.role === "admin"
+                          ? "admin-badge admin-badge--approved"
+                          : "admin-badge admin-badge--muted"
+                      }
                     >
-                      <MorphIcon icon={UserCog} size={13} /> 重置密码
-                    </button>
-                    {m.editable && (
+                      {m.role === "admin" ? "管理员" : "成员"}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        m.status === "active"
+                          ? "admin-badge admin-badge--approved"
+                          : "admin-badge admin-badge--rejected"
+                      }
+                    >
+                      {m.status === "active" ? "正常" : "已停用"}
+                    </span>
+                  </td>
+                  <td className="admin-muted text-xs">{m.content_count} 篇/条</td>
+                  <td className="admin-cell-time">
+                    {m.last_login_at
+                      ? new Date(m.last_login_at).toLocaleString("zh-CN")
+                      : "从未"}
+                  </td>
+                  <td>
+                    <div className="admin-actions">
+                      {m.editable && (
+                        <button
+                          type="button"
+                          className="admin-link"
+                          onClick={() =>
+                            void handleUpdate(
+                              m,
+                              m.role === "admin" ? "member" : "admin"
+                            )
+                          }
+                        >
+                          {m.role === "admin" ? "降为成员" : "升为管理员"}
+                        </button>
+                      )}
+                      {m.editable && (
+                        <button
+                          type="button"
+                          className={
+                            m.status === "active"
+                              ? "admin-link admin-link--warn"
+                              : "admin-link"
+                          }
+                          onClick={() =>
+                            void handleUpdate(
+                              m,
+                              undefined,
+                              m.status === "active" ? "disabled" : "active"
+                            )
+                          }
+                        >
+                          {m.status === "active" ? "停用" : "启用"}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        className="admin-link admin-link--danger"
-                        onClick={() => void handleDelete(m)}
+                        className="admin-link"
+                        onClick={() => void handleResetPassword(m)}
                       >
-                        <MorphIcon icon={Trash2} size={13} /> 停用
+                        <MorphIcon icon={UserCog} size={13} /> 重置密码
                       </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                      {m.editable && (
+                        <button
+                          type="button"
+                          className="admin-link admin-link--danger"
+                          onClick={() => void handleDelete(m)}
+                        >
+                          <MorphIcon icon={Trash2} size={13} /> 删除
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-      <p className="admin-muted">
-        提示：停用会立刻让该账号的登录失效（后端会删掉 ta 的所有会话）。
-        {ROLE_LABEL.admin} 至少保留一个，否则没人能再管理站点。
+      <p className="admin-muted text-xs">
+        停用会立刻让该账号的登录失效（后端会删掉 ta 的所有会话）。「删除」是软删除：
+        账号停用、记录与操作日志保留、内容不删。管理员至少保留一个，否则没人能再管理站点。
       </p>
     </div>
   );

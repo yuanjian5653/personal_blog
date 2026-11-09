@@ -45,17 +45,6 @@ export interface MemberCreated {
   password: string;
 }
 
-export const ROLE_LABEL: Record<MemberRole, string> = {
-  admin: "管理员",
-  member: "成员",
-};
-
-export const STATUS_LABEL: Record<MemberStatus, string> = {
-  active: "正常",
-  pending: "待审核",
-  disabled: "已停用",
-};
-
 export const ROLE_HINT: Record<MemberRole, string> = {
   admin: "拥有全部权限：成员管理、审核、站点配置、订阅与日志",
   member: "只能管理自己的文章 / 说说 / 动态 / 图片 / 友链",
