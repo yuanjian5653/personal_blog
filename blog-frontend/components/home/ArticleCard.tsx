@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorChip from "@/components/AuthorChip";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -73,6 +74,9 @@ export default function ArticleCard({ height = 220 }: { height?: number }) {
 
         {/* 默认状态：底部显示标题 + 简介 + 标签 */}
         <div key={`info-${animKey}`} className="article-flip-card__default">
+          <div className="article-flip-card__author">
+            <AuthorChip authorId={article.author_id} />
+          </div>
           <h2 className="article-flip-card__default-title">{article.title}</h2>
           <p className="article-flip-card__default-desc">
             {article.excerpt || ""}

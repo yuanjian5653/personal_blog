@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorChip from "@/components/AuthorChip";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { MorphIcon } from "morphicons/react";
@@ -55,6 +56,7 @@ function EssayFace({
             <span className="essay-card__time">
               {relativeTime(essay.created_at)}
             </span>
+            <AuthorChip authorId={essay.author_id} />
           </div>
           {images.length > 0 && (
             <span className="essay-card__badge">

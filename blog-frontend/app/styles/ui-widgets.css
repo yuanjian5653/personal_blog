@@ -440,3 +440,45 @@
     animation: none;
   }
 }
+
+/* ============================================
+   作者标签（成员标签）
+   ============================================
+   只有站点上有 ≥2 个有作品的作者时才渲染（由 AuthorChip 判断）。
+*/
+.author-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 140px;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-size: 10px;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--accent) 85%, var(--text-primary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.author-chip__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.author-chip__avatar {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.article-flip-card__author {
+  margin-bottom: 4px;
+}
