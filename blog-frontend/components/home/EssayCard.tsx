@@ -123,7 +123,7 @@ export default function EssayCard() {
 
   useEffect(() => {
     api
-      .get<Essay[]>(`/api/essays?limit=${FETCH_LIMIT}`)
+      .get<Essay[]>(`/api/essays?limit=${FETCH_LIMIT}&visitor=1`)
       .then((list) => {
         if (list && list.length > 0) setItems(list);
       })

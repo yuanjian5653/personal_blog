@@ -87,7 +87,7 @@ export default function ArticleDetailPage() {
   useEffect(() => {
     if (!slug) return;
     api
-      .get<Article>(`/api/articles/slug/${slug}`)
+      .get<Article>(`/api/articles/slug/${slug}?visitor=1`)
       .then((a) => {
         setArticle(a);
         api.post(`/api/articles/${a.id}/view`).catch(() => {});
@@ -100,7 +100,7 @@ export default function ArticleDetailPage() {
   useEffect(() => {
     if (!article) return;
     api
-      .get<ArticleListItem[]>(`/api/articles/${article.id}/related?limit=4`)
+      .get<ArticleListItem[]>(`/api/articles/${article.id}/related?limit=4&visitor=1`)
       .then(setRelated)
       .catch(() => setRelated([]));
   }, [article]);

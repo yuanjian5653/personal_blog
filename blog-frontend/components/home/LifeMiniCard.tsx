@@ -16,7 +16,7 @@ export default function LifeMiniCard() {
 
   useEffect(() => {
     api
-      .get<LifePost[]>("/api/life?limit=1")
+      .get<LifePost[]>("/api/life?limit=1&visitor=1")
       .then((list) => {
         if (list && list.length > 0) setPost(list[0]);
       })

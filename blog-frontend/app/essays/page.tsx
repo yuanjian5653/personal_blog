@@ -28,7 +28,7 @@ export default function EssaysPage() {
   useEffect(() => {
     let cancelled = false;
     api
-      .get<Essay[]>("/api/essays")
+      .get<Essay[]>("/api/essays?visitor=1")
       .then((list) => {
         if (!cancelled) setEssays(list);
       })

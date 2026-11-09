@@ -16,7 +16,7 @@ export default function PhotosPage() {
 
   useEffect(() => {
     api
-      .get<Album[]>("/api/albums")
+      .get<Album[]>("/api/albums?visitor=1")
       .then(setAlbums)
       .catch(() => {})
       .finally(() => setLoading(false));

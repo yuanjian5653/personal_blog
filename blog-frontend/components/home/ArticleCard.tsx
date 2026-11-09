@@ -18,7 +18,7 @@ export default function ArticleCard({ height = 220 }: { height?: number }) {
   // 加载文章列表
   useEffect(() => {
     api
-      .get<ArticleListItem[]>("/api/articles")
+      .get<ArticleListItem[]>("/api/articles?visitor=1")
       .then((list) => setArticles(list))
       .catch(() => {})
       .finally(() => setLoading(false));

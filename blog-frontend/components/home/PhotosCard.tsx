@@ -25,7 +25,7 @@ export default function PhotosCard() {
       // 拉配置 + 相册列表
       const [cfg, albums] = await Promise.all([
         api.get<{ configs: Record<string, string> }>("/api/site-config"),
-        api.get<Album[]>("/api/albums"),
+        api.get<Album[]>("/api/albums?visitor=1"),
       ]);
       const configuredId = cfg.configs?.home_album_id;
       const list = albums || [];
@@ -37,7 +37,7 @@ export default function PhotosCard() {
         if (found) target = found;
       }
 
-      const detail = await api.get<AlbumDetail>(`/api/albums/${target.id}`);
+      const detail = await api.get<AlbumDetail>(`/api/albums/${target.id}?visitor=1`);
 
       return { album: target, photos: detail.photos || [] };
     },

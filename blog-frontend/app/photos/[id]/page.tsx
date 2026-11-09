@@ -62,7 +62,7 @@ export default function AlbumDetailPage() {
     if (!id) return;
     let cancelled = false;
     api
-      .get<AlbumDetail>(`/api/albums/${id}`)
+      .get<AlbumDetail>(`/api/albums/${id}?visitor=1`)
       .then((a) => {
         if (!cancelled) setAlbum(a);
       })

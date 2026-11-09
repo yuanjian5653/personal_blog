@@ -21,7 +21,7 @@ export default function LifePage() {
   // 加载动态
   useEffect(() => {
     api
-      .get<LifePost[]>("/api/life")
+      .get<LifePost[]>("/api/life?visitor=1")
       .then(setPosts)
       .catch(() => {})
       .finally(() => setLoading(false));

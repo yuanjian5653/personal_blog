@@ -54,7 +54,7 @@ function ArticlesContent() {
 
     const {data: articles, loading} = useCachedFetch<ArticleListItem[]>(
         "all_articles_archive",
-        () => api.get<ArticleListItem[]>("/api/articles?limit=500"),
+        () => api.get<ArticleListItem[]>("/api/articles?limit=500&visitor=1"),
         60 * 1000
     );
 

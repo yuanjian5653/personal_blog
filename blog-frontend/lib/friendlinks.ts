@@ -24,7 +24,7 @@ export type FriendLinkInput = Omit<
 
 /** 前台列表（只含可见的，已按权重倒序） */
 export function fetchFriendLinks(): Promise<FriendLink[]> {
-  return api.get<FriendLink[]>("/api/friend-links");
+  return api.get<FriendLink[]>("/api/friend-links?visitor=1");
 }
 
 /** 后台列表（含不可见） */
