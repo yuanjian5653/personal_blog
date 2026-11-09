@@ -103,6 +103,31 @@ app.add_middleware(
 app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
 # ---- 注册路由 ----
+# ============================================================
+# 安全响应头
+# ============================================================
+#
+# 为什么放在应用层而不是只靠 nginx：
+#   ① 本地开发 / 直连 8000 端口时也有保护
+#   ② nginx 配置改错或换机器时不会静默失去保护
+#
+# 这几项都是"低风险高收益"的：
+#   X-Content-Type-Options  禁止浏览器猜 MIME（防上传文件被当脚本执行）
+#   X-Frame-Options         禁止被别的站用 iframe 套壳（防点击劫持）
+#   Referrer-Policy         跨站时不泄漏站内路径
+#   Permissions-Policy      关掉用不到的敏感能力（摄像头/麦克风/定位）
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+    )
+    return response
+
+
 app.include_router(auth.router)
 app.include_router(music.router)
 app.include_router(playlist.router)
@@ -133,4 +158,6 @@ def root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "debug": settings.DEBUG}
+    # 刻意不返回 DEBUG、版本号之类的信息 —— 这些对攻击者是有用的侦察数据，
+    # 对使用者没有价值。部署脚本只读 status 字段。
+    return {"status": "ok"}
