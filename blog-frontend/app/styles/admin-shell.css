@@ -956,3 +956,36 @@
   transform: none;
 }
 
+/* ============================================
+   图标与文字的垂直对齐
+
+   背景：.admin-btn / .admin-link 原本没有 flex 布局，
+   <svg> 图标和文字各自是行内盒子 —— svg 的基线是它自己的底边，
+   文字的基线是文字底边，两者对不齐（图标看起来往下坠）；
+   而且 svg 的默认尺寸比 13px 的字号大，视觉上"图标特别大"。
+
+   用 inline-flex + align-items:center 让它们在同一条中线上，
+   并把 svg 固定成 1em（跟按钮字号联动），任何字号下都不会再错位。
+   ============================================ */
+.admin-shell .admin-btn,
+.admin-shell .admin-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+/* 图标尺寸跟着字号走，不依赖组件里传的 size 是否精确 */
+.admin-shell .admin-btn svg,
+.admin-shell .admin-link svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+/* 纯文字按钮（没有图标）保持原来的紧凑感 */
+.admin-shell .admin-btn:not(:has(svg)),
+.admin-shell .admin-link:not(:has(svg)) {
+  gap: 0;
+}
