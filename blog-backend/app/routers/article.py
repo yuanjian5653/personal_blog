@@ -123,9 +123,19 @@ def list_tags(db: Session = Depends(get_session)):
     ]
 
 @router.get("/slug/{slug}", response_model=ArticleRead)
-def get_by_slug(slug: str, db: Session = Depends(get_session)):
+def get_by_slug(
+    slug: str,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
     article = db.exec(select(Article).where(Article.slug == slug)).first()
     if not article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    # ⚠️ 这是**前台文章详情真正走的接口**（按 slug 查）。
+    # 之前只给 get_article（按 id）加了守卫，漏了这一条 ——
+    # 结果是被驳回/草稿的文章只要知道 URL 就能打开，前端列表里也能通过
+    # "相关推荐/最近文章"的链接点进去。两条路径必须一起守。
+    if viewer is None and not is_publicly_visible(article):
         raise HTTPException(status_code=404, detail="文章不存在")
     return article
 

@@ -84,16 +84,21 @@ def list_albums(
     return result
 
 @router.get("/{album_id}", response_model=AlbumDetail)
-def get_album(album_id: int, db: Session = Depends(get_session)):
-    """图片组详情，包含全部图片"""
+def get_album(
+    album_id: int,
+    db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
+    """图片组详情，包含全部图片（访客看不到待审/草稿照片）"""
     album = db.get(Album, album_id)
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    photo_stmt = select(Photo).where(Photo.album_id == album_id)
+    if viewer is None:
+        photo_stmt = photo_stmt.where(*public_conditions(Photo))
     photos = db.exec(
-        select(Photo)
-        .where(Photo.album_id == album_id)
-        .order_by(Photo.sort_order, Photo.created_at)
+        photo_stmt.order_by(Photo.sort_order, Photo.created_at)
     ).all()
 
     detail = AlbumDetail.model_validate(album)
