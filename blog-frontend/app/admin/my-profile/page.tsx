@@ -6,13 +6,15 @@ import { api } from "@/lib/api";
 /**
  * 我的资料（关于页信息）
  *
- * 每个后台账号编辑**自己**的一份，存在 author_profiles 表。
- * 和「关于内容」(`/admin/profile`) 的区别：
- *   那个改的是站点的全局配置（首页那张个人卡片），只有管理员能动；
- *   这里改的是自己的档案，作者标签的昵称就取自 nickname 字段。
+ * 版式与「关于内容」(/admin/profile) 保持一致的四段式：
+ *   ① 个人信息   ② 社交链接   ③ 关于页面   ④ 其他设置
  *
- * 现阶段前台还没有成员关于页（阶段 3 做），所以这里保存后
- * 前台暂时看不到 —— 数据先攒着，接口已经通了。
+ * 区别只在于数据落到哪里：
+ *   /admin/profile    → site_config 全局配置（首页那张个人卡片，仅管理员）
+ *   这里              → author_profiles 里**自己**的一份（每个账号各一份）
+ *
+ * 现阶段前台还没有成员关于页（阶段 3），保存只落库；
+ * 但作者标签的昵称立刻用 nickname 的值。
  */
 interface Profile {
   admin_id: number;
@@ -31,23 +33,48 @@ interface Profile {
   is_public: boolean;
 }
 
-const FIELDS: Array<{
+type FieldDef = {
   key: keyof Profile;
   label: string;
   placeholder?: string;
   textarea?: boolean;
   rows?: number;
-}> = [
-  { key: "nickname", label: "昵称", placeholder: "作者标签上显示的名字" },
-  { key: "avatar_url", label: "头像地址", placeholder: "/media/... 或 https://..." },
-  { key: "bio", label: "一句话简介", textarea: true, rows: 2 },
-  { key: "social_github", label: "GitHub", placeholder: "https://github.com/xxx" },
+  grow?: boolean;
+  hint?: string;
+};
+
+/** ① 个人信息 —— 作者标签与成员卡片都用这里的昵称和头像 */
+const BASIC: FieldDef[] = [
+  {
+    key: "nickname",
+    label: "昵称",
+    placeholder: "作者标签上显示的名字",
+    hint: "前台内容旁的作者标签用的就是它",
+  },
+  { key: "avatar_url", label: "头像地址", placeholder: "/media/photos/xxx.jpg" },
+  { key: "bio", label: "一句话简介", textarea: true, rows: 2, grow: true },
+];
+
+/** ② 社交链接 —— 留空则不显示 */
+const SOCIALS: FieldDef[] = [
+  { key: "social_github", label: "GitHub", placeholder: "https://github.com/你的名字" },
   { key: "social_email", label: "Email", placeholder: "you@example.com" },
-  { key: "social_telegram", label: "Telegram", placeholder: "https://t.me/xxx" },
-  { key: "social_discord", label: "Discord" },
-  { key: "about_subtitle", label: "关于页副标题", placeholder: "HELLO WORLD" },
-  { key: "about_banner", label: "关于页横幅图", placeholder: "/media/..." },
-  { key: "about_content", label: "关于页正文（Markdown）", textarea: true, rows: 12 },
+  { key: "social_telegram", label: "Telegram", placeholder: "https://t.me/你的名字" },
+  { key: "social_discord", label: "Discord", placeholder: "用户名#1234" },
+];
+
+/** ③ 关于页面 —— 阶段 3 会渲染到 /members/[昵称] */
+const ABOUT: FieldDef[] = [
+  { key: "about_subtitle", label: "英文副标题", placeholder: "HELLO WORLD" },
+  { key: "about_banner", label: "顶部横幅图", placeholder: "/media/photos/xxx.jpg" },
+  {
+    key: "about_content",
+    label: "正文（Markdown）",
+    textarea: true,
+    rows: 12,
+    grow: true,
+    hint: "支持 Markdown；阶段 3 上线后会展示在你的个人页",
+  },
 ];
 
 export default function MyProfilePage() {
@@ -69,6 +96,10 @@ export default function MyProfilePage() {
       alive = false;
     };
   }, []);
+
+  const setField = (key: keyof Profile, value: string | boolean) => {
+    setProfile((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
 
   const save = async () => {
     if (!profile) return;
@@ -98,6 +129,38 @@ export default function MyProfilePage() {
     }
   };
 
+  const renderFields = (fields: FieldDef[]) => (
+    <div className="admin-filters">
+      {fields.map((f) => (
+        <label
+          key={f.key}
+          className={
+            f.grow ? "admin-field admin-field--grow" : "admin-field"
+          }
+        >
+          <span>{f.label}</span>
+          {f.textarea ? (
+            <textarea
+              rows={f.rows ?? 4}
+              value={(profile?.[f.key] as string) ?? ""}
+              placeholder={f.placeholder}
+              onChange={(e) => setField(f.key, e.target.value)}
+            />
+          ) : (
+            <input
+              value={(profile?.[f.key] as string) ?? ""}
+              placeholder={f.placeholder}
+              onChange={(e) => setField(f.key, e.target.value)}
+            />
+          )}
+          {f.hint ? (
+            <small className="admin-muted text-xs">{f.hint}</small>
+          ) : null}
+        </label>
+      ))}
+    </div>
+  );
+
   if (!profile) {
     return (
       <div className="space-y-4">
@@ -122,52 +185,38 @@ export default function MyProfilePage() {
         </p>
       )}
 
+      {/* ① 个人信息 */}
       <div className="admin-panel space-y-3">
         <div className="admin-panel__title">个人信息</div>
-        <div className="admin-filters">
-          {FIELDS.map((f) =>
-            f.textarea ? (
-              <label key={f.key} className="admin-field admin-field--grow">
-                <span>{f.label}</span>
-                <textarea
-                  rows={f.rows ?? 4}
-                  value={(profile[f.key] as string) ?? ""}
-                  onChange={(e) =>
-                    setProfile({ ...profile, [f.key]: e.target.value })
-                  }
-                />
-              </label>
-            ) : (
-              <label key={f.key} className="admin-field">
-                <span>{f.label}</span>
-                <input
-                  value={(profile[f.key] as string) ?? ""}
-                  placeholder={f.placeholder}
-                  onChange={(e) =>
-                    setProfile({ ...profile, [f.key]: e.target.value })
-                  }
-                />
-              </label>
-            )
-          )}
-        </div>
+        {renderFields(BASIC)}
       </div>
 
-      <div className="admin-panel space-y-2">
-        <div className="admin-panel__title">公开设置</div>
+      {/* ② 社交链接 */}
+      <div className="admin-panel space-y-3">
+        <div className="admin-panel__title">社交链接</div>
+        {renderFields(SOCIALS)}
+      </div>
+
+      {/* ③ 关于页面 */}
+      <div className="admin-panel space-y-3">
+        <div className="admin-panel__title">关于页面</div>
+        {renderFields(ABOUT)}
+      </div>
+
+      {/* ④ 其他设置 */}
+      <div className="admin-panel space-y-3">
+        <div className="admin-panel__title">其他设置</div>
         <label className="admin-field">
           <span>在成员列表里公开我的关于页</span>
           <input
             type="checkbox"
             checked={profile.is_public}
-            onChange={(e) =>
-              setProfile({ ...profile, is_public: e.target.checked })
-            }
+            onChange={(e) => setField("is_public", e.target.checked)}
           />
         </label>
         <p className="admin-muted text-xs">
-          前台还没有成员关于页（阶段 3 做）。现在保存不会影响任何已上线的页面，
-          但作者标签的昵称会立刻用上这里填的值。
+          默认关闭。开启后，阶段 3 上线的 /members 列表里会列出你。
+          现在保存不会影响任何已上线页面，但作者标签的昵称会立刻生效。
         </p>
       </div>
 
@@ -178,7 +227,11 @@ export default function MyProfilePage() {
           disabled={saving}
           onClick={() => void save()}
         >
-          {saving ? "保存中..." : profile.role === "member" ? "提交" : "保存"}
+          {saving
+            ? "保存中..."
+            : profile.role === "member"
+              ? "提交"
+              : "保存"}
         </button>
       </div>
     </div>

@@ -8,44 +8,44 @@
 @import "tailwindcss";
 
 /* ---- 基础 ---- */
-@import "./styles/base.css";
-@import "./styles/animations.css";
+@import "./styles/base/base.css";
+@import "./styles/base/animations.css";
 
 /* ---- 顶部导航（悬浮液态玻璃岛）---- */
-@import "./styles/navbar.css";
+@import "./styles/layout/navbar.css";
 
 /* ---- 首页 ---- */
-@import "./styles/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
-@import "./styles/entry-cards.css";     /* 首页底部三入口卡片（项目 / 工具 / 友链） */
-@import "./styles/essay-switch.css";     /* 说说卡片的顺时针旋转轮播（覆盖在 home-cards 之上） */
-@import "./styles/home-widgets.css";    /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
-@import "./styles/profile-socials.css"; /* 个人卡片的社交按钮 */
-@import "./styles/music-card.css";      /* 音乐卡片稳定高度 */
+@import "./styles/pages/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
+@import "./styles/pages/entry-cards.css";     /* 首页底部三入口卡片（项目 / 工具 / 友链） */
+@import "./styles/pages/essay-switch.css";     /* 说说卡片的顺时针旋转轮播（覆盖在 home-cards 之上） */
+@import "./styles/pages/home-widgets.css";    /* 毛玻璃基类、骨架屏、双卡片布局、底部信息（原 components.css） */
+@import "./styles/pages/profile-socials.css"; /* 个人卡片的社交按钮 */
+@import "./styles/pages/music-card.css";      /* 音乐卡片稳定高度 */
 
 /* ---- 通用交互组件 ---- */
-@import "./styles/ui-widgets.css";    /* 相册堆叠、返回按钮、标签切换、波频条、昼夜开关（原 components.css） */
+@import "./styles/layout/ui-widgets.css";    /* 相册堆叠、返回按钮、标签切换、波频条、昼夜开关（原 components.css） */
 
 /* ---- 音乐页（黑胶唱片 + 奶油面板）---- */
-@import "./styles/music-page.css";
+@import "./styles/pages/music-page.css";
 
 /* ---- 页面级 ---- */
-@import "./styles/article.css";
-@import "./styles/article-card.css";
-@import "./styles/archive.css";
-@import "./styles/sidebar.css";
-@import "./styles/life.css";
-@import "./styles/admin.css";
-@import "./styles/admin-dashboard.css";
-@import "./styles/essays.css";
-@import "./styles/comments.css";
-@import "./styles/friends.css";
-@import "./styles/projects.css";
-@import "./styles/tools.css";          /* 工具页（朴素列表） */
-@import "./styles/subscribe.css";      /* 订阅页 */
-@import "./styles/replyNotify.css";   /* 站内回复通知 */
-@import "./styles/route-loading.css";  /* 路由切换加载器 */
-@import "./styles/easter-eggs.css";     /* 彩蛋：暗号 + 星空 */
+@import "./styles/pages/article.css";
+@import "./styles/pages/article-card.css";
+@import "./styles/pages/archive.css";
+@import "./styles/layout/sidebar.css";
+@import "./styles/pages/life.css";
+@import "./styles/admin/admin.css";
+@import "./styles/admin/admin-dashboard.css";
+@import "./styles/pages/essays.css";
+@import "./styles/pages/comments.css";
+@import "./styles/pages/friends.css";
+@import "./styles/pages/projects.css";
+@import "./styles/pages/tools.css";          /* 工具页（朴素列表） */
+@import "./styles/pages/subscribe.css";      /* 订阅页 */
+@import "./styles/pages/replyNotify.css";   /* 站内回复通知 */
+@import "./styles/layout/route-loading.css";  /* 路由切换加载器 */
+@import "./styles/effects/easter-eggs.css";     /* 彩蛋：暗号 + 星空 */
 /* 后台亮色外壳放最后：它要覆盖 admin-dashboard.css 里
    html[data-card-style="black"] 对 --adm-* 的深色改写
    （两者选择器优先级相同，靠加载顺序决定胜负） */
-@import "./styles/admin-shell.css";
+@import "./styles/admin/admin-shell.css";
