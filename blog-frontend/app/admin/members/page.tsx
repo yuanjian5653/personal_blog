@@ -104,6 +104,26 @@ export default function MembersPage() {
     }
   };
 
+  /** 切换审核策略：跟随全局 → 必审 → 免审 → 跟随全局 */
+  const handleNeedReview = async (m: Member) => {
+    const next =
+      m.need_review === null ? true : m.need_review === true ? false : null;
+    setError("");
+    try {
+      await updateMember(m.id, { need_review: next });
+      flash(
+        next === null
+          ? "已改为跟随全局审核策略"
+          : next
+            ? "该成员的内容必须审核"
+            : "该成员免审"
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新失败");
+    }
+  };
+
   /** 改每月上传上限（0 = 不限） */
   const handleQuota = async (m: Member) => {
     const input = window.prompt(
@@ -348,6 +368,7 @@ export default function MembersPage() {
                 <th>状态</th>
                 <th>内容</th>
                 <th>上传上限</th>
+                <th>审核策略</th>
                 <th>最近登录</th>
                 <th style={{ width: 210 }}>操作</th>
               </tr>
@@ -393,6 +414,13 @@ export default function MembersPage() {
                       ? "不限"
                       : `${m.upload_quota ?? 30} 张/月`}
                   </td>
+                  <td className="admin-muted text-xs">
+                    {m.need_review === null
+                      ? "跟随全局"
+                      : m.need_review
+                        ? "必须审核"
+                        : "免审"}
+                  </td>
                   <td className="admin-cell-time">
                     {m.last_login_at
                       ? new Date(m.last_login_at).toLocaleString("zh-CN")
@@ -421,6 +449,13 @@ export default function MembersPage() {
                           {m.status === "active" ? "停用" : "启用"}
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="admin-link"
+                        onClick={() => void handleNeedReview(m)}
+                      >
+                        改审核策略
+                      </button>
                       <button
                         type="button"
                         className="admin-link"

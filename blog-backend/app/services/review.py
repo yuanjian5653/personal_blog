@@ -74,6 +74,22 @@ def set_review_required(db: Session, required: bool) -> bool:
 # 新建内容时打状态
 # ============================================================
 
+def should_review(db: Session, admin: Admin) -> bool:
+    """这个账号发布的内容要不要审核。
+
+    优先级：
+      1. 管理员 → 永远不审（自审自己没意义）
+      2. 该账号单独设了 need_review → 用它
+      3. 否则跟随站点全局开关
+    """
+    if getattr(admin, "role", "admin") == "admin":
+        return False
+    own = getattr(admin, "need_review", None)
+    if own is not None:
+        return bool(own)
+    return review_required(db)
+
+
 def stamp_new_content(obj, admin: Admin, db: Session) -> None:
     """给刚创建的内容打上 status / review_status。
 
@@ -86,15 +102,13 @@ def stamp_new_content(obj, admin: Admin, db: Session) -> None:
         任何只过滤 status 的老代码路径依然会把它查出来。
         两条轴同时压住，才不会漏。
     """
-    is_admin = getattr(admin, "role", "admin") == "admin"
-
-    if is_admin:
+    if not should_review(db, admin):
         obj.review_status = REVIEW_APPROVED
         if not getattr(obj, "status", None):
             obj.status = STATUS_PUBLISHED
         return
 
-    if review_required(db):
+    if True:
         obj.review_status = REVIEW_PENDING
         obj.status = STATUS_DRAFT
     else:

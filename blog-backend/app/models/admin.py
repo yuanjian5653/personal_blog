@@ -55,6 +55,11 @@ class Admin(SQLModel, table=True):
     # 对外显示名（作者徽章、成员列表用它，不是登录名）
     display_name: str | None = Field(default=None, max_length=60)
 
+    # ---- 审核策略（按人）----
+    # None = 跟随站点全局开关；True = 必须审核；False = 免审
+    # 管理员（role=admin）永远免审，这个字段只对成员有意义
+    need_review: bool | None = Field(default=None)
+
     # ---- 上传配额 ----
     # 每月最多上传多少张图片；None = 用站点默认值，0 = 不限
     upload_quota: int | None = Field(default=None)

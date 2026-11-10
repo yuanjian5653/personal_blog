@@ -17,6 +17,8 @@ export interface Member {
   role: MemberRole;
   status: MemberStatus;
   upload_quota: number | null;
+  /** None = 跟随全局；true 必审；false 免审 */
+  need_review: boolean | null;
   last_login_at: string | null;
   created_at: string;
   content_count: number;
@@ -30,6 +32,7 @@ export interface MemberCreateInput {
   display_name?: string;
   role: MemberRole;
   upload_quota?: number | null;
+  need_review?: boolean | null;
 }
 
 export interface MemberUpdateInput {
@@ -38,6 +41,7 @@ export interface MemberUpdateInput {
   role?: MemberRole;
   status?: MemberStatus;
   upload_quota?: number | null;
+  need_review?: boolean | null;
 }
 
 export interface MemberCreated {

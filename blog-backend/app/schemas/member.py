@@ -17,6 +17,8 @@ class MemberRead(BaseModel):
     role: Role
     status: Status
     upload_quota: int | None
+    # None = 跟随全局；True 必审；False 免审
+    need_review: bool | None = None
     last_login_at: datetime | None
     created_at: datetime
     # 该账号发布的内容数量（列表页显示用）
@@ -37,6 +39,7 @@ class MemberCreate(BaseModel):
     display_name: str | None = Field(default=None, max_length=60)
     role: Role = "member"
     upload_quota: int | None = Field(default=None, ge=0, le=100000)
+    need_review: bool | None = None
 
 
 class MemberUpdate(BaseModel):
@@ -46,6 +49,7 @@ class MemberUpdate(BaseModel):
     role: Role | None = None
     status: Status | None = None
     upload_quota: int | None = Field(default=None, ge=0, le=100000)
+    need_review: bool | None = None
 
 
 class PasswordReset(BaseModel):

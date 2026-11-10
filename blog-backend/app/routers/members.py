@@ -88,6 +88,7 @@ def _to_read(db: Session, admin: Admin, viewer: Admin) -> MemberRead:
         role=admin.role if admin.role in ROLES else ROLE_MEMBER,
         status=admin.status if admin.status in STATUSES else STATUS_ACTIVE,
         upload_quota=admin.upload_quota,
+        need_review=admin.need_review,
         last_login_at=admin.last_login_at,
         created_at=admin.created_at,
         content_count=_content_count(db, int(admin.id or 0)),
