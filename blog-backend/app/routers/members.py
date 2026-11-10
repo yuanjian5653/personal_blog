@@ -240,6 +240,18 @@ def update_member(
             detail="不能把成员提升为管理员（如需管理员请新建账号并直接指定角色）",
         )
 
+    # ---- 登录名唯一性 ----
+    if "username" in data:
+        new_name = (data["username"] or "").strip()
+        if len(new_name) < 2:
+            raise HTTPException(status_code=400, detail="登录名至少 2 个字符")
+        clash = db.exec(
+            select(Admin).where(Admin.username == new_name, Admin.id != member_id)
+        ).first()
+        if clash is not None:
+            raise HTTPException(status_code=409, detail="这个登录名已被占用")
+        data["username"] = new_name
+
     if "role" in data and data["role"] not in ROLES:
         raise HTTPException(status_code=400, detail=f"不支持的角色：{data['role']}")
     if "status" in data and data["status"] not in STATUSES:

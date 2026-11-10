@@ -104,6 +104,23 @@ export default function MembersPage() {
     }
   };
 
+  /** 改登录名 */
+  const handleRenameUser = async (m: Member) => {
+    const name = window.prompt(
+      `修改 ${m.username} 的登录名（对方下次登录要用新名字）：`,
+      m.username
+    );
+    if (name === null) return;
+    setError("");
+    try {
+      await updateMember(m.id, { username: name.trim() });
+      flash("登录名已更新");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新失败");
+    }
+  };
+
   /** 改显示名（作者标签与成员列表都用它） */
   const handleRename = async (m: Member) => {
     const name = window.prompt(
@@ -382,6 +399,13 @@ export default function MembersPage() {
                         onClick={() => void handleRename(m)}
                       >
                         改显示名
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-link"
+                        onClick={() => void handleRenameUser(m)}
+                      >
+                        改登录名
                       </button>
                       <button
                         type="button"

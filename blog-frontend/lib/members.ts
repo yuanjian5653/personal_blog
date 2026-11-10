@@ -33,6 +33,7 @@ export interface MemberCreateInput {
 }
 
 export interface MemberUpdateInput {
+  username?: string;
   display_name?: string;
   role?: MemberRole;
   status?: MemberStatus;

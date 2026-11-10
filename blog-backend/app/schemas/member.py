@@ -40,6 +40,8 @@ class MemberCreate(BaseModel):
 
 
 class MemberUpdate(BaseModel):
+    # 登录名也可改（改了不影响已登录的会话 —— 会话是按 admin.id 认的）
+    username: str | None = Field(default=None, min_length=2, max_length=50)
     display_name: str | None = Field(default=None, max_length=60)
     role: Role | None = None
     status: Status | None = None

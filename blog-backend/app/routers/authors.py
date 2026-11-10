@@ -28,6 +28,13 @@ class AuthorPublic(BaseModel):
     is_admin: bool = False
     # 是否已公开发布过内容（前端可据此只在真的作者身上显示徽章）
     has_content: bool = False
+    # 关于页里的资料，供文章详情的作者卡片使用
+    bio: str | None = None
+    social_github: str | None = None
+    social_email: str | None = None
+    social_telegram: str | None = None
+    social_discord: str | None = None
+    is_public: bool = False
 
 
 def _site_author_name(db: Session) -> str | None:
@@ -39,6 +46,17 @@ def _site_author_name(db: Session) -> str | None:
     if cfg is None:
         return None
     return (cfg.config_value or "").strip() or None
+
+
+def _profiles(db: Session) -> dict[int, AuthorProfile]:
+    """admin_id → 档案，一次查完，供昵称/头像/简介/社交统一取用。"""
+    rows = db.exec(select(AuthorProfile)).all()
+    out: dict[int, AuthorProfile] = {}
+    for r in rows:
+        prof = r if isinstance(r, AuthorProfile) else r[0]
+        if isinstance(prof, AuthorProfile):
+            out[prof.admin_id] = prof
+    return out
 
 
 def _profile_avatars(db: Session) -> dict[int, str]:
@@ -89,6 +107,7 @@ def list_authors(db: Session = Depends(get_session)):
 
     nicknames = _profile_nicknames(db)
     avatars = _profile_avatars(db)
+    profiles = _profiles(db)
     site_name = _site_author_name(db)
     site_avatar = _site_author_avatar(db)
 
@@ -122,6 +141,12 @@ def list_authors(db: Session = Depends(get_session)):
                 or (site_avatar if a.role == ROLE_ADMIN else None),
                 is_admin=a.role == ROLE_ADMIN,
                 has_content=has,
+                bio=(profiles.get(aid).bio if profiles.get(aid) else None),
+                social_github=(profiles.get(aid).social_github if profiles.get(aid) else None),
+                social_email=(profiles.get(aid).social_email if profiles.get(aid) else None),
+                social_telegram=(profiles.get(aid).social_telegram if profiles.get(aid) else None),
+                social_discord=(profiles.get(aid).social_discord if profiles.get(aid) else None),
+                is_public=bool(profiles.get(aid).is_public) if profiles.get(aid) else False,
             )
         )
     return out
