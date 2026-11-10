@@ -338,20 +338,8 @@ export default function MembersPage() {
                   </td>
                   <td>
                     <div className="admin-actions">
-                      {m.editable && (
-                        <button
-                          type="button"
-                          className="admin-link"
-                          onClick={() =>
-                            void handleUpdate(
-                              m,
-                              m.role === "admin" ? "member" : "admin"
-                            )
-                          }
-                        >
-                          {m.role === "admin" ? "降为成员" : "升为管理员"}
-                        </button>
-                      )}
+                      {/* 角色不可在此变更：管理员只能在创建时指定，
+                          成员不能被提权（后端的规则见 routers/members.py） */}
                       {m.editable && (
                         <button
                           type="button"

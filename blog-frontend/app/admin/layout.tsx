@@ -336,18 +336,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <h1 className="admin-topbar__title">{titleOf(pathname)}</h1>
 
           <div className="admin-topbar__right">
-            {/* 搜索入口：真实的入口（跳到评论管理），不是假的输入框 */}
-            <Link className="admin-topbar__search" href="/admin/comments">
-              <MorphIcon icon={Search} size={14} strokeWidth={2} />
-              <span>搜索评论…</span>
-            </Link>
+            {/* 右上角快捷入口：
+                搜索评论 / 操作日志 / 评论管理 都是管理员专属页面，
+                成员点了只会被路由守卫弹回仪表盘 —— 与其让人困惑，
+                不如直接不显示（仪表盘入口对所有人都有意义，保留）。 */}
+            {isAdminRole && (
+              <>
+                <Link className="admin-topbar__search" href="/admin/comments">
+                  <MorphIcon icon={Search} size={14} strokeWidth={2} />
+                  <span>搜索评论…</span>
+                </Link>
 
-            <TopIcon href="/admin/logs" title="操作日志">
-              <MorphIcon icon={Clock} size={16} strokeWidth={1.9} />
-            </TopIcon>
-            <TopIcon href="/admin/comments" title="评论管理">
-              <MorphIcon icon={MessageSquare} size={16} strokeWidth={1.9} />
-            </TopIcon>
+                <TopIcon href="/admin/logs" title="操作日志">
+                  <MorphIcon icon={Clock} size={16} strokeWidth={1.9} />
+                </TopIcon>
+                <TopIcon href="/admin/comments" title="评论管理">
+                  <MorphIcon icon={MessageSquare} size={16} strokeWidth={1.9} />
+                </TopIcon>
+              </>
+            )}
             <TopIcon href="/admin/dashboard" title="仪表盘">
               <MorphIcon icon={LayoutDashboard} size={16} strokeWidth={1.9} />
             </TopIcon>

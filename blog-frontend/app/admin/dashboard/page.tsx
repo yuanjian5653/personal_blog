@@ -1,5 +1,6 @@
 "use client";
 
+import { useRole } from "@/lib/useRole";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -51,11 +52,33 @@ const CARD_LINKS: Record<string, string> = {
   categories: "/admin/posts",
 };
 
+/**
+ * 成员能打开的卡片目标。
+ *
+ * 管理员点哪张卡都能跳；成员只能跳到 ta 真正能管理的页面 ——
+ * 否则点了会被路由守卫弹回仪表盘，看起来像"点了没反应"。
+ */
+const MEMBERS_CAN_OPEN = new Set([
+  "/admin/posts",
+  "/admin/essays",
+  "/admin/life",
+  "/admin/photos",
+  "/admin/friends",
+  "/admin/profile",
+]);
+
 function StatCards({ cards }: { cards: StatCard[] }) {
+  // Hook 必须在组件顶层调用，不能在 cards.map 的回调里
+  const isAdmin = useRole() === "admin";
   return (
     <div className="stat-cards">
       {cards.map((c) => {
-        const href = CARD_LINKS[c.key];
+        const target = CARD_LINKS[c.key];
+        // 成员只能跳到 ta 真能管理的页面，其余卡片不可点
+        const href =
+          target && (isAdmin || MEMBERS_CAN_OPEN.has(target))
+            ? target
+            : undefined;
         const inner = (
           <>
             <div className="stat-card__icon">

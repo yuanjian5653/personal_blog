@@ -133,7 +133,9 @@ export default function MyProfileForm() {
   };
 
   const renderFields = (fields: FieldDef[]) => (
-    <div className="admin-filters">
+    // 一行一个输入框：这里**不用** admin-filters（那是横排 flex，
+    // 会让两个字段左右并排），改成纵向堆叠，和管理员页的观感一致。
+    <div className="space-y-3">
       {fields.map((f) => (
         <label
           key={f.key}

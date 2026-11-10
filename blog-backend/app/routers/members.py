@@ -228,6 +228,18 @@ def update_member(
                 detail="这是最后一个启用中的管理员，不能降级或停用",
             )
 
+    # ---- 规则：成员不能被提升为管理员 ----
+    # 管理员账号只能在创建时明确指定（创建是"有意为之"的动作），
+    # 不允许事后把已有成员提权 —— 提权是越权最常见的一条路。
+    if (
+        data.get("role") == ROLE_ADMIN
+        and target.role != ROLE_ADMIN
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="不能把成员提升为管理员（如需管理员请新建账号并直接指定角色）",
+        )
+
     if "role" in data and data["role"] not in ROLES:
         raise HTTPException(status_code=400, detail=f"不支持的角色：{data['role']}")
     if "status" in data and data["status"] not in STATUSES:
