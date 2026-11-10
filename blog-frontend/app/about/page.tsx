@@ -10,6 +10,9 @@ interface Config {
   author_name?: string;
   author_bio?: string;
   author_avatar?: string;
+  site_intro_subtitle?: string;
+  site_intro_banner?: string;
+  site_intro_content?: string;
   about_subtitle?: string;
   about_banner?: string;
   about_content?: string;
@@ -28,10 +31,12 @@ export default function AboutPage() {
   // 图片 URL 处理
   const resolveUrl = (url?: string) => resolveImageUrl(url);
 
-  const banner = resolveUrl(cfg.about_banner);
+  // /about 现在是「网站介绍」；老字段 about_* 作为回落，
+  // 这样在后台填好 site_intro_* 之前页面不会空白。
+  const banner = resolveUrl(cfg.site_intro_banner || cfg.about_banner);
   const avatar = resolveUrl(cfg.author_avatar);
   const name = cfg.author_name || "博主";
-  const subtitle = cfg.about_subtitle || "HELLO WORLD";
+  const subtitle = cfg.site_intro_subtitle || cfg.about_subtitle || "ABOUT";
 
   return (
     <div className="max-w-2xl mx-auto pt-2">
@@ -94,7 +99,7 @@ export default function AboutPage() {
           {/* Markdown 内容 */}
           <div className="prose-custom">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cfg.about_content || ""}
+              {cfg.site_intro_content || cfg.about_content || ""}
             </ReactMarkdown>
           </div>
         </div>

@@ -38,6 +38,9 @@ export default function MembersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      <Link href="/" className="mb-2 inline-block text-xs" style={{ color: "var(--accent)" }}>
+        ← 回首页
+      </Link>
       <h1 className="text-2xl font-bold mb-2">成员</h1>
       <p className="text-sm mb-8" style={{ color: "var(--text-secondary)" }}>
         一起在这里写字的人。

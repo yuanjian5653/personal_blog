@@ -73,6 +73,28 @@ const FIELDS: FieldGroup[] = [
     ],
   },
   {
+    group: "网站介绍（关于页）",
+    items: [
+      {
+        key: "site_intro_subtitle",
+        label: "副标题",
+        type: "text" as const,
+        placeholder: "例如：一个写代码和写字的地方",
+      },
+      {
+        key: "site_intro_banner",
+        label: "横幅图地址",
+        type: "text" as const,
+        placeholder: "/media/photos/xxx.jpg",
+      },
+      {
+        key: "site_intro_content",
+        label: "正文（Markdown）",
+        type: "textarea" as const,
+      },
+    ],
+  },
+  {
     group: "网站信息",
     items: [
       { key: "icp_number", label: "ICP 备案号", type: "text" as const },

@@ -4,21 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MorphIcon } from "morphicons/react";
-import {
-  Feather,
-  FileText,
-  FolderKanban,
-  Coffee,
-  Home,
-  Image as ImageIcon,
-  Menu,
-  MessagesSquare,
-  Music,
-  User,
-  Users,
-  Wrench,
-  X,
-} from "lucide";
+import { Coffee, Feather, FileText, FolderKanban, Home, Image as ImageIcon, Info, Menu, MessagesSquare, Music, User, Users, Wrench, X } from "lucide";
 import NoticeBell from "./NoticeBell";
 import ThemeToggle from "./ThemeToggle";
 import { resolveLiquidGeometry } from "@/lib/navGeometry";
@@ -34,7 +20,8 @@ const NAV_ITEMS = [
   { href: "/tools", label: "工具", icon: Wrench },
   { href: "/friends", label: "友链", icon: Users },
   { href: "/guestbook", label: "杂谈", icon: MessagesSquare },
-  { href: "/about", label: "关于", icon: User },
+  { href: "/members", label: "成员", icon: User },
+  { href: "/about", label: "关于", icon: Info },
 ];
 
 function isActive(pathname: string, href: string): boolean {

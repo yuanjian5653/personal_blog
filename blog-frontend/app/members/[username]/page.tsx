@@ -14,6 +14,13 @@ import { resolveImageUrl } from "@/lib/url";
  * 数据来自 /api/members/{username}，只对在后台打开了「公开」的账号可见；
  * 未公开或不存在都返回 404，这里统一显示"没有这个成员"。
  */
+interface MemberItem {
+  username: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+}
+
 interface MemberDetail {
   username: string;
   name: string;
@@ -29,11 +36,62 @@ interface MemberDetail {
   is_admin: boolean;
 }
 
+/**
+ * 成员切换器
+ *
+ * 拉一次 /api/members，横向列出所有公开成员（含管理员），
+ * 当前这位高亮。点其他人直接换页面 —— 不然"看别人的关于页"
+ * 只能先退回列表再点，很绕。
+ */
+function MemberSwitcher({
+  members,
+  current,
+}: {
+  members: MemberItem[];
+  current: string;
+}) {
+  if (members.length <= 1) return null;
+  return (
+    <div className="mb-6 flex flex-wrap gap-2">
+      {members.map((m) => {
+        const active = m.username === current;
+        return (
+          <Link
+            key={m.username}
+            href={`/members/${encodeURIComponent(m.username)}`}
+            className="flex items-center gap-2 rounded-full px-3 py-1 text-xs transition-colors"
+            style={{
+              background: active ? "rgba(124,92,255,0.18)" : "transparent",
+              border: `1px solid ${active ? "var(--accent)" : "var(--card-border)"}`,
+              color: active ? "var(--accent)" : "var(--text-secondary)",
+            }}
+          >
+            <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full text-[10px]"
+              style={{ background: "rgba(124,92,255,0.18)" }}>
+              {m.avatar ? (
+                <img
+                  src={resolveImageUrl(m.avatar)}
+                  alt={m.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                m.name.slice(0, 1)
+              )}
+            </span>
+            {m.name}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MemberDetailPage() {
   const params = useParams<{ username: string }>();
   const username = decodeURIComponent(String(params?.username ?? ""));
   const [data, setData] = useState<MemberDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [all, setAll] = useState<MemberItem[]>([]);
 
   useEffect(() => {
     if (!username) return;
@@ -50,6 +108,20 @@ export default function MemberDetailPage() {
       alive = false;
     };
   }, [username]);
+
+  // 成员切换器用的全量列表（含管理员）
+  useEffect(() => {
+    let alive = true;
+    api
+      .get<MemberItem[]>("/api/members")
+      .then((rows) => {
+        if (alive) setAll(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   if (notFound) {
     return (
@@ -83,6 +155,8 @@ export default function MemberDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      <MemberSwitcher members={all} current={username} />
+
       {/* 横幅 */}
       {data.about_banner ? (
         <div

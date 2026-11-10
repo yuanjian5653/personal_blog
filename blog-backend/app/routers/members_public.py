@@ -69,6 +69,9 @@ def list_members(db: Session = Depends(get_session)):
     cfg = get_all_configs(db)
     site_name = (cfg.get("author_name") or "").strip()
     site_bio = (cfg.get("author_bio") or "").strip()
+    site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
+    site_about_banner = (cfg.get("about_banner") or "").strip() or None
+    site_about_content = (cfg.get("about_content") or "").strip() or None
 
     out: list[MemberPublicItem] = []
     for a, prof in _public_rows(db):
@@ -94,6 +97,9 @@ def get_member(username: str, db: Session = Depends(get_session)):
     cfg = get_all_configs(db)
     site_name = (cfg.get("author_name") or "").strip()
     site_bio = (cfg.get("author_bio") or "").strip()
+    site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
+    site_about_banner = (cfg.get("about_banner") or "").strip() or None
+    site_about_content = (cfg.get("about_content") or "").strip() or None
 
     for a, prof in _public_rows(db):
         if a.username != username:
@@ -110,9 +116,14 @@ def get_member(username: str, db: Session = Depends(get_session)):
             social_email=prof.social_email,
             social_telegram=prof.social_telegram,
             social_discord=prof.social_discord,
-            about_subtitle=prof.about_subtitle,
-            about_banner=prof.about_banner,
-            about_content=prof.about_content,
+            # 管理员档案为空时，用站点「关于内容」里的那套
+            # （也就是以前 /about 显示的个人介绍）
+            about_subtitle=prof.about_subtitle
+            or (site_about_subtitle if is_site_owner else None),
+            about_banner=prof.about_banner
+            or (site_about_banner if is_site_owner else None),
+            about_content=prof.about_content
+            or (site_about_content if is_site_owner else None),
             is_admin=is_site_owner,
         )
 
