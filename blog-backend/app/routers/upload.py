@@ -14,6 +14,7 @@ from app.database import get_session
 from app.deps import get_current_admin
 from app.models import Admin
 from app.services.image_service import compress_image, generate_thumbnail
+from app.services.quota import ensure_upload_quota, record_upload
 
 logger = logging.getLogger(__name__)
 

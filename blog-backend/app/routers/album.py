@@ -8,6 +8,7 @@ import random
 import uuid
 from pathlib import Path
 
+from sqlalchemy import delete as sql_delete
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session, select
 
@@ -180,9 +181,10 @@ def delete_album(
     # 成员只能改自己的；管理员不受限（author_id 为空的历史数据仅管理员可动）
     require_content_owner(current_admin, album.author_id)
 
-    # 先删照片
-    for photo in db.exec(select(Photo).where(Photo.album_id == album_id)).all():
-        db.delete(photo)
+    # 先删照片。用**批量 DELETE**而不是逐个 db.delete()：
+    # SQLModel 的 db.exec(select(...)) 可能返回 Row 而不是模型，
+    # 逐个删会静默失效，最后删相册时撞 photos.album_id 的外键约束（1451）。
+    db.execute(sql_delete(Photo).where(Photo.album_id == album_id))
 
     log_operation(
         db, current_admin.id, "delete", "album", album_id,

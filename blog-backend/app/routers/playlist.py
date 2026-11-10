@@ -7,6 +7,7 @@
 # 歌单的读操作不要求登录（公开），写操作全部 Depends(get_current_admin)。
 
 
+from sqlalchemy import delete as sql_delete
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
@@ -124,10 +125,9 @@ def delete_playlist(
     if not playlist:
         raise HTTPException(status_code=404, detail="歌单不存在")
 
-    # 先删中间表记录
-    stmt = select(PlaylistSong).where(PlaylistSong.playlist_id == playlist_id)
-    for link in db.exec(stmt).all():
-        db.delete(link)
+    # 先删中间表记录。用批量 DELETE：SQLModel 的 db.exec(select(...))
+    # 可能返回 Row，逐个 db.delete() 会静默失效，最终撞外键约束。
+    db.execute(sql_delete(PlaylistSong).where(PlaylistSong.playlist_id == playlist_id))
 
     log_operation(
         db, current_admin.id, "delete", "playlist", playlist_id,
