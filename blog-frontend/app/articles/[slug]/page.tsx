@@ -275,6 +275,7 @@ export default function ArticleDetailPage() {
       <div className="article-page-grid">
         {/* ============ 侧栏（组件化） ============ */}
         <ArticleSidebar
+            authorId={article.author_id}
           createdAt={article.created_at}
           siteConfig={siteConfig}
           related={related}

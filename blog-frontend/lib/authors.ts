@@ -20,6 +20,13 @@ export interface Author {
   avatar: string | null;
   is_admin: boolean;
   has_content: boolean;
+  // 关于页里的资料（文章详情的作者卡片要用）
+  bio: string | null;
+  social_github: string | null;
+  social_email: string | null;
+  social_telegram: string | null;
+  social_discord: string | null;
+  is_public: boolean;
 }
 
 let cache: Author[] | null = null;

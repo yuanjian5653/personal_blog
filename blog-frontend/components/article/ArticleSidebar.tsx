@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthors } from "@/lib/authors";
 import { useRouter } from "next/navigation";
 import AuthorCard from "./AuthorCard";
 import MusicCard from "./MusicCard";
@@ -12,15 +13,23 @@ interface ArticleSidebarProps {
   siteConfig: Record<string, string>;
   related: ArticleListItem[];
   loading?: boolean;
+  authorId?: number | null;
 }
 
 export default function ArticleSidebar({
   createdAt,
   siteConfig,
+  authorId,
   related,
   loading = false,
 }: ArticleSidebarProps) {
   const router = useRouter();
+
+  // 文章作者：成员写的文章显示成员自己的头像/昵称/简介/社交；
+  // 找不到时退回站点配置（站长自己的那张卡片）
+  const authors = useAuthors();
+  const articleAuthor =
+    authorId != null ? authors.get(authorId) : undefined;
 
   return (
     <aside className="article-sidebar">
@@ -53,15 +62,16 @@ export default function ArticleSidebar({
 
       {/* 1. 作者卡片 */}
       <AuthorCard
-        name={siteConfig.author_name || "博主"}
-        bio={siteConfig.author_bio || ""}
-        avatar={siteConfig.author_avatar || ""}
+        name={articleAuthor?.name || siteConfig.author_name || "博主"}
+        bio={articleAuthor?.bio || siteConfig.author_bio || ""}
+        avatar={articleAuthor?.avatar || siteConfig.author_avatar || ""}
         loading={loading}
         socials={{
-          github: siteConfig.social_github,
-          email: siteConfig.social_email,
-          telegram: siteConfig.social_telegram,
-          discord: siteConfig.social_discord,
+          github: articleAuthor?.social_github || siteConfig.social_github,
+          email: articleAuthor?.social_email || siteConfig.social_email,
+          telegram:
+            articleAuthor?.social_telegram || siteConfig.social_telegram,
+          discord: articleAuthor?.social_discord || siteConfig.social_discord,
         }}
       />
 

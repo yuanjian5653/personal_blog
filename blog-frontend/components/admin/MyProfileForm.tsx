@@ -189,6 +189,14 @@ export default function MyProfileForm() {
         </span>
       </div>
 
+      {/* 没填昵称或头像时，前台作品没有作者信息 —— 提前提示，别等提交后才困惑 */}
+      {(!profile.nickname?.trim() || !profile.avatar_url?.trim()) && (
+        <p className="admin-error">
+          还缺昵称或头像 —— 前台内容旁的作者标签会用这里的昵称和头像。
+          填好再发布作品，读者才看得到作者信息。
+        </p>
+      )}
+
       {msg && (
         <p className={msg.includes("失败") ? "admin-error" : "admin-ok"}>
           {msg}
