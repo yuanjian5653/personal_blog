@@ -104,6 +104,23 @@ export default function MembersPage() {
     }
   };
 
+  /** 改显示名（作者标签与成员列表都用它） */
+  const handleRename = async (m: Member) => {
+    const name = window.prompt(
+      `修改 ${m.username} 的显示名：`,
+      m.display_name ?? ""
+    );
+    if (name === null) return;
+    setError("");
+    try {
+      await updateMember(m.id, { display_name: name.trim() });
+      flash("显示名已更新");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新失败");
+    }
+  };
+
   const handleResetPassword = async (m: Member) => {
     const pw = window.prompt(
       `给 ${m.display_name || m.username} 设置新密码（至少 12 位）：`
@@ -359,6 +376,13 @@ export default function MembersPage() {
                           {m.status === "active" ? "停用" : "启用"}
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="admin-link"
+                        onClick={() => void handleRename(m)}
+                      >
+                        改显示名
+                      </button>
                       <button
                         type="button"
                         className="admin-link"

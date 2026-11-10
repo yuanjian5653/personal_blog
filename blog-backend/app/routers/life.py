@@ -37,6 +37,7 @@ def _to_read(p: LifePost, likes: int = 0, liked: bool = False) -> LifePostRead:
         created_at=p.created_at,
         likes=likes,
         liked=liked,
+        author_id=p.author_id,
         review_status=p.review_status,
         status=p.status,
     )
