@@ -46,7 +46,14 @@ const SITE_TAB = "__site__";
 export default function AboutPage() {
   const [cfg, setCfg] = useState<SiteCfg>({});
   const [members, setMembers] = useState<MemberItem[]>([]);
-  const [tab, setTab] = useState<string>(SITE_TAB);
+  // 支持 /about?tab=用户名 —— 首页个人卡片点进来会带上它。
+  // 用惰性初始化而不是在 effect 里 setState：
+  // 后者会被 react-hooks/set-state-in-effect 判为级联渲染。
+  const [tab, setTab] = useState<string>(() => {
+    if (typeof window === "undefined") return SITE_TAB;
+    const param = new URLSearchParams(window.location.search).get("tab");
+    return param || SITE_TAB;
+  });
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 

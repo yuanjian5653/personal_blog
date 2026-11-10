@@ -57,9 +57,53 @@ const DiscordIcon = (
   </svg>
 );
 
+interface MemberLite {
+  username: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+}
+
+/**
+ * 个人卡片轮播
+ *
+ * 数据来自 /api/members：站长始终在里面，成员要自己在
+ * 「关于内容 → 其他设置」打开公开才会出现。
+ *
+ * 交互：自动轮播 + 下方圆点手动切换；点卡片进对应人的关于页。
+ * 之所以不只用按钮：圆点更轻，不占卡片空间。
+ */
 export default function ProfileCard() {
   const [cfg, setCfg] = useState<Config | null>(null);
   const [stats, setStats] = useState<SiteStats | null>(null);
+  // 轮播：管理员 + 已公开成员（/api/members 站长始终在里面）
+  const [members, setMembers] = useState<MemberLite[]>([]);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE ?? ""}/api/members`,
+      { credentials: "include" }
+    )
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: MemberLite[]) => {
+        if (alive) setMembers(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // 自动轮播：5 秒一位；只有一个人时不动
+  useEffect(() => {
+    if (members.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setIdx((i) => (i + 1) % members.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [members.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,9 +142,14 @@ export default function ProfileCard() {
     );
   }
 
-  const name = cfg.author_name || "博主";
-  const bio = cfg.author_bio || "在代码与学术间穿梭的普通人";
-  const avatarUrl = resolveImageUrl(cfg.author_avatar);
+  const current = members.length > 0 ? members[idx % members.length] : null;
+  const name = current?.name || cfg.author_name || "博主";
+  const bio = current?.bio || cfg.author_bio || "";
+  const avatarUrl = resolveImageUrl(current?.avatar || cfg.author_avatar);
+  // 点卡片去关于页，并带上要选中的那个人
+  const aboutHref = current
+    ? `/about?tab=${encodeURIComponent(current.username)}`
+    : "/about";
 
   const socials: SocialLink[] = [
     { name: "GitHub", href: cfg.social_github || "", icon: GitHubIcon },
@@ -122,9 +171,9 @@ export default function ProfileCard() {
     // 因此外层改为普通 <div>，只把"头像+姓名+简介"这块做成通往 /about 的链接。
     <div className="glass p-6 flex flex-col h-full card-glow">
       <Link
-        href="/about"
+        href={aboutHref}
         className="profile-card-link"
-        title="查看关于我"
+        title={current ? `查看 ${current.name} 的关于页` : "查看关于我"}
       >
         <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">
           {avatarUrl ? (
@@ -155,6 +204,28 @@ export default function ProfileCard() {
           </p>
         </div>
       </Link>
+
+      {/* 轮到谁了：圆点切换（人少时只有一两个点，不占地方） */}
+      {members.length > 1 && (
+        <div className="mb-4 flex items-center gap-1.5">
+          {members.map((m, i) => (
+            <button
+              key={m.username}
+              type="button"
+              aria-label={`切换到 ${m.name}`}
+              onClick={() => setIdx(i)}
+              className="h-1.5 rounded-full transition-all"
+              style={{
+                width: i === idx % members.length ? 16 : 6,
+                background:
+                  i === idx % members.length
+                    ? "var(--accent)"
+                    : "rgba(255,255,255,0.22)",
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* 实时统计：数字来自 /api/site-config/stats（数据库实时计数） */}
       <div className="flex gap-6 mb-5">
