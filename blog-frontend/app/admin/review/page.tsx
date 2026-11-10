@@ -23,6 +23,7 @@ const KIND_LABEL: Record<ReviewKind, string> = {
   article: "文章",
   essay: "说说",
   life: "动态",
+  album: "图片组",
   photo: "图片",
   friendlink: "友链",
 };

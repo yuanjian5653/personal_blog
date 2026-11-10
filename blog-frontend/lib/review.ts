@@ -10,7 +10,13 @@ import { api } from "./api";
  * （need_review），在「成员管理」里逐个设置。
  */
 
-export type ReviewKind = "article" | "essay" | "life" | "photo" | "friendlink";
+export type ReviewKind =
+  | "article"
+  | "essay"
+  | "life"
+  | "album"
+  | "photo"
+  | "friendlink";
 
 export interface PendingItem {
   kind: ReviewKind;
@@ -32,6 +38,7 @@ export const KIND_ORDER: ReviewKind[] = [
   "article",
   "essay",
   "life",
+  "album",
   "photo",
   "friendlink",
 ];

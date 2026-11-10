@@ -11,7 +11,7 @@ from sqlmodel import Session, func, select
 
 from app.constants import MARKDOWN_EXTENSIONS
 from app.database import get_session
-from app.services.review import is_publicly_visible, public_conditions, stamp_new_content
+from app.services.review import is_publicly_visible, public_conditions, resubmit_on_edit, stamp_new_content
 from app.deps import (
     get_current_admin,
     get_current_admin_optional,
@@ -308,6 +308,9 @@ def update_article(
         max_value_len=100,
     )
 
+
+    # 成员编辑已通过的内容 → 重新进待审（改完不能还算旧审核结果）
+    resubmit_on_edit(article, current_admin, db)
     db.commit()
     db.refresh(article)
 

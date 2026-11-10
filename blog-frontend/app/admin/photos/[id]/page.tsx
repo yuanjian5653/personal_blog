@@ -121,6 +121,15 @@ export default function AdminAlbumEditPage() {
           ← 返回列表
         </button>
         <h1 className="text-2xl font-bold">编辑图片组</h1>
+      {/* 审核单位是**整个图片组**：这里说明当前状态，
+          编辑已通过的图片组会自动重新提交审核 */}
+      {album.review_status && album.review_status !== "approved" && (
+        <p className="admin-muted text-xs">
+          {album.review_status === "rejected"
+            ? `已驳回${album.review_note ? `：${album.review_note}` : ""}。修改后会自动重新提交审核。`
+            : "审核中：通过后才会在前台显示。期间可以继续编辑（加图 / 改名），改完自动重新提交。"}
+        </p>
+      )}
       </div>
 
       {msg && (
@@ -224,29 +233,7 @@ export default function AdminAlbumEditPage() {
                   alt={photo.title || ""}
                   className="w-full h-full object-cover"
                 />
-                {/* 审核状态：成员上传的照片默认待审，这里直接标出来，
-                    否则 ta 会以为"传上去了就等于上线了" */}
-                {photo.review_status && photo.review_status !== "approved" && (
-                  <span
-                    className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                    title={
-                      photo.review_note ??
-                      (photo.review_status === "rejected"
-                        ? "未通过审核，删除后重新上传"
-                        : "等待管理员审核，通过后才会在前台显示")
-                    }
-                    style={{
-                      background:
-                        photo.review_status === "rejected"
-                          ? "rgba(248,113,113,0.92)"
-                          : "rgba(250,204,21,0.92)",
-                      color: "#0b0d12",
-                    }}
-                  >
-                    {photo.review_status === "rejected" ? "已驳回" : "审核中"}
-                  </span>
-                )}
-                {/* 悬浮删除按钮 */}
+                                {/* 悬浮删除按钮 */}
                 <button
                   onClick={() => handleDeletePhoto(photo)}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"

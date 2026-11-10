@@ -20,7 +20,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlmodel import Session, select
 
-from app.services.review import public_conditions, stamp_new_content
+from app.services.review import public_conditions, resubmit_on_edit, stamp_new_content
 from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
@@ -206,6 +206,9 @@ def update_friend_link(
     )
     link.updated_at = datetime.now(timezone.utc)
     db.add(link)
+
+    # 成员编辑已通过的内容 → 重新进待审（改完不能还算旧审核结果）
+    resubmit_on_edit(link, admin, db)
     db.commit()
     db.refresh(link)
     return link

@@ -33,6 +33,10 @@ class AlbumRead(BaseModel):
     # 内容作者（成员标签用）。列表接口只给 id，
     # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
     author_id: int | None = None
+    # 审核单位是**图片组**：成员创建 → pending，通过后再编辑 → 重回 pending
+    review_status: str = "approved"
+    review_note: str | None = None
+    status: str = "published"
 
     class Config:
         from_attributes = True

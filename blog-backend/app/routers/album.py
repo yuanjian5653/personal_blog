@@ -15,7 +15,7 @@ from app.config import settings
 from app.constants import IMAGE_EXTENSIONS
 from app.database import get_session
 from app.services.quota import ensure_upload_quota, record_upload
-from app.services.review import public_conditions, stamp_new_content
+from app.services.review import is_publicly_visible, public_conditions, resubmit_on_edit, stamp_new_content
 from app.deps import (
     get_current_admin,
     get_current_admin_optional,
@@ -47,6 +47,9 @@ def list_albums(
         if visitor or viewer is None:
             raise HTTPException(status_code=401, detail="未登录")
         stmt = stmt.where(Album.author_id == viewer.id)
+    elif visitor or viewer is None:
+        # 前台：图片组是审核单位，只显示通过了的
+        stmt = stmt.where(*public_conditions(Album))
     albums = db.exec(
         stmt.order_by(Album.sort_order, Album.created_at.desc())
     ).all()
@@ -99,6 +102,11 @@ def get_album(
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    # 前台看不到待审/驳回的图片组（后台账号能看，方便继续编辑）
+    if visitor or viewer is None:
+        if not is_publicly_visible(album):
+            raise HTTPException(status_code=404, detail="图片组不存在")
+
     photo_stmt = select(Photo).where(Photo.album_id == album_id)
     if visitor or viewer is None:
         photo_stmt = photo_stmt.where(*public_conditions(Photo))
@@ -118,7 +126,11 @@ def create_album(
     current_admin: Admin = Depends(get_current_admin),
 ):
     """创建图片组（需登录）"""
-    album = Album(**data.model_dump())
+    # author_id 必须显式写：AlbumCreate 里没有这个字段，
+    # 漏了就会是 None，成员随后既改不了也传不了照片。
+    album = Album(**data.model_dump(), author_id=current_admin.id)
+    # 成员创建的图片组进入待审；此时已能在后台看到，也可以继续编辑
+    stamp_new_content(album, current_admin, db)
     db.add(album)
     db.flush()
     log_operation(
@@ -146,6 +158,9 @@ def update_album(
 
     update_data = data.model_dump(exclude_unset=True)
     apply_updates(db, album, update_data, current_admin.id, "album", album_id)
+
+    # 成员改已经通过的图片组 → 重新进待审（否则改完还算"已审核"）
+    resubmit_on_edit(album, current_admin, db)
 
     db.commit()
     db.refresh(album)
@@ -284,7 +299,6 @@ def delete_photo(
         db, current_admin.id, "delete", "photo", photo_id,
         changes={"file_path": {"old": photo.file_path, "new": None}},
     )
-    stamp_new_content(photo, current_admin, db)
     db.delete(photo)
     db.commit()
     return {"message": "已删除"}

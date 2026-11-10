@@ -26,6 +26,11 @@ class Album(SQLModel, table=True):
     author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
 
 
+    # ---- 审核：**图片组是审核单位**（照片跟随相册，不再逐张审）----
+    review_status: str = Field(default="approved", max_length=20, index=True)
+    review_note: str | None = Field(default=None, max_length=500)
+    status: str = Field(default="published", max_length=20, index=True)
+
     created_at: datetime = Field(default_factory=utcnow)
 
 

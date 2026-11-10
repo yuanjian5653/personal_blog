@@ -200,9 +200,29 @@ export default function AdminPhotosPage() {
                 <p className="text-xs line-clamp-2" style={{ color: "var(--text-secondary)" }}>
                   {album.description || "无描述"}
                 </p>
-                <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
                   <span>{album.photo_count} 张照片</span>
                   <AuthorTag authorId={album.author_id} />
+                  {album.review_status && album.review_status !== "approved" && (
+                    <span
+                      className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                      title={
+                        album.review_note ??
+                        (album.review_status === "rejected"
+                          ? "未通过审核，修改后会重新提交"
+                          : "等待管理员审核，通过后才在前台显示")
+                      }
+                      style={{
+                        background:
+                          album.review_status === "rejected"
+                            ? "rgba(248,113,113,0.9)"
+                            : "rgba(250,204,21,0.9)",
+                        color: "#0b0d12",
+                      }}
+                    >
+                      {album.review_status === "rejected" ? "已驳回" : "审核中"}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">

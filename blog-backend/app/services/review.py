@@ -75,6 +75,27 @@ def stamp_new_content(obj, admin: Admin, db: Session) -> None:
 
 
 # ============================================================
+# 编辑已通过的内容 → 重新提交审核
+# ============================================================
+
+def resubmit_on_edit(obj, admin: Admin, db: Session) -> bool:
+    """成员编辑"已通过"的内容时，把它重新压回待审。
+
+    审核通过代表那一版内容没问题。成员改完之后内容已经变了，
+    如果还挂着旧通过的标记，等于审核形同虚设。
+
+    管理员编辑不走这条（自审自己没意义），返回 False 表示没动状态。
+    """
+    if getattr(admin, "role", "admin") == "admin":
+        return False
+    if getattr(obj, "review_status", REVIEW_APPROVED) != REVIEW_APPROVED:
+        return False
+    obj.review_status = REVIEW_PENDING
+    obj.status = STATUS_DRAFT
+    return True
+
+
+# ============================================================
 # 审核决定
 # ============================================================
 

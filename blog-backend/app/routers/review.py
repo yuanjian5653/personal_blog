@@ -25,6 +25,7 @@ from app.deps import require_admin_role
 from app.models import (
     Admin,
     Article,
+    Album,
     Essay,
     FriendLink,
     LifePost,
@@ -38,13 +39,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/review", tags=["内容审核"])
 
-ReviewKind = Literal["article", "essay", "life", "photo", "friendlink"]
+ReviewKind = Literal["article", "essay", "life", "album", "photo", "friendlink"]
 
 # kind → (模型, 用于展示标题的字段名)
 KIND_MODEL: dict[str, tuple[type, str]] = {
     "article": (Article, "title"),
     "essay": (Essay, "title"),
     "life": (LifePost, "content"),
+    "album": (Album, "name"),
     "photo": (Photo, "title"),
     "friendlink": (FriendLink, "name"),
 }
@@ -53,6 +55,7 @@ KIND_LABEL = {
     "article": "文章",
     "essay": "说说",
     "life": "动态",
+    "album": "图片组",
     "photo": "图片",
     "friendlink": "友链",
 }

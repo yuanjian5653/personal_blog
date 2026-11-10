@@ -52,6 +52,7 @@ MIGRATIONS=(
   "migrate_upload_log.py"
   "migrate_author_nickname.py"
   "migrate_member_need_review.py"
+  "migrate_album_review.py"
 )
 
 SKIP_BACKEND=0
