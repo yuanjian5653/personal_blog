@@ -66,6 +66,9 @@ DEFAULT_CONFIG: dict[str, str] = {    # ---- 站点信息 ----
     # ---- 关于页面 ----
     "about_subtitle": "HELLO WORLD, I'M XINGHUISAMA",
     "about_banner": "",                 # 顶部横幅图 URL（相对 /media/photos/ 或完整 URL）
+    "site_intro_subtitle": "关于这个站点",
+    "site_intro_banner": "",
+    "site_intro_content": "",
     "about_content": """## 个人简介
 
 你好，我是 XINGHUISAMA。

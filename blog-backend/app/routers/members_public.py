@@ -80,6 +80,11 @@ def list_members(db: Session = Depends(get_session)):
     site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
     site_about_banner = (cfg.get("about_banner") or "").strip() or None
     site_about_content = (cfg.get("about_content") or "").strip() or None
+    # 管理员的社交链接也存在 site_config（关于内容页里填的），档案为空时回落
+    site_social_github = (cfg.get("social_github") or "").strip() or None
+    site_social_email = (cfg.get("social_email") or "").strip() or None
+    site_social_telegram = (cfg.get("social_telegram") or "").strip() or None
+    site_social_discord = (cfg.get("social_discord") or "").strip() or None
 
     out: list[MemberPublicItem] = []
     for a, prof in _public_rows(db):
@@ -121,10 +126,14 @@ def get_member(username: str, db: Session = Depends(get_session)):
             or a.shown_name,
             avatar=prof.avatar_url,
             bio=prof.bio or (site_bio if is_site_owner else None),
-            social_github=prof.social_github if prof else None,
-            social_email=prof.social_email if prof else None,
-            social_telegram=prof.social_telegram if prof else None,
-            social_discord=prof.social_discord if prof else None,
+            social_github=(prof.social_github if prof else None)
+            or (site_social_github if is_site_owner else None),
+            social_email=(prof.social_email if prof else None)
+            or (site_social_email if is_site_owner else None),
+            social_telegram=(prof.social_telegram if prof else None)
+            or (site_social_telegram if is_site_owner else None),
+            social_discord=(prof.social_discord if prof else None)
+            or (site_social_discord if is_site_owner else None),
             # 管理员档案为空时，用站点「关于内容」里的那套
             # （也就是以前 /about 显示的个人介绍）
             about_subtitle=(prof.about_subtitle if prof else None)

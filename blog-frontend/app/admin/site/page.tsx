@@ -83,9 +83,8 @@ const FIELDS: FieldGroup[] = [
       },
       {
         key: "site_intro_banner",
-        label: "横幅图地址",
+        label: "横幅图",
         type: "text" as const,
-        placeholder: "/media/photos/xxx.jpg",
       },
       {
         key: "site_intro_content",
@@ -196,7 +195,7 @@ export default function SiteConfigPage() {
               </label>
 
               {/* ===== 背景图：专门的图片选择器 ===== */}
-              {field.key === "bg_image" ? (
+              {field.key === "bg_image" || field.key === "site_intro_banner" ? (
                 <ImagePicker
                   value={configs[field.key] ?? ""}
                   onChange={(url) => update(field.key, url)}
