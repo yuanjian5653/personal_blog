@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine } from "@/lib/useRole";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
@@ -100,6 +101,7 @@ export default function AdminEssaysPage() {
                     status={e.review_status}
                     note={e.review_note}
                   />
+                  <AuthorTag authorId={e.author_id} />
                 </div>
 
                 {/* 操作 */}

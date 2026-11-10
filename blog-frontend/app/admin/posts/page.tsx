@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine } from "@/lib/useRole";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
@@ -205,6 +206,7 @@ export default function AdminPostsPage() {
                     status={a.review_status}
                     note={a.review_note}
                   />
+                  <AuthorTag authorId={a.author_id} />
                   <span>👁 {a.view_count}</span>
                   <span>♡ {a.like_count}</span>
                 </div>

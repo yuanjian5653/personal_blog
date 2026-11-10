@@ -104,6 +104,28 @@ export default function MembersPage() {
     }
   };
 
+  /** 改每月上传上限（0 = 不限） */
+  const handleQuota = async (m: Member) => {
+    const input = window.prompt(
+      `设置 ${m.display_name || m.username} 的每月上传上限（张，0 = 不限）：`,
+      String(m.upload_quota ?? 30)
+    );
+    if (input === null) return;
+    const n = Number(input);
+    if (!Number.isFinite(n) || n < 0) {
+      setError("请输入 0 或正整数");
+      return;
+    }
+    setError("");
+    try {
+      await updateMember(m.id, { upload_quota: n });
+      flash("上传上限已更新");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新失败");
+    }
+  };
+
   /** 改登录名 */
   const handleRenameUser = async (m: Member) => {
     const name = window.prompt(
@@ -325,6 +347,7 @@ export default function MembersPage() {
                 <th>角色</th>
                 <th>状态</th>
                 <th>内容</th>
+                <th>上传上限</th>
                 <th>最近登录</th>
                 <th style={{ width: 210 }}>操作</th>
               </tr>
@@ -365,6 +388,11 @@ export default function MembersPage() {
                     </span>
                   </td>
                   <td className="admin-muted text-xs">{m.content_count} 篇/条</td>
+                  <td className="admin-muted text-xs">
+                    {m.upload_quota === 0
+                      ? "不限"
+                      : `${m.upload_quota ?? 30} 张/月`}
+                  </td>
                   <td className="admin-cell-time">
                     {m.last_login_at
                       ? new Date(m.last_login_at).toLocaleString("zh-CN")
@@ -393,6 +421,13 @@ export default function MembersPage() {
                           {m.status === "active" ? "停用" : "启用"}
                         </button>
                       )}
+                      <button
+                        type="button"
+                        className="admin-link"
+                        onClick={() => void handleQuota(m)}
+                      >
+                        改上传上限
+                      </button>
                       <button
                         type="button"
                         className="admin-link"

@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine, getRole } from "@/lib/useRole";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
@@ -165,6 +166,7 @@ export default function AdminLifePage() {
                     status={p.review_status}
                     note={p.review_note}
                   />
+                  <AuthorTag authorId={p.author_id} />
                   {p.location && ` · ${p.location}`}
                   {/* 点赞量（后台只读，用来判断哪条受欢迎） */}
                   <span className="admin-like-count" title="点赞数">

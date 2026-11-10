@@ -1,5 +1,6 @@
 "use client";
 
+import { loadAuthors } from "@/lib/authors";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { api, withApiBase } from "@/lib/api";
@@ -86,5 +87,9 @@ export default function SiteConfigLoader() {
     // pathname 变化时重新拉取，这样从后台返回前台能立即生效
   }, [pathname]);
 
-  return null;
+    // 作者表预取：卡片渲染时就不用再等第二个请求了。
+  // 之前是卡片先出、作者标签后到，视觉上会「跳一下」。
+  void loadAuthors();
+
+return null;
 }
