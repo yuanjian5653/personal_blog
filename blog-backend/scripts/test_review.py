@@ -33,7 +33,7 @@ from app.config import settings  # noqa: E402
 from app.database import init_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Admin, AdminSession, Article, Essay, LifePost  # noqa: E402
-from app.services.review import review_required, set_review_required  # noqa: E402
+from app.services.review import should_review  # noqa: E402
 
 guard("test_review.py")
 
@@ -130,10 +130,8 @@ def login(admin_id: int) -> None:
     client.cookies.set("session_token", token)
 
 
-# 打开审核开关（默认就是开的，这里显式设定，避免被别处改动影响）
-with Session(engine) as db:
-    set_review_required(db, True)
-    check("审核开关为开", review_required(db), True)
+# 审核策略没有全局开关了：成员默认必审（need_review 未设 = None 视为必审）。
+# 造出来的成员默认 need_review=None，所以下面的发布应该进待审。
 
 # 造一个成员账号
 login(root_id)
@@ -246,12 +244,11 @@ with Session(engine) as db:
     check("库里 review_status", p.review_status, "rejected")
     check("库里 status", p.status, "draft")
 
-# ------------------------------------------------------------------ 关掉开关
-print("\n=== 6. 关掉审核开关 → 成员发布直接公开 ===")
+# ------------------------------------------------------------------ 免审
+print("\n=== 6. 把成员设为免审 → 发布直接公开 ===")
 login(root_id)
-r = client.put("/api/admin/review/settings", json={"review_required": False})
-check("关开关 200", r.status_code, 200)
-check("返回值", r.json()["review_required"], False)
+r = client.put(f"/api/admin/members/{member_id}", json={"need_review": False})
+check("设为免审 200", r.status_code, 200)
 
 login(member_id)
 r = client.post("/api/essays", json={"title": PFX + "说说直发", "content": "正文"})
@@ -263,9 +260,9 @@ client.cookies.clear()
 rows = client.get("/api/essays").json()
 check_true("访客立刻能看到", any(x["title"] == PFX + "说说直发" for x in rows))
 
-# 恢复开关
+# 改回必审（need_review=True）
 login(root_id)
-client.put("/api/admin/review/settings", json={"review_required": True})
+client.put(f"/api/admin/members/{member_id}", json={"need_review": True})
 
 # ------------------------------------------------------------------ 收尾
 client.cookies.clear()

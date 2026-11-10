@@ -11,63 +11,29 @@
       · stamp_new_content(...)    所有新建内容必须过它
 
     路由里不允许自己写 status / review_status 的判断。
+
+审核策略是**每个成员自己的**属性（admin.need_review），没有站点级开关：
+  · 管理员        → 永不审核（自审自己没意义）
+  · 成员的 need_review=False → 免审（信任成员）
+  · 成员未设置 / True       → 必须审核（默认，保守安全）
 """
 from __future__ import annotations
 
 import logging
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from app.models import Admin, SiteConfig
+from app.models import Admin
 from app.models.review import (
     REVIEW_APPROVED,
     REVIEW_PENDING,
     REVIEW_REJECTED,
     REVIEW_PASSED,
-    SETTING_REVIEW_REQUIRED,
     STATUS_DRAFT,
     STATUS_PUBLISHED,
 )
 
 logger = logging.getLogger(__name__)
-
-# 默认需要审核（你在需求里选的"2B：默认审核，可以设置直接公开"）
-DEFAULT_REVIEW_REQUIRED = True
-
-
-# ============================================================
-# 站点开关
-# ============================================================
-
-def review_required(db: Session) -> bool:
-    """成员新提交的内容是否需要审核。
-
-    读 site_config 的 member_review_required；没配过就按默认（需要审核）。
-    管理员的内容永远不需要审核 —— 那是自审自己。
-    """
-    row = db.exec(
-        select(SiteConfig).where(SiteConfig.config_key == SETTING_REVIEW_REQUIRED)
-    ).first()
-    cfg = row if isinstance(row, SiteConfig) else (row[0] if row else None)
-    if cfg is None or not cfg.config_value:
-        return DEFAULT_REVIEW_REQUIRED
-    return cfg.config_value.strip().lower() in ("1", "true", "yes", "on")
-
-
-def set_review_required(db: Session, required: bool) -> bool:
-    """写入开关，返回写入后的值。"""
-    row = db.exec(
-        select(SiteConfig).where(SiteConfig.config_key == SETTING_REVIEW_REQUIRED)
-    ).first()
-    cfg = row if isinstance(row, SiteConfig) else (row[0] if row else None)
-    value = "true" if required else "false"
-    if cfg is None:
-        db.add(SiteConfig(config_key=SETTING_REVIEW_REQUIRED, config_value=value))
-    else:
-        cfg.config_value = value
-        db.add(cfg)
-    db.commit()
-    return required
 
 
 # ============================================================
@@ -77,50 +43,42 @@ def set_review_required(db: Session, required: bool) -> bool:
 def should_review(db: Session, admin: Admin) -> bool:
     """这个账号发布的内容要不要审核。
 
-    优先级：
-      1. 管理员 → 永远不审（自审自己没意义）
-      2. 该账号单独设了 need_review → 用它
-      3. 否则跟随站点全局开关
+    · 管理员 → 永不审核（自审自己没意义）
+    · 成员   → 由 need_review 决定：
+        显式 False → 免审
+        True 或 None（还没设置过）→ 必须审核（默认保守安全）
     """
     if getattr(admin, "role", "admin") == "admin":
         return False
-    own = getattr(admin, "need_review", None)
-    if own is not None:
-        return bool(own)
-    return review_required(db)
+    return getattr(admin, "need_review", None) is not False
 
 
 def stamp_new_content(obj, admin: Admin, db: Session) -> None:
     """给刚创建的内容打上 status / review_status。
 
     规则：
-      · 管理员发的       → approved + published（不用审自己的东西）
-      · 成员发的         → 需要审核时 pending + draft；关掉开关则 approved + published
+      · 管理员 / 免审成员 → approved + published
+      · 需审核的成员     → pending + draft
 
     注意「draft」这一半很关键：
         光设 review_status=pending 不够 —— 如果 status 还是 published，
         任何只过滤 status 的老代码路径依然会把它查出来。
         两条轴同时压住，才不会漏。
     """
-    if not should_review(db, admin):
-        obj.review_status = REVIEW_APPROVED
-        if not getattr(obj, "status", None):
-            obj.status = STATUS_PUBLISHED
-        return
-
-    if True:
+    if should_review(db, admin):
         obj.review_status = REVIEW_PENDING
         obj.status = STATUS_DRAFT
     else:
         obj.review_status = REVIEW_APPROVED
-        obj.status = STATUS_PUBLISHED
+        if not getattr(obj, "status", None):
+            obj.status = STATUS_PUBLISHED
 
 
 # ============================================================
 # 审核决定
 # ============================================================
 
-def apply_decision(obj, decision: str, review_required_now: bool = True) -> None:
+def apply_decision(obj, decision: str) -> None:
     """通过 / 驳回。
 
     通过 → approved + published

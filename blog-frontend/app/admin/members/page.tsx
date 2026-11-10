@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MorphIcon } from "morphicons/react";
-import { Plus, RefreshCw, Trash2, UserCog } from "lucide";
+import { Plus, RefreshCw, Trash2 } from "lucide";
 
 import {
   Member,
@@ -40,6 +40,8 @@ export default function MembersPage() {
   const [newPassword, setNewPassword] = useState<{ user: string; pw: string } | null>(
     null
   );
+  /** 正在编辑的成员（null = 面板收起） */
+  const [editing, setEditing] = useState<Member | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -104,79 +106,24 @@ export default function MembersPage() {
     }
   };
 
-  /** 切换审核策略：跟随全局 → 必审 → 免审 → 跟随全局 */
-  const handleNeedReview = async (m: Member) => {
-    const next =
-      m.need_review === null ? true : m.need_review === true ? false : null;
+  /** 保存编辑面板（显示名 / 登录名 / 上传上限 / 审核策略 一次提交） */
+  const handleSaveEdit = async () => {
+    if (!editing) return;
     setError("");
     try {
-      await updateMember(m.id, { need_review: next });
-      flash(
-        next === null
-          ? "已改为跟随全局审核策略"
-          : next
-            ? "该成员的内容必须审核"
-            : "该成员免审"
-      );
+      await updateMember(editing.id, {
+        display_name: editing.display_name ?? "",
+        username: editing.username,
+        upload_quota: editing.upload_quota ?? 30,
+        ...(editing.role === "member"
+          ? { need_review: editing.need_review }
+          : {}),
+      });
+      flash("已保存");
+      setEditing(null);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "更新失败");
-    }
-  };
-
-  /** 改每月上传上限（0 = 不限） */
-  const handleQuota = async (m: Member) => {
-    const input = window.prompt(
-      `设置 ${m.display_name || m.username} 的每月上传上限（张，0 = 不限）：`,
-      String(m.upload_quota ?? 30)
-    );
-    if (input === null) return;
-    const n = Number(input);
-    if (!Number.isFinite(n) || n < 0) {
-      setError("请输入 0 或正整数");
-      return;
-    }
-    setError("");
-    try {
-      await updateMember(m.id, { upload_quota: n });
-      flash("上传上限已更新");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "更新失败");
-    }
-  };
-
-  /** 改登录名 */
-  const handleRenameUser = async (m: Member) => {
-    const name = window.prompt(
-      `修改 ${m.username} 的登录名（对方下次登录要用新名字）：`,
-      m.username
-    );
-    if (name === null) return;
-    setError("");
-    try {
-      await updateMember(m.id, { username: name.trim() });
-      flash("登录名已更新");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "更新失败");
-    }
-  };
-
-  /** 改显示名（作者标签与成员列表都用它） */
-  const handleRename = async (m: Member) => {
-    const name = window.prompt(
-      `修改 ${m.username} 的显示名：`,
-      m.display_name ?? ""
-    );
-    if (name === null) return;
-    setError("");
-    try {
-      await updateMember(m.id, { display_name: name.trim() });
-      flash("显示名已更新");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "更新失败");
+      setError(e instanceof Error ? e.message : "保存失败");
     }
   };
 
@@ -415,8 +362,8 @@ export default function MembersPage() {
                       : `${m.upload_quota ?? 30} 张/月`}
                   </td>
                   <td className="admin-muted text-xs">
-                    {m.need_review === null
-                      ? "跟随全局"
+                    {m.role === "admin"
+                      ? "—"
                       : m.need_review
                         ? "必须审核"
                         : "免审"}
@@ -427,73 +374,13 @@ export default function MembersPage() {
                       : "从未"}
                   </td>
                   <td>
-                    <div className="admin-actions">
-                      {/* 角色不可在此变更：管理员只能在创建时指定，
-                          成员不能被提权（后端的规则见 routers/members.py） */}
-                      {m.editable && (
-                        <button
-                          type="button"
-                          className={
-                            m.status === "active"
-                              ? "admin-link admin-link--warn"
-                              : "admin-link"
-                          }
-                          onClick={() =>
-                            void handleUpdate(
-                              m,
-                              undefined,
-                              m.status === "active" ? "disabled" : "active"
-                            )
-                          }
-                        >
-                          {m.status === "active" ? "停用" : "启用"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => void handleNeedReview(m)}
-                      >
-                        改审核策略
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => void handleQuota(m)}
-                      >
-                        改上传上限
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => void handleRename(m)}
-                      >
-                        改显示名
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => void handleRenameUser(m)}
-                      >
-                        改登录名
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => void handleResetPassword(m)}
-                      >
-                        <MorphIcon icon={UserCog} size={13} /> 重置密码
-                      </button>
-                      {m.editable && (
-                        <button
-                          type="button"
-                          className="admin-link admin-link--danger"
-                          onClick={() => void handleDelete(m)}
-                        >
-                          <MorphIcon icon={Trash2} size={13} /> 删除
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="admin-link"
+                      onClick={() => setEditing(m)}
+                    >
+                      编辑
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -501,6 +388,131 @@ export default function MembersPage() {
           </table>
         )}
       </div>
+
+      {/* 编辑面板 */}
+      {editing && (
+        <div className="admin-panel space-y-3">
+          <div className="admin-panel__title">
+            编辑 {editing.display_name || editing.username}
+            <span className="admin-muted text-xs">
+              （{editing.role === "admin" ? "管理员" : "成员"}）
+            </span>
+          </div>
+
+          <div className="admin-filters">
+            <label className="admin-field">
+              <span>显示名</span>
+              <input
+                value={editing.display_name ?? ""}
+                onChange={(e) =>
+                  setEditing({ ...editing, display_name: e.target.value })
+                }
+              />
+            </label>
+            <label className="admin-field">
+              <span>登录名</span>
+              <input
+                value={editing.username}
+                onChange={(e) =>
+                  setEditing({ ...editing, username: e.target.value })
+                }
+              />
+            </label>
+            <label className="admin-field">
+              <span>每月上传上限（0 = 不限）</span>
+              <input
+                type="number"
+                min={0}
+                value={editing.upload_quota ?? 30}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    upload_quota: Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+          </div>
+
+          {editing.role === "member" && (
+            <div className="admin-actions">
+              <span className="admin-muted text-xs">审核策略：</span>
+              <button
+                type="button"
+                className={
+                  editing.need_review ? "admin-btn" : "admin-btn admin-btn--ghost"
+                }
+                onClick={() =>
+                  setEditing({ ...editing, need_review: true })
+                }
+              >
+                必须审核
+              </button>
+              <button
+                type="button"
+                className={
+                  !editing.need_review
+                    ? "admin-btn"
+                    : "admin-btn admin-btn--ghost"
+                }
+                onClick={() =>
+                  setEditing({ ...editing, need_review: false })
+                }
+              >
+                免审
+              </button>
+            </div>
+          )}
+
+          <div className="admin-actions">
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={() => void handleSaveEdit()}
+            >
+              保存
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn--ghost"
+              onClick={() => void handleResetPassword(editing)}
+            >
+              重置密码
+            </button>
+            {editing.editable && (
+              <>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--ghost"
+                  onClick={() =>
+                    void handleUpdate(
+                      editing,
+                      undefined,
+                      editing.status === "active" ? "disabled" : "active"
+                    )
+                  }
+                >
+                  {editing.status === "active" ? "停用" : "启用"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--ghost"
+                  onClick={() => void handleDelete(editing)}
+                >
+                  <MorphIcon icon={Trash2} size={14} /> 删除
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="admin-btn admin-btn--ghost"
+              onClick={() => setEditing(null)}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
 
       <p className="admin-muted text-xs">
         停用会立刻让该账号的登录失效（后端会删掉 ta 的所有会话）。「删除」是软删除：

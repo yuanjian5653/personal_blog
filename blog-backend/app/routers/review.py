@@ -3,8 +3,9 @@
 
   GET  /api/admin/review                待审列表（按类型分组 + 计数）
   POST /api/admin/review/{kind}/{id}    通过 / 驳回（可带理由）
-  GET  /api/admin/review/settings       读「成员内容是否需要审核」
-  PUT  /api/admin/review/settings       改开关
+
+  审核策略不再有全局开关 —— 它现在是每个成员自己的属性（need_review），
+  在「成员管理」里逐个设置。
 
 为什么 on{"kind"} 用路径段而不是全局 id：
     五张表各自有自增 id，光有 id 无法定位到具体是哪张表的哪条。
@@ -30,11 +31,7 @@ from app.models import (
     Photo,
 )
 from app.models.review import REVIEW_PENDING
-from app.services.review import (
-    apply_decision,
-    review_required,
-    set_review_required,
-)
+from app.services.review import apply_decision
 from app.services.log_service import log_operation
 
 logger = logging.getLogger(__name__)
@@ -75,16 +72,11 @@ class ReviewQueue(BaseModel):
     items: list[PendingItem]
     counts: dict[str, int]
     total: int
-    review_required: bool
 
 
 class Decision(BaseModel):
     decision: Literal["approve", "reject"]
     reason: str | None = Field(default=None, max_length=500)
-
-
-class ReviewSettings(BaseModel):
-    review_required: bool
 
 
 def _preview(text: str | None, limit: int = 60) -> str:
@@ -143,7 +135,6 @@ def list_pending(
         items=items,
         counts=counts,
         total=len(items),
-        review_required=review_required(db),
     )
 
 
@@ -197,24 +188,3 @@ def decide(
         f"（{payload.reason}）" if payload.reason else "",
     )
     return {"message": "已通过" if payload.decision == "approve" else "已驳回"}
-
-
-@router.get("/settings", response_model=ReviewSettings)
-def get_settings(
-    db: Session = Depends(get_session),
-    _admin: Admin = Depends(require_admin_role),
-):
-    return ReviewSettings(review_required=review_required(db))
-
-
-@router.put("/settings", response_model=ReviewSettings)
-def update_settings(
-    payload: ReviewSettings,
-    db: Session = Depends(get_session),
-    admin: Admin = Depends(require_admin_role),
-):
-    value = set_review_required(db, payload.review_required)
-    logger.info(
-        "[审核] %s 把「成员内容需要审核」设为 %s", admin.username, value
-    )
-    return ReviewSettings(review_required=value)

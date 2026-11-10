@@ -11,7 +11,6 @@ import {
   ReviewQueue,
   decide,
   fetchQueue,
-  saveSettings,
 } from "@/lib/review";
 
 /**
@@ -90,17 +89,6 @@ export default function ReviewPage() {
     }
   };
 
-  const handleToggle = async (next: boolean) => {
-    setError("");
-    try {
-      await saveSettings(next);
-      flash(next ? "成员内容需要审核" : "成员内容直接公开");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
-    }
-  };
-
   const items = queue
     ? filter === "all"
       ? queue.items
@@ -130,46 +118,6 @@ export default function ReviewPage() {
 
       {error && <p className="admin-error">{error}</p>}
       {notice && <p className="admin-ok">{notice}</p>}
-
-      {/* 开关 */}
-      <div className="admin-panel space-y-2">
-        <div className="admin-panel__title">审核策略</div>
-        <div className="admin-actions">
-          <button
-            type="button"
-            className={
-              queue?.review_required
-                ? "admin-btn"
-                : "admin-btn admin-btn--ghost"
-            }
-            disabled={!queue}
-            onClick={() => void handleToggle(true)}
-          >
-            需要审核
-          </button>
-          <button
-            type="button"
-            className={
-              queue && !queue.review_required
-                ? "admin-btn"
-                : "admin-btn admin-btn--ghost"
-            }
-            disabled={!queue}
-            onClick={() => void handleToggle(false)}
-          >
-            直接公开
-          </button>
-          <span className="admin-muted text-xs">
-            {queue?.review_required
-              ? "成员发布 → 进入待审，通过后才公开"
-              : "成员发完立即可见"}
-          </span>
-        </div>
-        <p className="admin-muted text-xs">
-          管理员自己发布的内容永远不需要审核。关闭后，之前已在待审中的内容
-          仍然需要手动处理 —— 它们不会自动通过。
-        </p>
-      </div>
 
       {/* 类型筛选 */}
       <div className="admin-actions" style={{ flexWrap: "wrap" }}>

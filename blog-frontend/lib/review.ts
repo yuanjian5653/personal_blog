@@ -5,6 +5,9 @@ import { api } from "./api";
  *
  * 与后端 routers/review.py 一一对应。
  * 待审数量很少（个人站），一次取全量，不做分页。
+ *
+ * 注意：审核策略没有全局开关了 —— 它现在是每个成员自己的属性
+ * （need_review），在「成员管理」里逐个设置。
  */
 
 export type ReviewKind = "article" | "essay" | "life" | "photo" | "friendlink";
@@ -23,7 +26,6 @@ export interface ReviewQueue {
   items: PendingItem[];
   counts: Record<ReviewKind, number>;
   total: number;
-  review_required: boolean;
 }
 
 export const KIND_ORDER: ReviewKind[] = [
@@ -45,12 +47,4 @@ export const decide = (
   api.post<{ message: string }>(`/api/admin/review/${kind}/${id}`, {
     decision,
     ...(reason ? { reason } : {}),
-  });
-
-export const fetchSettings = () =>
-  api.get<{ review_required: boolean }>("/api/admin/review/settings");
-
-export const saveSettings = (reviewRequired: boolean) =>
-  api.put<{ review_required: boolean }>("/api/admin/review/settings", {
-    review_required: reviewRequired,
   });

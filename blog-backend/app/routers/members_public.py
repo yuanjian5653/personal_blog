@@ -1,11 +1,16 @@
 """
 成员公开页（阶段 3）
 
-  GET /api/members            成员列表（只列 is_public=true 且 active 的）
+  GET /api/members            成员列表（站长始终在其中，成员需 is_public=true）
   GET /api/members/{username} 单个成员的关于页数据
 
 只暴露展示所需的信息：昵称、头像、简介、社交链接、关于页正文。
 **不含**登录名以外的任何凭据信息，也不列未公开的账号。
+
+站长的数据回落规则（档案为空时）：
+  · 昵称 / 简介 / 头像 / 社交链接 → 站点「关于内容」里的那套（author_* / social_*）
+  · 关于页正文（about_*）        → 站点「关于内容」里的 about_subtitle/banner/content
+  · **不回落**「网站介绍」（site_intro_*）—— 那是 /about 的网站介绍，不是站长个人页
 """
 from __future__ import annotations
 
@@ -43,10 +48,6 @@ class MemberPublicItem(BaseModel):
 
 
 class MemberPublicDetail(MemberPublicItem):
-    social_github: str | None = None
-    social_email: str | None = None
-    social_telegram: str | None = None
-    social_discord: str | None = None
     about_subtitle: str | None = None
     about_banner: str | None = None
     about_content: str | None = None
@@ -64,13 +65,7 @@ def _profiles(db: Session) -> dict[int, AuthorProfile]:
 
 
 def _counts_for(db: Session, admin_id: int) -> MemberCounts:
-    """某个人的作品数量。
-
-    用原生 SQL 而不是 ORM count：SQLModel 的 select(func.count())
-    + one() 在这个项目里已经踩过好几次 Row/标量形态不一致的坑
-    （见 app/db_utils.py 的注释）。这里只需一个整数，直接查最稳。
-    只统计"已发布且过审"的内容，和前台看到的一致；相册统计全部。
-    """
+    """某个人的作品数量（只算已发布且过审的，和前台看到的一致）。"""
     from sqlalchemy import text
 
     conn = db.connection()
@@ -90,7 +85,7 @@ def _counts_for(db: Session, admin_id: int) -> MemberCounts:
 
 
 def _public_rows(db: Session):
-    """is_public=true 且 active 的账号 + 其档案。"""
+    """站长始终公开；成员需 is_public=true。"""
     profiles = _profiles(db)
     rows = db.exec(select(Admin).where(Admin.status == STATUS_ACTIVE)).all()
     admins = [r if isinstance(r, Admin) else r[0] for r in rows]
@@ -98,14 +93,9 @@ def _public_rows(db: Session):
         if not isinstance(a, Admin):
             continue
         prof = profiles.get(int(a.id or 0))
-
-        # 站长的关于页**始终公开** —— 它就是这个站的"主人页"，
-        # 不该要求 ta 自己去勾一个"公开我"的开关。
-        # 成员则必须自己打开 is_public。
         if a.role == ROLE_ADMIN:
             yield a, prof
             continue
-
         if prof is None or not prof.is_public:
             continue
         yield a, prof
@@ -117,43 +107,42 @@ def list_members(db: Session = Depends(get_session)):
     cfg = get_all_configs(db)
     site_name = (cfg.get("author_name") or "").strip()
     site_bio = (cfg.get("author_bio") or "").strip()
-    site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
-    site_about_banner = (cfg.get("about_banner") or "").strip() or None
-    site_about_content = (cfg.get("about_content") or "").strip() or None
-    # 站长只在「站点配置 → 网站介绍」写内容时，也当作 ta 的关于页
-    site_intro_content = (cfg.get("site_intro_content") or "").strip() or None
-    site_intro_subtitle = (cfg.get("site_intro_subtitle") or "").strip() or None
-    site_intro_banner = (cfg.get("site_intro_banner") or "").strip() or None
-    # 管理员的社交链接也存在 site_config（关于内容页里填的），档案为空时回落
-    site_social_github = (cfg.get("social_github") or "").strip() or None
-    site_social_email = (cfg.get("social_email") or "").strip() or None
-    site_social_telegram = (cfg.get("social_telegram") or "").strip() or None
-    site_social_discord = (cfg.get("social_discord") or "").strip() or None
 
     out: list[MemberPublicItem] = []
     for a, prof in _public_rows(db):
         is_site_owner = a.role == ROLE_ADMIN
+        p = prof
+
+        def f(attr: str):
+            """成员读档案；站长读档案、为空回落站点「关于内容」的对应键。"""
+            key = {
+                "nickname": "author_name",
+                "avatar_url": "author_avatar",
+                "bio": "author_bio",
+                "social_github": "social_github",
+                "social_email": "social_email",
+                "social_telegram": "social_telegram",
+                "social_discord": "social_discord",
+            }[attr]
+            v = getattr(p, attr, None) if p else None
+            if v:
+                return v
+            return (cfg.get(key) or None) if is_site_owner else None
+
         out.append(
             MemberPublicItem(
                 username=a.username,
-                name=((prof.nickname if prof else None) or "").strip()
-                or (site_name if is_site_owner else "")
-                or a.shown_name,
-                avatar=(prof.avatar_url if prof else None),
-                bio=(prof.bio if prof else None)
-                or (site_bio if is_site_owner else None),
-                social_github=(prof.social_github if prof else None)
-                or ((cfg.get("social_github") or None) if is_site_owner else None),
-                social_email=(prof.social_email if prof else None)
-                or ((cfg.get("social_email") or None) if is_site_owner else None),
-                social_telegram=(prof.social_telegram if prof else None)
-                or ((cfg.get("social_telegram") or None) if is_site_owner else None),
-                social_discord=(prof.social_discord if prof else None)
-                or ((cfg.get("social_discord") or None) if is_site_owner else None),
+                name=(f("nickname") or "").strip() or a.shown_name,
+                avatar=f("avatar_url"),
+                bio=f("bio"),
+                social_github=f("social_github"),
+                social_email=f("social_email"),
+                social_telegram=f("social_telegram"),
+                social_discord=f("social_discord"),
                 counts=_counts_for(db, int(a.id or 0)),
             )
         )
-    # 管理员排前面
+
     out.sort(key=lambda m: 0 if m.name == site_name else 1)
     return out
 
@@ -163,42 +152,44 @@ def get_member(username: str, db: Session = Depends(get_session)):
     """单个成员的关于页。未公开或不存在一律 404（不暴露存在性）。"""
     cfg = get_all_configs(db)
     site_name = (cfg.get("author_name") or "").strip()
-    site_bio = (cfg.get("author_bio") or "").strip()
-    site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
-    site_about_banner = (cfg.get("about_banner") or "").strip() or None
-    site_about_content = (cfg.get("about_content") or "").strip() or None
 
     for a, prof in _public_rows(db):
         if a.username != username:
             continue
         is_site_owner = a.role == ROLE_ADMIN
-        prof = prof  # 管理员可能没有档案
+        p = prof
+
+        def f(attr: str):
+            key = {
+                "nickname": "author_name",
+                "avatar_url": "author_avatar",
+                "bio": "author_bio",
+                "social_github": "social_github",
+                "social_email": "social_email",
+                "social_telegram": "social_telegram",
+                "social_discord": "social_discord",
+                "about_subtitle": "about_subtitle",
+                "about_banner": "about_banner",
+                "about_content": "about_content",
+            }[attr]
+            v = getattr(p, attr, None) if p else None
+            if v:
+                return v
+            return (cfg.get(key) or None) if is_site_owner else None
+
         return MemberPublicDetail(
             username=a.username,
-            name=((prof.nickname if prof else None) or "").strip()
-            or (site_name if is_site_owner else "")
-            or a.shown_name,
-            avatar=prof.avatar_url,
-            bio=prof.bio or (site_bio if is_site_owner else None),
-            social_github=(prof.social_github if prof else None)
-            or (site_social_github if is_site_owner else None),
-            social_email=(prof.social_email if prof else None)
-            or (site_social_email if is_site_owner else None),
-            social_telegram=(prof.social_telegram if prof else None)
-            or (site_social_telegram if is_site_owner else None),
-            social_discord=(prof.social_discord if prof else None)
-            or (site_social_discord if is_site_owner else None),
-            # 管理员档案为空时，用站点「关于内容」里的那套
-            # （也就是以前 /about 显示的个人介绍）
-            about_subtitle=(prof.about_subtitle if prof else None)
-            or (site_intro_subtitle if is_site_owner else None)
-            or (site_about_subtitle if is_site_owner else None),
-            about_banner=(prof.about_banner if prof else None)
-            or (site_intro_banner if is_site_owner else None)
-            or (site_about_banner if is_site_owner else None),
-            about_content=(prof.about_content if prof else None)
-            or (site_intro_content if is_site_owner else None)
-            or (site_about_content if is_site_owner else None),
+            name=(f("nickname") or "").strip() or a.shown_name,
+            avatar=f("avatar_url"),
+            bio=f("bio"),
+            social_github=f("social_github"),
+            social_email=f("social_email"),
+            social_telegram=f("social_telegram"),
+            social_discord=f("social_discord"),
+            # 站长个人介绍来自「关于内容」的 about_*；不回落到网站介绍
+            about_subtitle=f("about_subtitle"),
+            about_banner=f("about_banner"),
+            about_content=f("about_content"),
             is_admin=is_site_owner,
         )
 

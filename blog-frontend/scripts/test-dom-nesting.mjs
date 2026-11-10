@@ -90,7 +90,7 @@ console.log("=== ProfileCard 结构检查 ===");
 const checks = [
   ["外层不再用 <Link> 包整卡", !/<Link\s+href="\/about"\s+className="glass/.test(profile)],
   ["改用普通 div 作为卡片根元素", /<div className="glass p-6 flex flex-col h-full card-glow">/.test(profile)],
-  ["保留通往 /about 的 Link（仅头像+姓名+简介）", /<Link[\s\S]{0,80}href="\/about"/.test(profile)],
+  ["保留通往 /about 的 Link（仅头像+姓名+简介）", /<Link[\s\S]{0,120}href=\{(?:aboutHref|"\/about")/.test(profile)],
   ["社交按钮仍是 <a>", /<a\b[^>]*className="profile-social-btn"/.test(profile)],
   ["社交按钮不在 <Link> 内（关键）", !/<Link[\s\S]*?profile-social-btn[\s\S]*?<\/Link>/.test(profile)],
 ];
