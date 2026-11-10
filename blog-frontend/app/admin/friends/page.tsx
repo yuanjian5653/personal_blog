@@ -1,5 +1,6 @@
 "use client";
 
+import { saveMessage } from "@/lib/review";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -101,11 +102,15 @@ export default function AdminFriendsPage() {
       if (!payload.url) throw new Error("请填写网址");
 
       if (editingId === null) {
-        await createFriendLink(payload);
-        setMsg("已添加");
+        const created = await createFriendLink(payload);
+        setMsg(
+          created.review_status === "pending"
+            ? "已提交，等待审核"
+            : "已添加"
+        );
       } else {
-        await updateFriendLink(editingId, payload);
-        setMsg("已保存");
+        const saved = await updateFriendLink(editingId, payload);
+        setMsg(saveMessage(saved.review_status));
       }
       resetForm();
       load();

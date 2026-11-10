@@ -41,6 +41,7 @@ def _to_read(e: Essay) -> EssayRead:
         author_id=e.author_id,
         review_status=e.review_status,
         status=e.status,
+        review_note=e.review_note,
     )
 
 @router.get("", response_model=list[EssayRead])

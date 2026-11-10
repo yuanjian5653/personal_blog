@@ -40,6 +40,7 @@ def _to_read(p: LifePost, likes: int = 0, liked: bool = False) -> LifePostRead:
         author_id=p.author_id,
         review_status=p.review_status,
         status=p.status,
+        review_note=p.review_note,
     )
 
 def _like_counts(db: Session, post_ids: list[int]) -> dict[int, int]:

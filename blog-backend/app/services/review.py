@@ -79,19 +79,28 @@ def stamp_new_content(obj, admin: Admin, db: Session) -> None:
 # ============================================================
 
 def resubmit_on_edit(obj, admin: Admin, db: Session) -> bool:
-    """成员编辑"已通过"的内容时，把它重新压回待审。
+    """成员编辑内容时，把"已通过 / 已驳回"的重新压回待审。
 
-    审核通过代表那一版内容没问题。成员改完之后内容已经变了，
-    如果还挂着旧通过的标记，等于审核形同虚设。
+    三种要重审的情况：
+      · approved → 内容改过了，旧的"通过"结论作废
+      · rejected → 这就是**重新提交**：按驳回意见改完再交一次
+      · none     → 历史数据，成员一改就按正常流程审
 
-    管理员编辑不走这条（自审自己没意义），返回 False 表示没动状态。
+    两种不重审：
+      · 管理员         → 自审自己没意义
+      · 已经是 pending → 已经在队列里了，不重复处理
+
+    顺便清掉 review_note：那是上一版的驳回理由，
+    挂在改过的新版本上会让人误解。
     """
     if getattr(admin, "role", "admin") == "admin":
         return False
-    if getattr(obj, "review_status", REVIEW_APPROVED) != REVIEW_APPROVED:
+    current = getattr(obj, "review_status", REVIEW_APPROVED)
+    if current == REVIEW_PENDING:
         return False
     obj.review_status = REVIEW_PENDING
     obj.status = STATUS_DRAFT
+    obj.review_note = None
     return True
 
 

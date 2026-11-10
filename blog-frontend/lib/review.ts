@@ -55,3 +55,20 @@ export const decide = (
     decision,
     ...(reason ? { reason } : {}),
   });
+
+
+/**
+ * 保存后的提示文案。
+ *
+ * 成员编辑"已通过"或"已驳回"的内容时，后端会把它重新压回待审
+ * （status 也一起变成 draft）。这时候**必须**明确告诉用户
+ * "内容暂时下线了"，否则 ta 会以为保存完还是线上状态。
+ *
+ * 判断依据是保存接口返回的 review_status —— 不额外加字段，
+ * 因为响应里本来就有。
+ */
+export function saveMessage(reviewStatus?: string | null): string {
+  return reviewStatus === "pending"
+    ? "已保存，并重新提交审核 —— 通过后才会重新公开"
+    : "已保存";
+}

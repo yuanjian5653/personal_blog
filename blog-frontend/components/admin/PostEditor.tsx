@@ -1,5 +1,6 @@
 "use client";
 
+import { saveMessage } from "@/lib/review";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -140,8 +141,17 @@ export default function ArticleEditor() {
         status: data.status,
       };
       if (id) {
-        await api.put(`/api/articles/${id}`, payload);
-        setMsg("已保存");
+        // 后端可能把这条内容重新压回待审（成员改了已通过/已驳回的稿子），
+        // 返回的 review_status 就是判断依据。
+        const saved = await api.put<{ review_status?: string }>(
+          `/api/articles/${id}`,
+          payload
+        );
+        setMsg(saveMessage(saved.review_status));
+        if (saved.review_status === "pending") {
+          // 本地状态也跟着改，否则页面还显���"已发布"但其实是草稿
+          update("status", "draft");
+        }
       } else {
         const created = await api.post<{ id: number }>(
           "/api/articles",

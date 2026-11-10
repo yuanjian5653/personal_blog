@@ -1,5 +1,6 @@
 "use client";
 
+import { saveMessage } from "@/lib/review";
 import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine, getRole } from "@/lib/useRole";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
@@ -86,9 +87,17 @@ export default function AdminLifePage() {
       };
 
       if (editing.id) {
-        await api.put(`/api/life/${editing.id}`, payload);
+        const saved = await api.put<{ review_status?: string }>(
+          `/api/life/${editing.id}`,
+          payload
+        );
+        setMsg(saveMessage(saved.review_status));
       } else {
-        await api.post("/api/life", payload);
+        const created = await api.post<{ review_status?: string }>(
+          "/api/life",
+          payload
+        );
+        setMsg(saveMessage(created.review_status));
       }
       setEditing(null);
       load();

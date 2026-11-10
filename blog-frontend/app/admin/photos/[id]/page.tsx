@@ -1,5 +1,6 @@
 "use client";
 
+import { saveMessage } from "@/lib/review";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, API_BASE } from "@/lib/api";
@@ -48,12 +49,15 @@ export default function AdminAlbumEditPage() {
     setSaving(true);
     setMsg(null);
     try {
-      await api.put(`/api/albums/${id}`, {
-        name: name.trim(),
-        description: description.trim() || null,
-        date_label: dateLabel.trim() || null,
-      });
-      setMsg("已保存");
+      const saved = await api.put<{ review_status?: string }>(
+        `/api/albums/${id}`,
+        {
+          name: name.trim(),
+          description: description.trim() || null,
+          date_label: dateLabel.trim() || null,
+        }
+      );
+      setMsg(saveMessage(saved.review_status));
       loadAlbum();
     } catch (e) {
       setMsg(`保存失败：${(e as Error).message}`);

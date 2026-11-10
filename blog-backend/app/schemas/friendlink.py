@@ -39,3 +39,7 @@ class FriendLinkRead(FriendLinkBase):
     # 内容作者（成员标签用）。列表接口只给 id，
     # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
     author_id: int | None = None
+    # 审核：成员提交的友链要审，管理员直接通过
+    review_status: str = "approved"
+    review_note: str | None = None
+    status: str = "published"

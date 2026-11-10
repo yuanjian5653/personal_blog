@@ -1,5 +1,6 @@
 "use client";
 
+import { saveMessage } from "@/lib/review";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -79,8 +80,11 @@ export default function EssayEditor() {
         images: data.images,
       };
       if (id) {
-        await api.put(`/api/essays/${id}`, payload);
-        setMsg("已保存");
+        const saved = await api.put<{ review_status?: string }>(
+          `/api/essays/${id}`,
+          payload
+        );
+        setMsg(saveMessage(saved.review_status));
       } else {
         const created = await api.post<{ id: number }>(
           "/api/essays",
