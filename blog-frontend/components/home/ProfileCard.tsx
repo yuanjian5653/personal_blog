@@ -62,6 +62,11 @@ interface MemberLite {
   name: string;
   avatar: string | null;
   bio: string | null;
+  social_github: string | null;
+  social_email: string | null;
+  social_telegram: string | null;
+  social_discord: string | null;
+  counts: { articles: number; essays: number; life: number; albums: number };
 }
 
 /**
@@ -91,7 +96,8 @@ export default function ProfileCard() {
         if (alive) setMembers(rows);
       })
       .catch(() => undefined);
-    return () => {
+
+  return () => {
       alive = false;
     };
   }, []);
@@ -151,17 +157,37 @@ export default function ProfileCard() {
     ? `/about?tab=${encodeURIComponent(current.username)}`
     : "/about";
 
+  // 社交链接跟着当前轮播到的人变；没有成员数据时才用站点配置
   const socials: SocialLink[] = [
-    { name: "GitHub", href: cfg.social_github || "", icon: GitHubIcon },
-    { name: "Email", href: cfg.social_email || "", icon: MailIcon },
-    { name: "Telegram", href: cfg.social_telegram || "", icon: TelegramIcon },
-    { name: "Discord", href: cfg.social_discord || "", icon: DiscordIcon },
-  ].filter((s) => s.href);
+    {
+      name: "GitHub",
+      href: (current?.social_github || cfg.social_github) ?? "",
+      icon: GitHubIcon,
+    },
+    {
+      name: "Email",
+      href: (current?.social_email || cfg.social_email) ?? "",
+      icon: MailIcon,
+    },
+    {
+      name: "Telegram",
+      href: (current?.social_telegram || cfg.social_telegram) ?? "",
+      icon: TelegramIcon,
+    },
+    {
+      name: "Discord",
+      href: (current?.social_discord || cfg.social_discord) ?? "",
+      icon: DiscordIcon,
+    },
+  ];
 
+  // 统计数字：优先用当前轮播到这个人的作品数；没有成员数据时退回全站统计。
+  // 之前写死的是站点总数，轮播到成员时数字不动 —— 那是不对的。
   const statItems = [
-    { label: "文章", value: stats?.articles },
-    { label: "说说", value: stats?.essays },
-    { label: "照片", value: stats?.photos },
+    { label: "文章", value: current?.counts.articles ?? stats?.articles },
+    { label: "说说", value: current?.counts.essays ?? stats?.essays },
+    { label: "动态", value: current?.counts.life ?? 0 },
+    { label: "图片", value: current?.counts.albums ?? stats?.albums },
   ];
 
   return (
@@ -171,8 +197,9 @@ export default function ProfileCard() {
     // 因此外层改为普通 <div>，只把"头像+姓名+简介"这块做成通往 /about 的链接。
     <div className="glass p-6 flex flex-col h-full card-glow">
       <Link
+        key={current?.username ?? "site"}
         href={aboutHref}
-        className="profile-card-link"
+        className="profile-card-link profile-swap"
         title={current ? `查看 ${current.name} 的关于页` : "查看关于我"}
       >
         <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">

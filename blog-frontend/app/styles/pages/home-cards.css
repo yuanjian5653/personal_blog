@@ -468,3 +468,25 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 轮播换人时的淡入：只动透明度与位移，不触发布局重排 */
+.profile-swap {
+  animation: profileSwap 0.32s ease-out;
+}
+
+@keyframes profileSwap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-swap {
+    animation: none;
+  }
+}

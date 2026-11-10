@@ -21,11 +21,25 @@ from app.services.site_config import get_all_configs
 router = APIRouter(prefix="/api/members", tags=["成员（公开）"])
 
 
+class MemberCounts(BaseModel):
+    articles: int = 0
+    essays: int = 0
+    life: int = 0
+    albums: int = 0
+
+
 class MemberPublicItem(BaseModel):
     username: str
     name: str
     avatar: str | None = None
     bio: str | None = None
+    # 社交链接：首页个人卡片轮播时也要跟着切换
+    social_github: str | None = None
+    social_email: str | None = None
+    social_telegram: str | None = None
+    social_discord: str | None = None
+    # 这个人的作品数量（轮播时数字要跟着变，不能是全站总数）
+    counts: MemberCounts = MemberCounts()
 
 
 class MemberPublicDetail(MemberPublicItem):
@@ -47,6 +61,32 @@ def _profiles(db: Session) -> dict[int, AuthorProfile]:
         if isinstance(p, AuthorProfile):
             out[p.admin_id] = p
     return out
+
+
+def _counts_for(db: Session, admin_id: int) -> MemberCounts:
+    """某个人的作品数量。
+
+    用原生 SQL 而不是 ORM count：SQLModel 的 select(func.count())
+    + one() 在这个项目里已经踩过好几次 Row/标量形态不一致的坑
+    （见 app/db_utils.py 的注释）。这里只需一个整数，直接查最稳。
+    只统计"已发布且过审"的内容，和前台看到的一致；相册统计全部。
+    """
+    from sqlalchemy import text
+
+    conn = db.connection()
+
+    def count(table: str, public_only: bool) -> int:
+        sql = f"SELECT COUNT(*) FROM {table} WHERE author_id = :a"
+        if public_only:
+            sql += " AND status = 'published' AND review_status IN ('none', 'approved')"
+        return int(conn.execute(text(sql), {"a": admin_id}).scalar() or 0)
+
+    return MemberCounts(
+        articles=count("articles", True),
+        essays=count("essays", True),
+        life=count("life_posts", True),
+        albums=count("albums", False),
+    )
 
 
 def _public_rows(db: Session):
@@ -80,6 +120,10 @@ def list_members(db: Session = Depends(get_session)):
     site_about_subtitle = (cfg.get("about_subtitle") or "").strip() or None
     site_about_banner = (cfg.get("about_banner") or "").strip() or None
     site_about_content = (cfg.get("about_content") or "").strip() or None
+    # 站长只在「站点配置 → 网站介绍」写内容时，也当作 ta 的关于页
+    site_intro_content = (cfg.get("site_intro_content") or "").strip() or None
+    site_intro_subtitle = (cfg.get("site_intro_subtitle") or "").strip() or None
+    site_intro_banner = (cfg.get("site_intro_banner") or "").strip() or None
     # 管理员的社交链接也存在 site_config（关于内容页里填的），档案为空时回落
     site_social_github = (cfg.get("social_github") or "").strip() or None
     site_social_email = (cfg.get("social_email") or "").strip() or None
@@ -96,7 +140,17 @@ def list_members(db: Session = Depends(get_session)):
                 or (site_name if is_site_owner else "")
                 or a.shown_name,
                 avatar=(prof.avatar_url if prof else None),
-                bio=(prof.bio if prof else None) or (site_bio if is_site_owner else None),
+                bio=(prof.bio if prof else None)
+                or (site_bio if is_site_owner else None),
+                social_github=(prof.social_github if prof else None)
+                or ((cfg.get("social_github") or None) if is_site_owner else None),
+                social_email=(prof.social_email if prof else None)
+                or ((cfg.get("social_email") or None) if is_site_owner else None),
+                social_telegram=(prof.social_telegram if prof else None)
+                or ((cfg.get("social_telegram") or None) if is_site_owner else None),
+                social_discord=(prof.social_discord if prof else None)
+                or ((cfg.get("social_discord") or None) if is_site_owner else None),
+                counts=_counts_for(db, int(a.id or 0)),
             )
         )
     # 管理员排前面
@@ -137,10 +191,13 @@ def get_member(username: str, db: Session = Depends(get_session)):
             # 管理员档案为空时，用站点「关于内容」里的那套
             # （也就是以前 /about 显示的个人介绍）
             about_subtitle=(prof.about_subtitle if prof else None)
+            or (site_intro_subtitle if is_site_owner else None)
             or (site_about_subtitle if is_site_owner else None),
             about_banner=(prof.about_banner if prof else None)
+            or (site_intro_banner if is_site_owner else None)
             or (site_about_banner if is_site_owner else None),
             about_content=(prof.about_content if prof else None)
+            or (site_intro_content if is_site_owner else None)
             or (site_about_content if is_site_owner else None),
             is_admin=is_site_owner,
         )

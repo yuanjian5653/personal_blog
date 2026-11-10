@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
@@ -56,6 +56,8 @@ export default function AboutPage() {
   });
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  // 每个成员的详情缓存起来：来回切换不再重复请求（切换卡顿的主因）
+  const cacheRef = useRef<Map<string, MemberDetail>>(new Map());
 
   // 站点介绍 + 成员列表（一次拉全）
   useEffect(() => {
@@ -77,14 +79,21 @@ export default function AboutPage() {
     };
   }, []);
 
-  // 切到某个人时才拉 ta 的详情
+  // 切到某个人时取详情；命中缓存就直接用，避免每次都等网络
   useEffect(() => {
     if (tab === SITE_TAB) return;
+    const cached = cacheRef.current.get(tab);
+    if (cached) {
+      setDetail(cached);
+      setLoadingDetail(false);
+      return;
+    }
     let alive = true;
     api
       .get<MemberDetail>(`/api/members/${encodeURIComponent(tab)}`)
       .then((d) => {
         if (alive) {
+          cacheRef.current.set(tab, d);
           setDetail(d);
           setLoadingDetail(false);
         }
@@ -130,7 +139,7 @@ export default function AboutPage() {
                 setTab(t.username);
                 if (t.username !== SITE_TAB) setLoadingDetail(true);
               }}
-              className="flex items-center gap-2 rounded-full px-3 py-1 text-xs transition-colors"
+              className="flex items-center gap-2 rounded-full px-3 py-1 text-xs transition-all duration-200 hover:opacity-90 active:scale-95"
               style={{
                 background: active ? "rgba(124,92,255,0.18)" : "transparent",
                 border: `1px solid ${active ? "var(--accent)" : "var(--card-border)"}`,
