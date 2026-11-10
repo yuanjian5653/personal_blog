@@ -21,6 +21,7 @@ from app.routers import (
     life,
     log,
     members,
+    members_public,
     music,
     netease,
     notifications,
@@ -179,6 +180,7 @@ app.include_router(members.router)
 app.include_router(authors.router)
 app.include_router(review.router)
 app.include_router(profile.router)
+app.include_router(members_public.router)
 
 @app.get("/")
 def root():
