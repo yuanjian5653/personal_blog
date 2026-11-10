@@ -1,109 +1,244 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
 import { resolveImageUrl } from "@/lib/url";
 
-interface Config {
-  author_name?: string;
-  author_bio?: string;
-  author_avatar?: string;
+/**
+ * 关于页面（唯一入口）
+ *
+ * 顶部一排切换：
+ *     网站介绍   zwj   成员A   成员B …
+ * 默认选中「网站介绍」，其余是每个已公开成员的关于页（站长始终在里面）。
+ *
+ * 这样 /about 既是"这个站是什么"，也能一键切到"这个人是谁"，
+ * 不用在两个页面之间来回跳。
+ */
+
+interface SiteCfg {
   site_intro_subtitle?: string;
   site_intro_banner?: string;
   site_intro_content?: string;
-  about_subtitle?: string;
-  about_banner?: string;
-  about_content?: string;
 }
 
-export default function AboutPage() {
-  const [cfg, setCfg] = useState<Config>({});
+interface MemberItem {
+  username: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+}
 
+interface MemberDetail extends MemberItem {
+  social_github: string | null;
+  social_email: string | null;
+  social_telegram: string | null;
+  social_discord: string | null;
+  about_subtitle: string | null;
+  about_banner: string | null;
+  about_content: string | null;
+  is_admin: boolean;
+}
+
+const SITE_TAB = "__site__";
+
+export default function AboutPage() {
+  const [cfg, setCfg] = useState<SiteCfg>({});
+  const [members, setMembers] = useState<MemberItem[]>([]);
+  const [tab, setTab] = useState<string>(SITE_TAB);
+  const [detail, setDetail] = useState<MemberDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // 站点介绍 + 成员列表（一次拉全）
   useEffect(() => {
+    let alive = true;
     api
-      .get<{ configs: Record<string, string> }>("/api/site-config")
-      .then((d) => setCfg(d.configs))
-      .catch(() => {});
+      .get<{ configs: SiteCfg }>("/api/site-config")
+      .then((r) => {
+        if (alive) setCfg(r.configs ?? {});
+      })
+      .catch(() => undefined);
+    api
+      .get<MemberItem[]>("/api/members")
+      .then((rows) => {
+        if (alive) setMembers(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // 图片 URL 处理
-  const resolveUrl = (url?: string) => resolveImageUrl(url);
+  // 切到某个人时才拉 ta 的详情
+  useEffect(() => {
+    if (tab === SITE_TAB) return;
+    let alive = true;
+    api
+      .get<MemberDetail>(`/api/members/${encodeURIComponent(tab)}`)
+      .then((d) => {
+        if (alive) {
+          setDetail(d);
+          setLoadingDetail(false);
+        }
+      })
+      .catch(() => {
+        if (alive) setLoadingDetail(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [tab]);
 
-  // /about 现在是「网站介绍」；老字段 about_* 作为回落，
-  // 这样在后台填好 site_intro_* 之前页面不会空白。
-  const banner = resolveUrl(cfg.site_intro_banner);
-  const avatar = resolveUrl(cfg.author_avatar);
-  const name = cfg.author_name || "博主";
-  const subtitle = cfg.site_intro_subtitle || "ABOUT";
+  const tabs = useMemo(
+    () => [
+      { username: SITE_TAB, name: "网站介绍", avatar: null as string | null },
+      ...members,
+    ],
+    [members]
+  );
+
+  const isSite = tab === SITE_TAB;
+  const banner = resolveImageUrl(
+    isSite ? cfg.site_intro_banner : detail?.about_banner
+  );
+  const subtitle = isSite
+    ? cfg.site_intro_subtitle || "ABOUT"
+    : detail?.about_subtitle || null;
+  const content = isSite
+    ? cfg.site_intro_content || ""
+    : detail?.about_content || "";
 
   return (
-    <div className="max-w-2xl mx-auto pt-2">
-      {/* 整张卡片 */}
-      <div className="glass overflow-hidden" style={{ borderRadius: 20 }}>
-              {/* 顶部横幅 */}
-      <div
-        className="relative w-full"
-        style={{
-          height: "200px",
-          background: banner
-            ? `url(${banner}) center/cover no-repeat`
-            : "linear-gradient(135deg, rgba(124,92,255,0.4), rgba(255,107,107,0.3))",
-          zIndex: 1,
-        }}
-      />
-
-      {/* 内容区 */}
-      <div className="px-10 pb-10 relative" style={{ zIndex: 2 }}>
-        {/* 头像：用负 marginTop 压到横幅上 */}
-        <div
-          className="w-24 h-24 rounded-full overflow-hidden"
-          style={{
-            marginTop: "-48px",
-            border: "4px solid rgba(20,22,30,0.9)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-            position: "relative",
-            zIndex: 3,
-            background: "rgba(20,22,30,0.9)",
-          }}
-        >
-          {avatar ? (
-            <img
-              src={avatar}
-              alt={name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
+    <div className="mx-auto max-w-3xl px-4 py-10">
+      {/* 切换：网站介绍 / 每位成员（含站长） */}
+      <div className="mb-8 flex flex-wrap gap-2">
+        {tabs.map((t) => {
+          const active = t.username === tab;
+          return (
+            <button
+              key={t.username}
+              type="button"
+              onClick={() => {
+                setTab(t.username);
+                if (t.username !== SITE_TAB) setLoadingDetail(true);
               }}
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center text-3xl font-bold text-white"
-              style={{ background: "var(--accent)" }}
+              className="flex items-center gap-2 rounded-full px-3 py-1 text-xs transition-colors"
+              style={{
+                background: active ? "rgba(124,92,255,0.18)" : "transparent",
+                border: `1px solid ${active ? "var(--accent)" : "var(--card-border)"}`,
+                color: active ? "var(--accent)" : "var(--text-secondary)",
+              }}
             >
-              {name[0]}
-            </div>
-          )}
-        </div>
+              {t.avatar ? (
+                <img
+                  src={resolveImageUrl(t.avatar) ?? ""}
+                  alt={t.name}
+                  className="h-5 w-5 rounded-full object-cover"
+                />
+              ) : null}
+              {t.name}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* 标题 */}
-          <h1 className="text-3xl font-bold mt-6 mb-2">关于我</h1>
-          <p
-            className="text-sm tracking-widest mb-8"
-            style={{ color: "var(--accent)", letterSpacing: "0.15em" }}
+      {/* 横幅 */}
+      {banner ? (
+        <div
+          className="mb-6 h-40 w-full overflow-hidden rounded-xl bg-white/5"
+          style={{
+            backgroundImage: `url(${banner})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      ) : null}
+
+      {/* 个人页头部（网站介绍不显示头像） */}
+      {!isSite && detail ? (
+        <div className="mb-4 flex items-center gap-4">
+          <span
+            className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full text-lg"
+            style={{ background: "rgba(124,92,255,0.18)", color: "var(--accent)" }}
           >
-            {subtitle}
-          </p>
-
-          {/* Markdown 内容 */}
-          <div className="prose-custom">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cfg.site_intro_content || ""}
-            </ReactMarkdown>
+            {detail.avatar ? (
+              <img
+                src={resolveImageUrl(detail.avatar) ?? ""}
+                alt={detail.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              detail.name.slice(0, 1)
+            )}
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold">{detail.name}</h1>
+            {detail.bio ? (
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {detail.bio}
+              </p>
+            ) : null}
           </div>
         </div>
-      </div>
+      ) : null}
+
+      {subtitle ? (
+        <p
+          className="mb-4 text-xs tracking-widest"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+
+      {/* 社交链接（个人页才有） */}
+      {!isSite && detail ? (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {[
+            { label: "GitHub", href: detail.social_github },
+            {
+              label: "Email",
+              href: detail.social_email ? `mailto:${detail.social_email}` : null,
+            },
+            { label: "Telegram", href: detail.social_telegram },
+            { label: "Discord", href: detail.social_discord },
+          ]
+            .filter((s) => s.href)
+            .map((s) => (
+              <a
+                key={s.label}
+                href={s.href as string}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full px-3 py-1 text-xs"
+                style={{
+                  border: "1px solid var(--card-border)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {s.label}
+              </a>
+            ))}
+        </div>
+      ) : null}
+
+      {/* 正文 */}
+      {!isSite && loadingDetail && !detail ? (
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          加载中...
+        </p>
+      ) : content ? (
+        <article className="prose prose-invert max-w-none text-sm leading-7">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        </article>
+      ) : (
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          {isSite
+            ? "还没有写网站介绍。（后台 → 站点配置 → 网站介绍）"
+            : "这个人还没写关于自己。"}
+        </p>
+      )}
     </div>
   );
 }
