@@ -33,10 +33,10 @@ export default function AboutPage() {
 
   // /about 现在是「网站介绍」；老字段 about_* 作为回落，
   // 这样在后台填好 site_intro_* 之前页面不会空白。
-  const banner = resolveUrl(cfg.site_intro_banner || cfg.about_banner);
+  const banner = resolveUrl(cfg.site_intro_banner);
   const avatar = resolveUrl(cfg.author_avatar);
   const name = cfg.author_name || "博主";
-  const subtitle = cfg.site_intro_subtitle || cfg.about_subtitle || "ABOUT";
+  const subtitle = cfg.site_intro_subtitle || "ABOUT";
 
   return (
     <div className="max-w-2xl mx-auto pt-2">
@@ -99,7 +99,7 @@ export default function AboutPage() {
           {/* Markdown 内容 */}
           <div className="prose-custom">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cfg.site_intro_content || cfg.about_content || ""}
+              {cfg.site_intro_content || ""}
             </ReactMarkdown>
           </div>
         </div>

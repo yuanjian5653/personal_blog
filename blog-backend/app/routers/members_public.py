@@ -58,6 +58,14 @@ def _public_rows(db: Session):
         if not isinstance(a, Admin):
             continue
         prof = profiles.get(int(a.id or 0))
+
+        # 站长的关于页**始终公开** —— 它就是这个站的"主人页"，
+        # 不该要求 ta 自己去勾一个"公开我"的开关。
+        # 成员则必须自己打开 is_public。
+        if a.role == ROLE_ADMIN:
+            yield a, prof
+            continue
+
         if prof is None or not prof.is_public:
             continue
         yield a, prof
@@ -79,11 +87,11 @@ def list_members(db: Session = Depends(get_session)):
         out.append(
             MemberPublicItem(
                 username=a.username,
-                name=(prof.nickname or "").strip()
+                name=((prof.nickname if prof else None) or "").strip()
                 or (site_name if is_site_owner else "")
                 or a.shown_name,
-                avatar=prof.avatar_url,
-                bio=prof.bio or (site_bio if is_site_owner else None),
+                avatar=(prof.avatar_url if prof else None),
+                bio=(prof.bio if prof else None) or (site_bio if is_site_owner else None),
             )
         )
     # 管理员排前面
@@ -105,24 +113,25 @@ def get_member(username: str, db: Session = Depends(get_session)):
         if a.username != username:
             continue
         is_site_owner = a.role == ROLE_ADMIN
+        prof = prof  # 管理员可能没有档案
         return MemberPublicDetail(
             username=a.username,
-            name=(prof.nickname or "").strip()
+            name=((prof.nickname if prof else None) or "").strip()
             or (site_name if is_site_owner else "")
             or a.shown_name,
             avatar=prof.avatar_url,
             bio=prof.bio or (site_bio if is_site_owner else None),
-            social_github=prof.social_github,
-            social_email=prof.social_email,
-            social_telegram=prof.social_telegram,
-            social_discord=prof.social_discord,
+            social_github=prof.social_github if prof else None,
+            social_email=prof.social_email if prof else None,
+            social_telegram=prof.social_telegram if prof else None,
+            social_discord=prof.social_discord if prof else None,
             # 管理员档案为空时，用站点「关于内容」里的那套
             # （也就是以前 /about 显示的个人介绍）
-            about_subtitle=prof.about_subtitle
+            about_subtitle=(prof.about_subtitle if prof else None)
             or (site_about_subtitle if is_site_owner else None),
-            about_banner=prof.about_banner
+            about_banner=(prof.about_banner if prof else None)
             or (site_about_banner if is_site_owner else None),
-            about_content=prof.about_content
+            about_content=(prof.about_content if prof else None)
             or (site_about_content if is_site_owner else None),
             is_admin=is_site_owner,
         )
