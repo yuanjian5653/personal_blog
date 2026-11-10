@@ -10,8 +10,10 @@ import {
   ReviewKind,
   ReviewQueue,
   decide,
+  editHref,
   fetchQueue,
 } from "@/lib/review";
+import { resolveImageUrl } from "@/lib/url";
 
 /**
  * 内容审核队列（仅管理员）。
@@ -161,7 +163,7 @@ export default function ReviewPage() {
                 <th>内容</th>
                 <th>作者</th>
                 <th>提交时间</th>
-                <th style={{ width: 160 }}>操作</th>
+                <th style={{ width: 220 }}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -176,11 +178,39 @@ export default function ReviewPage() {
                       </span>
                     </td>
                     <td>
-                      <div className="admin-user">
-                        <span className="admin-user__name">{item.title}</span>
-                        <span className="admin-muted text-xs">
-                          #{item.id}
-                        </span>
+                      <div className="flex items-start gap-3">
+                        {/* 封面/首图：图片组和带图的说说能直接看到长什么样 */}
+                        {item.cover ? (
+                          <img
+                            src={resolveImageUrl(item.cover) ?? ""}
+                            alt=""
+                            className="h-12 w-12 flex-none rounded object-cover"
+                            style={{ background: "rgba(255,255,255,0.06)" }}
+                          />
+                        ) : null}
+                        <div className="min-w-0">
+                          <div className="admin-user">
+                            <span className="admin-user__name">
+                              {item.title}
+                            </span>
+                            <span className="admin-muted text-xs">
+                              #{item.id}
+                            </span>
+                          </div>
+                          {item.meta ? (
+                            <div className="admin-muted text-xs break-all">
+                              {item.meta}
+                            </div>
+                          ) : null}
+                          {item.preview ? (
+                            <div
+                              className="admin-muted text-xs"
+                              style={{ whiteSpace: "pre-wrap" }}
+                            >
+                              {item.preview}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                     <td>{item.author_name}</td>
@@ -191,6 +221,18 @@ export default function ReviewPage() {
                     </td>
                     <td>
                       <div className="admin-actions">
+                        {/* 新标签页打开：审核页不丢，看完切回来直接操作 */}
+                        {editHref(item) ? (
+                          <a
+                            className="admin-link"
+                            href={editHref(item) as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="在新标签页打开对应的管理页，看完整内容"
+                          >
+                            查看详情 ↗
+                          </a>
+                        ) : null}
                         <button
                           type="button"
                           className="admin-link"
@@ -219,6 +261,8 @@ export default function ReviewPage() {
 
       <p className="admin-muted text-xs">
         通过后内容立即对访客可见；驳回后仍保留在作者那里，ta 可以修改后重新提交。
+        「查看详情」会在新标签页打开对应的管理页 —— 那里能看全文、改内容、
+        看全部图片；审核页这边不会丢，看完切回来再点通过或驳回即可。
       </p>
     </div>
   );

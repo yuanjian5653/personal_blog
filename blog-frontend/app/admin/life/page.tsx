@@ -5,7 +5,7 @@ import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine, getRole } from "@/lib/useRole";
 import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { LifePost } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
@@ -36,23 +36,6 @@ export default function AdminLifePage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const load = () => {
-    api
-      .get<LifePost[]>(withMine("/api/life"))
-      .then(setPosts)
-      .catch(() => setPosts([]));
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  // 打开新建
-  const openCreate = () => {
-    setEditing({ ...EMPTY });
-    setMsg(null);
-  };
-
   // 打开编辑
   const openEdit = (p: LifePost) => {
     setEditing({
@@ -62,6 +45,47 @@ export default function AdminLifePage() {
       location: p.location || "",
       created_at: p.created_at,
     });
+    setMsg(null);
+  };
+
+  // 审核页的「查看详情」会带 ?focus={id} 过来：加载完后自动打开那一条的编辑框
+  const focusId = useRef<number | null>(null);
+  const focusedOnce = useRef(false);
+
+  const load = () => {
+    api
+      .get<LifePost[]>(withMine("/api/life"))
+      .then((rows) => {
+        setPosts(rows);
+        // 只在第一次加载后自动展开，避免每次保存刷新都抢回焦点
+        if (!focusedOnce.current && focusId.current !== null) {
+          focusedOnce.current = true;
+          const target = rows.find((r) => r.id === focusId.current);
+          if (target) {
+            openEdit(target);
+            window.setTimeout(() => {
+              document
+                .getElementById("life-editor")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+          }
+        }
+      })
+      .catch(() => setPosts([]));
+  };
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("focus");
+    const n = raw ? Number(raw) : NaN;
+    focusId.current = Number.isFinite(n) ? n : null;
+    load();
+    // 只在挂载时读一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 打开新建
+  const openCreate = () => {
+    setEditing({ ...EMPTY });
     setMsg(null);
   };
 

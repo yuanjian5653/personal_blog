@@ -39,9 +39,15 @@ export default function AdminFriendsPage() {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // 审核页的「查看详情」会带 ?focus={id} 过来
+  const focusRef = useRef<number | null>(null);
+  const focusedOnce = useRef(false);
+
   const load = useCallback(() => {
     fetchAllFriendLinks()
-      .then(setLinks)
+      .then((rows) => {
+        setLinks(rows);
+      })
       .catch((e) => {
         setError(e instanceof Error ? e.message : "加载失败");
         setLinks([]);
@@ -49,6 +55,10 @@ export default function AdminFriendsPage() {
   }, []);
 
   useEffect(() => {
+    // 审核页的「查看详情」会带 ?focus={id}：先记下来，加载完自动展开那一条
+    const raw = new URLSearchParams(window.location.search).get("focus");
+    const n = raw ? Number(raw) : NaN;
+    focusRef.current = Number.isFinite(n) ? n : null;
     load();
   }, [load]);
 
@@ -81,6 +91,24 @@ export default function AdminFriendsPage() {
     // 滚到表单，避免在长列表里"点了没反应"的错觉
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // 加载完成后展开 ?focus= 指定的那一条（只做一次）。
+  // 放在 startEdit 之后：ESLint 的 no-use-before-define 不允许提前引用。
+  useEffect(() => {
+    if (focusedOnce.current || focusRef.current === null || !links) return;
+    focusedOnce.current = true;
+    const target = links.find((r) => r.id === focusRef.current);
+    if (!target) return;
+    // startEdit 内部是同步 setState，这里延到下一个任务，
+    // 避免触发 react-hooks/set-state-in-effect 的级联渲染告警
+    window.setTimeout(() => {
+      startEdit(target);
+      document
+        .getElementById("friend-editor")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+    // startEdit 每次渲染都是新函数，但 focusedOnce 保证只跑一次
+  }, [links]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +196,7 @@ export default function AdminFriendsPage() {
       </div>
 
       {/* ---------- 表单 ---------- */}
-      <form className="admin-panel space-y-3" onSubmit={submit}>
+      <form id="friend-editor" className="admin-panel space-y-3" onSubmit={submit}>
         <div className="admin-panel__title">
           {editingId === null ? "添加友链" : `编辑友链 #${editingId}`}
         </div>

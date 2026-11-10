@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Literal
 
@@ -66,6 +67,12 @@ class PendingItem(BaseModel):
     kind_label: str
     id: int
     title: str
+    # 正文摘要（约 160 字）—— 让管理员扫一眼就能判断，不用每次都点进去
+    preview: str = ""
+    # 封面/首图（文章封面、说说首图、图片组封面、友链封面）
+    cover: str | None = None
+    # 补充信息（友链的网址之类）
+    meta: str | None = None
     author_id: int | None
     author_name: str
     created_at: str | None
@@ -80,6 +87,25 @@ class ReviewQueue(BaseModel):
 class Decision(BaseModel):
     decision: Literal["approve", "reject"]
     reason: str | None = Field(default=None, max_length=500)
+
+
+def _summary(text: str | None, limit: int = 160) -> str:
+    """正文摘要：压平换行，截到 limit 字。"""
+    if not text:
+        return ""
+    flat = " ".join(str(text).split())
+    return flat[:limit] + ("…" if len(flat) > limit else "")
+
+
+def _first_image(raw: str | None) -> str | None:
+    """images 在库里是 JSON 字符串，取第一张给列表做缩略图。"""
+    if not raw:
+        return None
+    try:
+        arr = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    return arr[0] if isinstance(arr, list) and arr else None
 
 
 def _preview(text: str | None, limit: int = 60) -> str:
@@ -120,12 +146,42 @@ def list_pending(
         for o in objs:
             aid = getattr(o, "author_id", None)
             created = getattr(o, "created_at", None)
+
+            # 每种类型能拿到的"详情"不一样，这里统一成三样：
+            #   title   一行标题
+            #   preview 正文摘要
+            #   cover   缩略图（有就显示）
+            #   meta    补充信息
+            preview = ""
+            cover: str | None = None
+            meta: str | None = None
+
+            if kind == "article":
+                preview = _summary(getattr(o, "content", None))
+                cover = getattr(o, "cover_path", None)
+            elif kind == "essay":
+                preview = _summary(getattr(o, "content", None))
+                cover = _first_image(getattr(o, "images", None))
+            elif kind == "life":
+                preview = _summary(getattr(o, "content", None))
+                cover = _first_image(getattr(o, "images", None))
+            elif kind == "album":
+                preview = _summary(getattr(o, "description", None))
+                cover = getattr(o, "cover_path", None)
+            elif kind == "friendlink":
+                preview = _summary(getattr(o, "description", None))
+                cover = getattr(o, "cover", None)
+                meta = getattr(o, "url", None)
+
             items.append(
                 PendingItem(
                     kind=kind,
                     kind_label=KIND_LABEL[kind],
                     id=int(o.id or 0),
                     title=_preview(getattr(o, title_field, None)),
+                    preview=preview,
+                    cover=cover,
+                    meta=meta,
                     author_id=aid,
                     author_name=names.get(aid, "未知") if aid else "站长",
                     created_at=created.isoformat() if created else None,

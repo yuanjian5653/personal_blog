@@ -23,9 +23,38 @@ export interface PendingItem {
   kind_label: string;
   id: number;
   title: string;
+  /** 正文摘要（约 160 字），扫一眼就能判断要不要点进去 */
+  preview: string;
+  /** 封面 / 首图 */
+  cover: string | null;
+  /** 补充信息（友链的网址） */
+  meta: string | null;
   author_id: number | null;
   author_name: string;
   created_at: string | null;
+}
+
+/**
+ * 待审内容 → 对应管理编辑页的地址。
+ *
+ * 文章/说说/图片组有独立编辑页；动态和友链是列表页内联编辑，
+ * 用 ?focus={id} 让它们在打开时自动展开那一条。
+ */
+export function editHref(item: PendingItem): string | null {
+  switch (item.kind) {
+    case "article":
+      return `/admin/posts/${item.id}`;
+    case "essay":
+      return `/admin/essays/${item.id}`;
+    case "album":
+      return `/admin/photos/${item.id}`;
+    case "life":
+      return `/admin/life?focus=${item.id}`;
+    case "friendlink":
+      return `/admin/friends?focus=${item.id}`;
+    default:
+      return null;
+  }
 }
 
 export interface ReviewQueue {
