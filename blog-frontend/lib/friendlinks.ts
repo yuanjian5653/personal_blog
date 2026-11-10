@@ -15,6 +15,12 @@ export interface FriendLink {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  /** 内容作者（成员只看到自己的友链） */
+  author_id?: number | null;
+  /** 审核状态：pending 待审 / approved 已通过 / rejected 已驳回 */
+  review_status?: string;
+  /** 驳回理由（成员能看到为什么被驳回） */
+  review_note?: string | null;
 }
 
 export type FriendLinkInput = Omit<

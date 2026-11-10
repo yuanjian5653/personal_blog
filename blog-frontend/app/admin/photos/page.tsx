@@ -1,5 +1,6 @@
 "use client";
 
+import AuthorTag from "@/components/admin/AuthorTag";
 import { withMine } from "@/lib/useRole";
 
 import { useEffect, useState } from "react";
@@ -199,8 +200,9 @@ export default function AdminPhotosPage() {
                 <p className="text-xs line-clamp-2" style={{ color: "var(--text-secondary)" }}>
                   {album.description || "无描述"}
                 </p>
-                <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {album.photo_count} 张照片
+                <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <span>{album.photo_count} 张照片</span>
+                  <AuthorTag authorId={album.author_id} />
                 </div>
 
                 <div className="flex gap-2 pt-2">

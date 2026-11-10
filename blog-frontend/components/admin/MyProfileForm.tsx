@@ -224,17 +224,22 @@ export default function MyProfileForm() {
       {/* ④ 其他设置 */}
       <div className="admin-panel space-y-3">
         <div className="admin-panel__title">其他设置</div>
-        <label className="admin-field">
-          <span>在成员列表里公开我的关于页</span>
+        {/* .admin-field 是纵向排版（span 在上、输入框撑满整行），
+            checkbox 放进去会被拉成一整行 —— 这里单独用横向 flex。 */}
+        <div className="flex items-center gap-2">
           <input
+            id="profile-is-public"
             type="checkbox"
             checked={profile.is_public}
             onChange={(e) => setField("is_public", e.target.checked)}
           />
-        </label>
+          <label htmlFor="profile-is-public" className="text-sm">
+            在成员列表里公开我的关于页
+          </label>
+        </div>
         <p className="admin-muted text-xs">
-          默认关闭。开启后，阶段 3 上线的 /members 列表里会列出你。
-          现在保存不会影响任何已上线页面，但作者标签的昵称会立刻生效。
+          默认关闭。开启后，「关于」页面顶部的切换栏里会出现你，
+          别人也能看到你的昵称、简介、社交链接和关于页正文。
         </p>
       </div>
 

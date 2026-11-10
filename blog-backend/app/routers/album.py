@@ -194,6 +194,10 @@ async def upload_photos(
     if not album:
         raise HTTPException(status_code=404, detail="图片组不存在")
 
+    # 成员只能往**自己的**相册里传照片。
+    # 否则 ta 可以往站长的相册里塞图 —— 那等于绕过了"审核 + 归属"两层。
+    require_content_owner(current_admin, album.author_id)
+
     existing = db.exec(select(Photo).where(Photo.album_id == album_id)).all()
     # 上传前先看配额（超出直接 429，不浪费磁盘和 CPU）
     ensure_upload_quota(db, current_admin)

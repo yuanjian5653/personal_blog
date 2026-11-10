@@ -121,10 +121,18 @@ def record_click(link_id: int, db: Session = Depends(get_session)):
 @router.get("/all", response_model=list[FriendLinkRead])
 def list_all_friend_links(
     db: Session = Depends(get_session),
-    _admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    """后台列表：包含不可见的，同样按权重倒序"""
-    rows = db.exec(select(FriendLink)).all()
+    """后台列表：包含不可见的，同样按权重倒序。
+
+    成员只返回**自己添加**的：别人的友链 ta 既改不了也删不了
+    （update / delete 会 403），列出来只会让人误点报错。
+    管理员看全部。
+    """
+    stmt = select(FriendLink)
+    if getattr(admin, "role", "admin") != "admin":
+        stmt = stmt.where(FriendLink.author_id == admin.id)
+    rows = db.exec(stmt).all()
     return sorted(rows, key=_sort_key)
 
 @router.post("", response_model=FriendLinkRead)

@@ -224,6 +224,28 @@ export default function AdminAlbumEditPage() {
                   alt={photo.title || ""}
                   className="w-full h-full object-cover"
                 />
+                {/* 审核状态：成员上传的照片默认待审，这里直接标出来，
+                    否则 ta 会以为"传上去了就等于上线了" */}
+                {photo.review_status && photo.review_status !== "approved" && (
+                  <span
+                    className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                    title={
+                      photo.review_note ??
+                      (photo.review_status === "rejected"
+                        ? "未通过审核，删除后重新上传"
+                        : "等待管理员审核，通过后才会在前台显示")
+                    }
+                    style={{
+                      background:
+                        photo.review_status === "rejected"
+                          ? "rgba(248,113,113,0.92)"
+                          : "rgba(250,204,21,0.92)",
+                      color: "#0b0d12",
+                    }}
+                  >
+                    {photo.review_status === "rejected" ? "已驳回" : "审核中"}
+                  </span>
+                )}
                 {/* 悬浮删除按钮 */}
                 <button
                   onClick={() => handleDeletePhoto(photo)}

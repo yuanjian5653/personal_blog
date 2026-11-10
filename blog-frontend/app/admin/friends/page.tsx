@@ -1,5 +1,6 @@
 "use client";
 
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveImageUrl } from "@/lib/url";
@@ -352,6 +353,10 @@ export default function AdminFriendsPage() {
                   <td>
                     <div className="admin-user">
                       <span className="admin-user__name">{link.name}</span>
+                      <ReviewStatusBadge
+                        status={link.review_status}
+                        note={link.review_note}
+                      />
                     </div>
                     <a
                       className="admin-muted admin-cell-sub fl-url"
