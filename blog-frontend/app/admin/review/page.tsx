@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { MorphIcon } from "morphicons/react";
 import { RefreshCw } from "lucide";
 
@@ -30,12 +31,126 @@ const KIND_LABEL: Record<ReviewKind, string> = {
   friendlink: "友链",
 };
 
+/**
+ * 展开后的详情面板。
+ *
+ * 各类型字段不一样，这里统一成：正文（等宽换行）+ 图片网格 + 友链网址。
+ * 用 <pre> 而不是 Markdown 渲染：审核要的是"内容写了什么"，
+ * 不需要排版效果，纯文本反而更快看清。
+ */
+function DetailPanel({
+  item,
+  detail,
+  loading,
+}: {
+  item: PendingItem;
+  detail?: ReviewDetail;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <p className="admin-muted text-xs p-3">加载详情…</p>;
+  }
+
+  // 图片：说说/动态是 images，图片组是 photos
+  const images: string[] =
+    detail?.images?.slice() ??
+    (detail?.photos ?? []).map((p) => p.file_path);
+
+  return (
+    <div className="space-y-3 p-3">
+      {item.meta ? (
+        <div className="text-xs break-all">
+          <span className="admin-muted">网址：</span>
+          <a
+            className="admin-link"
+            href={item.meta}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {item.meta}
+          </a>
+        </div>
+      ) : null}
+
+      {detail?.content ? (
+        <pre
+          className="text-xs whitespace-pre-wrap break-words"
+          style={{ margin: 0, fontFamily: "inherit" }}
+        >
+          {detail.content}
+        </pre>
+      ) : item.preview ? (
+        <div className="admin-muted text-xs" style={{ whiteSpace: "pre-wrap" }}>
+          {item.preview}
+        </div>
+      ) : (
+        <p className="admin-muted text-xs">（这条内容没有正文）</p>
+      )}
+
+      {images.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {images.map((src, i) => (
+            <img
+              key={`${src}-${i}`}
+              src={resolveImageUrl(src) ?? ""}
+              alt=""
+              className="h-24 w-24 rounded object-cover"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            />
+          ))}
+        </div>
+      )}
+
+      {item.cover && images.length === 0 && (
+        <img
+          src={resolveImageUrl(item.cover) ?? ""}
+          alt=""
+          className="h-24 w-24 rounded object-cover"
+        />
+      )}
+
+      {/* 需要动内容时才离开审核页（当前页跳转，不开新标签）。
+          看完改完可以用浏览器的后退回到这里继续审。 */}
+      {editHref(item) ? (
+        <div className="admin-actions pt-1">
+          <a className="admin-btn admin-btn--ghost" href={editHref(item) as string}>
+            去编辑这一条
+          </a>
+          <span className="admin-muted text-xs">
+            改完记得回来点通过 / 驳回
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** 详情接口返回的"能看的"那部分（各类型字段不同，用宽松类型） */
+interface ReviewDetail {
+  content?: string;
+  images?: string[];
+  photos?: { id: number; file_path: string; title?: string | null }[];
+}
+
+/** 按类型取详情的地址；友链的信息在列表里已经齐了，不需要再请求 */
+const DETAIL_URL: Partial<Record<ReviewKind, (id: number) => string>> = {
+  article: (id) => `/api/articles/${id}`,
+  essay: (id) => `/api/essays/${id}`,
+  life: (id) => `/api/life/${id}`,
+  album: (id) => `/api/albums/${id}`,
+};
+
 export default function ReviewPage() {
   const [queue, setQueue] = useState<ReviewQueue | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState<string>("");
   const [filter, setFilter] = useState<ReviewKind | "all">("all");
+
+  // 页内展开的详情：openKey 是当前展开的那一条，details 缓存已取回的全文
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, ReviewDetail>>({});
+  const [detailLoading, setDetailLoading] = useState<string | null>(null);
 
   const load = useCallback(() => {
     return fetchQueue()
@@ -63,6 +178,27 @@ export default function ReviewPage() {
   const flash = (msg: string) => {
     setNotice(msg);
     window.setTimeout(() => setNotice(""), 4000);
+  };
+
+  /** 展开 / 收起某一条的详情（不跳走，审核流程不中断） */
+  const toggleDetail = (item: PendingItem) => {
+    const key = `${item.kind}-${item.id}`;
+    if (openKey === key) {
+      setOpenKey(null);
+      return;
+    }
+    setOpenKey(key);
+    if (details[key]) return; // 已取过
+
+    const build = DETAIL_URL[item.kind];
+    if (!build) return;
+
+    setDetailLoading(key);
+    api
+      .get<ReviewDetail>(build(item.id))
+      .then((d) => setDetails((prev) => ({ ...prev, [key]: d })))
+      .catch(() => undefined)
+      .finally(() => setDetailLoading(null));
   };
 
   const handleDecide = async (
@@ -171,7 +307,8 @@ export default function ReviewPage() {
                 const key = `${item.kind}-${item.id}`;
                 const working = busy === key;
                 return (
-                  <tr key={key}>
+                  <Fragment key={key}>
+                    <tr>
                     <td>
                       <span className="admin-badge admin-badge--muted">
                         {item.kind_label}
@@ -221,18 +358,15 @@ export default function ReviewPage() {
                     </td>
                     <td>
                       <div className="admin-actions">
-                        {/* 新标签页打开：审核页不丢，看完切回来直接操作 */}
-                        {editHref(item) ? (
-                          <a
-                            className="admin-link"
-                            href={editHref(item) as string}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="在新标签页打开对应的管理页，看完整内容"
-                          >
-                            查看详情 ↗
-                          </a>
-                        ) : null}
+                        {/* 页内展开：不跳走、不开新标签，审核流程不中断 */}
+                        <button
+                          type="button"
+                          className="admin-link"
+                          onClick={() => toggleDetail(item)}
+                          title="在下面展开完整内容"
+                        >
+                          {openKey === key ? "收起" : "查看详情"}
+                        </button>
                         <button
                           type="button"
                           className="admin-link"
@@ -251,7 +385,21 @@ export default function ReviewPage() {
                         </button>
                       </div>
                     </td>
-                  </tr>
+                    </tr>
+
+                    {/* 展开的详情行：全文 + 图片，看完就地通过或驳回 */}
+                    {openKey === key && (
+                      <tr>
+                        <td colSpan={5} style={{ background: "rgba(255,255,255,0.03)" }}>
+                          <DetailPanel
+                            item={item}
+                            detail={details[key]}
+                            loading={detailLoading === key}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -261,8 +409,8 @@ export default function ReviewPage() {
 
       <p className="admin-muted text-xs">
         通过后内容立即对访客可见；驳回后仍保留在作者那里，ta 可以修改后重新提交。
-        「查看详情」会在新标签页打开对应的管理页 —— 那里能看全文、改内容、
-        看全部图片；审核页这边不会丢，看完切回来再点通过或驳回即可。
+        点「查看详情」会在这一行下面展开全文和图片，不离开本页；
+        确实要改内容时再点「去编辑这一条」跳过去，改完回来通过或驳回。
       </p>
     </div>
   );

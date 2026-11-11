@@ -32,6 +32,12 @@ export default function AdminPostsPage() {
 
   useEffect(() => {
     load();
+    // 从编辑页回来（浏览器前进/后退，或 bfcache 恢复）时重新拉一次。
+    // 否则列表还挂着上一条的"已通过"，和库里对不上。
+    const onPageShow = () => load();
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+    // load 只读接口、不依赖 state，挂一次即可
   }, []);
 
     // 处理 Markdown 导入（.md / .markdown）

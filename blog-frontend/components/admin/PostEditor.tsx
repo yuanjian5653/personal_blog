@@ -1,6 +1,7 @@
 "use client";
 
 import { saveMessage } from "@/lib/review";
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -61,6 +62,12 @@ export default function ArticleEditor() {
       : EMPTY;
   });
   const [saving, setSaving] = useState(false);
+  // 审核状态：成员改完已通过的文章会重新进待审，
+  // 这里必须显示出来，否则"改完到底什么状态"完全不可见
+  const [review, setReview] = useState<{
+    status?: string;
+    note?: string | null;
+  }>({});
   const [msg, setMsg] = useState<string | null>(() =>
     id === null && readPendingImport()
       ? "已导入文档内容，请确认分类、标签后保存"
@@ -93,9 +100,12 @@ export default function ArticleEditor() {
         tags: string | null;
         is_pinned: boolean;
         status: string;
+        review_status?: string;
+        review_note?: string | null;
       }>(`/api/articles/${id}`)
       .then((a) => {
         if (cancelled) return;
+        setReview({ status: a.review_status, note: a.review_note });
         setData({
           title: a.title,
           slug: a.slug || "",
@@ -143,10 +153,11 @@ export default function ArticleEditor() {
       if (id) {
         // 后端可能把这条内容重新压回待审（成员改了已通过/已驳回的稿子），
         // 返回的 review_status 就是判断依据。
-        const saved = await api.put<{ review_status?: string }>(
-          `/api/articles/${id}`,
-          payload
-        );
+        const saved = await api.put<{
+          review_status?: string;
+          review_note?: string | null;
+        }>(`/api/articles/${id}`, payload);
+        setReview({ status: saved.review_status, note: saved.review_note });
         setMsg(saveMessage(saved.review_status));
         if (saved.review_status === "pending") {
           // 本地状态也跟着改，否则页面还显���"已发布"但其实是草稿
@@ -172,6 +183,18 @@ export default function ArticleEditor() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{id ? "编辑文章" : "新建文章"}</h1>
+      {/* 当前审核状态：成员改完已通过的稿子会回到"审核中"，必须让它可见 */}
+      {review.status && (
+        <div className="flex items-center gap-2">
+          <span className="admin-muted text-xs">审核状态：</span>
+          <ReviewStatusBadge status={review.status} note={review.note} />
+          {review.status === "pending" && (
+            <span className="admin-muted text-xs">
+              通过后才会重新公开
+            </span>
+          )}
+        </div>
+      )}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/admin/posts")}
