@@ -139,7 +139,7 @@ export default function AdminEssaysPage() {
               {e.images.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
                   {e.images.slice(0, 6).map((img, i) => (
-                    <img
+                    <img decoding="async"
                       key={i}
                       src={resolveImageUrl(img)}
                       alt=""

@@ -19,6 +19,13 @@ class MemberRead(BaseModel):
     upload_quota: int | None
     # None = 跟随全局；True 必审；False 免审
     need_review: bool | None = None
+    # 本地音乐上传上限（NULL = 用默认值，0 = 不限）
+    music_quota: int | None = None
+    # 是否允许用网易云（NULL = 用默认值）
+    netease_enabled: bool | None = None
+    # 成员自己的 GitHub（拉自己的仓库用）
+    github_username: str | None = None
+    # 注意：token 只写不读，不放进响应
     last_login_at: datetime | None
     created_at: datetime
     # 该账号发布的内容数量（列表页显示用）
@@ -40,6 +47,13 @@ class MemberCreate(BaseModel):
     role: Role = "member"
     upload_quota: int | None = Field(default=None, ge=0, le=100000)
     need_review: bool | None = None
+    # 本地音乐上传上限（0 = 不限）
+    music_quota: int | None = Field(default=None, ge=0, le=10000)
+    # 是否允许用网易云
+    netease_enabled: bool | None = None
+    # 成员自己的 GitHub（用户名 + token，token 只写不读）
+    github_username: str | None = Field(default=None, max_length=100)
+    github_token: str | None = Field(default=None, max_length=255)
 
 
 class MemberUpdate(BaseModel):
@@ -50,6 +64,13 @@ class MemberUpdate(BaseModel):
     status: Status | None = None
     upload_quota: int | None = Field(default=None, ge=0, le=100000)
     need_review: bool | None = None
+    # 本地音乐上传上限（0 = 不限）
+    music_quota: int | None = Field(default=None, ge=0, le=10000)
+    # 是否允许用网易云
+    netease_enabled: bool | None = None
+    # 成员自己的 GitHub（用户名 + token，token 只写不读）
+    github_username: str | None = Field(default=None, max_length=100)
+    github_token: str | None = Field(default=None, max_length=255)
 
 
 class PasswordReset(BaseModel):

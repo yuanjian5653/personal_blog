@@ -90,7 +90,7 @@ function DetailPanel({
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {images.map((src, i) => (
-            <img
+            <img loading="lazy" decoding="async"
               key={`${src}-${i}`}
               src={resolveImageUrl(src) ?? ""}
               alt=""
@@ -102,7 +102,7 @@ function DetailPanel({
       )}
 
       {item.cover && images.length === 0 && (
-        <img
+        <img loading="lazy" decoding="async"
           src={resolveImageUrl(item.cover) ?? ""}
           alt=""
           className="h-24 w-24 rounded object-cover"
@@ -318,7 +318,7 @@ export default function ReviewPage() {
                       <div className="flex items-start gap-3">
                         {/* 封面/首图：图片组和带图的说说能直接看到长什么样 */}
                         {item.cover ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={resolveImageUrl(item.cover) ?? ""}
                             alt=""
                             className="h-12 w-12 flex-none rounded object-cover"

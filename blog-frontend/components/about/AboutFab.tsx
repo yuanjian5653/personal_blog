@@ -104,7 +104,7 @@ export default function AboutFab({
               >
                 <span className="about-fab__avatar">
                   {o.avatar ? (
-                    <img
+                    <img decoding="async"
                       src={resolveImageUrl(o.avatar) ?? ""}
                       alt=""
                       className="h-full w-full object-cover"
@@ -130,7 +130,7 @@ export default function AboutFab({
             {open ? (
               <MorphIcon icon={X} size={20} />
             ) : active?.avatar ? (
-              <img
+              <img decoding="async"
                 src={resolveImageUrl(active.avatar) ?? ""}
                 alt=""
                 className="h-full w-full rounded-full object-cover"

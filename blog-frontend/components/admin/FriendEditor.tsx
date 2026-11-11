@@ -258,7 +258,7 @@ export default function FriendEditor({ id }: { id: number | null }) {
         <div className="admin-field admin-field--grow">
           <div className="fl-cover-row">
             {form.cover ? (
-              <img
+              <img decoding="async"
                 src={resolveImageUrl(form.cover)}
                 alt=""
                 className="fl-cover-preview"

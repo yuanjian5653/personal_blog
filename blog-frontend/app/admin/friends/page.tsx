@@ -133,7 +133,7 @@ export default function AdminFriendsPage() {
                 >
                   <td>
                     {link.cover ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={resolveImageUrl(link.cover)}
                         alt=""
                         className="admin-avatar"

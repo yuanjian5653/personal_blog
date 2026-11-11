@@ -58,8 +58,8 @@ const MENU: Array<{
   { href: "/admin/notifications", label: "通知队列", icon: Send, adminOnly: true },
 
   // ---- 扩展内容（管理员）----
-  { href: "/admin/music", label: "音乐管理", icon: Music, adminOnly: true },
-  { href: "/admin/projects", label: "项目管理", icon: FolderGit2, adminOnly: true },
+  { href: "/admin/music", label: "音乐管理", icon: Music },
+  { href: "/admin/projects", label: "项目管理", icon: FolderGit2 },
   { href: "/admin/tools", label: "工具管理", icon: Wrench, adminOnly: true },
   { href: "/admin/easter-eggs", label: "暗号彩蛋", icon: Sparkles, adminOnly: true },
 

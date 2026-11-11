@@ -239,7 +239,7 @@ export default function AdminAlbumEditPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {album.photos.map((photo) => (
               <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden bg-white/5">
-                <img
+                <img loading="lazy" decoding="async"
                   src={resolveImageUrl(photo.file_path)}
                   alt={photo.title || ""}
                   className="w-full h-full object-cover"

@@ -111,7 +111,7 @@ export default function ImageUploader({
       <div className="img-uploader-grid">
         {value.map((img, i) => (
           <div key={i} className="img-uploader-item">
-            <img src={toUrl(img)} alt="" />
+            <img decoding="async" src={toUrl(img)} alt="" />
             <button
               type="button"
               className="img-uploader-remove"

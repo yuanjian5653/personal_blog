@@ -36,6 +36,8 @@ STATUSES = (STATUS_ACTIVE, STATUS_PENDING, STATUS_DISABLED)
 
 # 成员默认每月上传配额（张）。0 = 不限。
 DEFAULT_MEMBER_UPLOAD_QUOTA = 30
+# 成员默认可上传几首本地音乐（0 = 不限）
+DEFAULT_MEMBER_MUSIC_QUOTA = 5
 
 
 class Admin(SQLModel, table=True):
@@ -59,6 +61,17 @@ class Admin(SQLModel, table=True):
     # None = 跟随站点全局开关；True = 必须审核；False = 免审
     # 管理员（role=admin）永远免审，这个字段只对成员有意义
     need_review: bool | None = Field(default=None)
+
+    # ---- 音乐 / 项目的成员权限 ----
+    # 本地音乐能上传几首（0 = 不限；None = 用默认值）
+    music_quota: int | None = Field(default=None)
+    # 能不能用网易云相关功能（成员共享站长的网易云账号）
+    netease_enabled: bool | None = Field(default=None)
+    # 成员自己的 GitHub Token，用来把**他自己的**仓库同步进来。
+    # 为空则退回站点级的 settings.GITHUB_TOKEN（那样只能拉到站长的仓库）。
+    github_token: str | None = Field(default=None, max_length=255)
+    # 配对的 GitHub 用户名（拉哪个账号的仓库）
+    github_username: str | None = Field(default=None, max_length=100)
 
     # ---- 上传配额 ----
     # 每月最多上传多少张图片；None = 用站点默认值，0 = 不限

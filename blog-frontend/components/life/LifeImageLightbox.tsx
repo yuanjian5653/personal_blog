@@ -183,7 +183,7 @@ export default function LifeImageLightbox({
           cursor: dragging ? "grabbing" : scale > 1 ? "grab" : "default",
         }}
       >
-        <img
+        <img decoding="async"
           src={images[index]}
           alt=""
           draggable={false}

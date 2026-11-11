@@ -276,7 +276,7 @@ export default function CommentManager({ fixedTarget, title = "评论管理" }: 
 function Avatar({ url, name }: { url: string | null; name: string }) {
   if (url) {
      
-    return <img src={url} alt="" className="admin-avatar" />;
+    return <img decoding="async" src={url} alt="" className="admin-avatar" />;
   }
   return <span className="admin-avatar admin-avatar--fallback">{name[0]?.toUpperCase()}</span>;
 }

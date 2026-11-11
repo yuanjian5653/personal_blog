@@ -26,15 +26,17 @@ _CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 CACHE_TTL = 600  # 10 分钟
 
 
-def _headers() -> dict[str, str]:
+def _headers(token: str | None = None) -> dict[str, str]:
     """GitHub API 要求带 UA；有 token 就带上（额度从 60/h 提到 5000/h）"""
     h = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "personal-blog",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    if settings.GITHUB_TOKEN:
-        h["Authorization"] = f"Bearer {settings.GITHUB_TOKEN}"
+    # 优先用调用方传进来的 token（成员自己的），没有才退回站点级配置
+    used = (token or "").strip() or settings.GITHUB_TOKEN
+    if used:
+        h["Authorization"] = f"Bearer {used}"
     return h
 
 
@@ -95,7 +97,7 @@ async def _request(url: str, params: dict[str, Any]) -> httpx.Response:
     for kw in attempts:
         mode = "直连" if kw.get("no_proxy") else ("代理" if settings.GITHUB_PROXY else "直连")
         try:
-            async with _client(headers=_headers(), **kw) as client:
+            async with _client(headers=_headers(token), **kw) as client:
                 return await client.get(url, params=params)
         except httpx.TimeoutException as e:
             last_error = e
@@ -123,7 +125,9 @@ async def _request(url: str, params: dict[str, Any]) -> httpx.Response:
     ) from last_error
 
 
-async def fetch_repos(username: str, *, force: bool = False) -> list[dict[str, Any]]:
+async def fetch_repos(
+    username: str, *, force: bool = False, token: str | None = None
+) -> list[dict[str, Any]]:
     """拉取某个账号的公开仓库。
 
     过滤掉 fork 与归档仓库（展示"我的项目"时这两类通常是噪音），

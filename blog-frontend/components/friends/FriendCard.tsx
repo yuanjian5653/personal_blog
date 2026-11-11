@@ -51,7 +51,7 @@ export default function FriendCard({ link, visual, active }: Props) {
     >
       {showCover ? (
          
-        <img
+        <img decoding="async"
           src={link.cover as string}
           alt=""
           className="fc-card__cover"

@@ -292,7 +292,7 @@ export default function ArticleDetailPage() {
                 className="w-full overflow-hidden"
                 style={{ aspectRatio: "16/9" }}
               >
-                <img
+                <img decoding="async"
                   src={resolveImageUrl(article.cover_path)}
                   alt={article.title}
                   className="w-full h-full object-cover"
@@ -385,7 +385,7 @@ export default function ArticleDetailPage() {
                   img: ({ src, alt, ...props }) => {
                     if (!src || src === "") return null;
                     return (
-                      <img
+                      <img decoding="async"
                         src={src}
                         alt={alt || ""}
                         loading="lazy"

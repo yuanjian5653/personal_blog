@@ -77,7 +77,7 @@ function EssayFace({
             <div className="essay-card__thumbs">
               {images.slice(0, 3).map((img, i) => (
                 <div key={i} className="essay-card__thumb">
-                  <img src={resolveImageUrl(img)} alt="" loading="lazy" />
+                  <img decoding="async" src={resolveImageUrl(img)} alt="" loading="lazy" />
                 </div>
               ))}
               {images.length > 3 && (

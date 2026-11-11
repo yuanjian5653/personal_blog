@@ -435,7 +435,7 @@ function FriendBubble({ link }: { link: FriendLink }) {
       <div className="fc-bubble__head">
         {showCover ? (
            
-          <img
+          <img decoding="async"
             src={link.cover as string}
             alt=""
             className="fc-bubble__avatar"

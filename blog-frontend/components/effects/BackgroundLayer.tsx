@@ -54,7 +54,7 @@ export default function BackgroundLayer({ egg }: Props) {
           preload="metadata"
         />
       ) : (
-        <img className="bg-layer__media" src={egg.asset_path} alt="" />
+        <img decoding="async" className="bg-layer__media" src={egg.asset_path} alt="" />
       )}
       {/* 压一层暗，保证文字始终读得清 */}
       <span className="bg-layer__scrim" />

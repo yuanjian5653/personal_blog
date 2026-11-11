@@ -266,7 +266,7 @@ export default function AlbumDetailPage() {
             touchAction: "none",
           }}
         >
-          <img
+          <img loading="lazy" decoding="async"
             src={resolveImageUrl(album.photos[lightboxIndex].file_path)}
             alt=""
             draggable={false}
@@ -448,7 +448,7 @@ export default function AlbumDetailPage() {
                       className="w-full aspect-square overflow-hidden"
                       style={{ background: "#eee" }}
                     >
-                      <img
+                      <img decoding="async"
                         src={resolveThumbUrl(photo.file_path)}
                         alt={photo.title || ""}
                         className="w-full h-full object-cover"

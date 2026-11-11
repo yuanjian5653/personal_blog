@@ -24,6 +24,8 @@ class SongRead(BaseModel):
     file_size: int | None = None
     play_count: int
     created_at: datetime
+    # 上传者（后台「只看我的」和删除权限都用它）
+    author_id: int | None = None
 
     class Config:
         from_attributes = True      # 允许从 ORM 对象转换

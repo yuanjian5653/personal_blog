@@ -41,6 +41,9 @@ class Project(SQLModel, table=True):
     # 所以这里统一存 **带时区的 UTC**，跟本项目其它时间字段一致。
     pushed_at: datetime | None = Field(default=None)
 
+    # 归属：谁同步进来的。NULL = 迁移前的历史数据（属于站长）
+    author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
+
     # ---- 人工设置的字段（同步不覆盖）----
     is_visible: bool = Field(default=True, index=True)
     sort_order: int = Field(default=0)

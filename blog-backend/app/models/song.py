@@ -47,5 +47,8 @@ class Song(SQLModel, table=True):
     play_count: int = Field(default=0)                       # 播放次数
 
     # ---- 时间戳 ----
+    # 上传者。NULL = 迁移前的历史数据（属于站长）
+    author_id: int | None = Field(default=None, foreign_key="admin.id", index=True)
+
     created_at: datetime = Field(default_factory=utcnow, index=True)
     updated_at: datetime = Field(default_factory=utcnow)

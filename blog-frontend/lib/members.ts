@@ -19,6 +19,12 @@ export interface Member {
   upload_quota: number | null;
   /** None = 跟随全局；true 必审；false 免审 */
   need_review: boolean | null;
+  /** 本地音乐上传上限；null = 用默认值，0 = 不限 */
+  music_quota: number | null;
+  /** 能不能用网易云；null = 用默认值 */
+  netease_enabled: boolean | null;
+  /** 成员自己的 GitHub 用户名（token 只写不读，不在响应里） */
+  github_username: string | null;
   last_login_at: string | null;
   created_at: string;
   content_count: number;
@@ -33,6 +39,11 @@ export interface MemberCreateInput {
   role: MemberRole;
   upload_quota?: number | null;
   need_review?: boolean | null;
+  music_quota?: number | null;
+  netease_enabled?: boolean | null;
+  github_username?: string | null;
+  /** 留空表示不改；传了才会覆盖 */
+  github_token?: string | null;
 }
 
 export interface MemberUpdateInput {
@@ -42,6 +53,13 @@ export interface MemberUpdateInput {
   status?: MemberStatus;
   upload_quota?: number | null;
   need_review?: boolean | null;
+  /** 本地音乐上传上限（0 = 不限） */
+  music_quota?: number | null;
+  /** 是否允许用网易云 */
+  netease_enabled?: boolean | null;
+  github_username?: string | null;
+  /** 留空表示不修改；传了才会覆盖 */
+  github_token?: string | null;
 }
 
 export interface MemberCreated {

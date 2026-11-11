@@ -29,7 +29,7 @@ export default function AuthorChip({ authorId, className = "" }: Props) {
   return (
     <span className={`author-chip ${className}`.trim()} title={author.name}>
       {author.avatar ? (
-        <img className="author-chip__avatar" src={author.avatar} alt="" />
+        <img decoding="async" className="author-chip__avatar" src={author.avatar} alt="" />
       ) : (
         <span className="author-chip__dot" aria-hidden="true" />
       )}

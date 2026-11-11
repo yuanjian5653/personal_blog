@@ -56,7 +56,7 @@ export default function LifeMiniCard() {
             </p>
             {post.images.length > 0 && (
               <div className="life-mini-card__thumb">
-                <img
+                <img decoding="async"
                   src={resolveImageUrl(post.images[0])}
                   alt=""
                   loading="lazy"

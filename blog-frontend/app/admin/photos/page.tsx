@@ -172,7 +172,7 @@ export default function AdminPhotosPage() {
               {/* 封面 */}
               <div className="relative aspect-video bg-white/5">
                 {album.cover_path ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={resolveImageUrl(album.cover_path)}
                     alt={album.name}
                     className="w-full h-full object-cover"

@@ -46,7 +46,7 @@ export default function AuthorCard({
         <>
           <div className="side-author-avatar">
             {avatarUrl ? (
-              <img
+              <img decoding="async"
                 src={avatarUrl}
                 alt={name}
                 onError={(e) =>

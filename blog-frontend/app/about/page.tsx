@@ -156,7 +156,7 @@ export default function AboutPage() {
           <div className="mb-5 flex items-center gap-4">
             <span className="about-avatar">
               {detail.avatar ? (
-                <img
+                <img decoding="async"
                   src={resolveImageUrl(detail.avatar) ?? ""}
                   alt={detail.name}
                   className="h-full w-full object-cover"

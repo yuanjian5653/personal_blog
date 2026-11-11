@@ -188,7 +188,7 @@ export default function ThemeSwitcher() {
         {open || !currentAvatar ? (
           <MorphIcon icon={open ? X : Palette} size={16} />
         ) : (
-          <img
+          <img decoding="async"
             src={resolveImageUrl(currentAvatar) ?? ""}
             alt=""
             className="theme-sw__main-avatar"

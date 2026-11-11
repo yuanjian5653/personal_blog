@@ -1,5 +1,6 @@
 "use client";
 
+import { withMine } from "@/lib/useRole";
 import { useEffect, useRef, useState } from "react";
 import { api, API_BASE } from "@/lib/api";
 import type { NeteaseAccount, NeteasePlaylist } from "@/lib/types";
@@ -30,7 +31,7 @@ function LocalSection() {
 
   const load = () => {
     api
-      .get<LocalSong[]>("/api/music/songs")
+      .get<LocalSong[]>(withMine("/api/music/songs"))
       .then(setSongs)
       .catch(() => setSongs([]));
   };
@@ -191,7 +192,7 @@ function LocalSection() {
                 {String(i + 1).padStart(2, "0")}
               </span>
 
-              <img
+              <img decoding="async"
                 src={getCoverUrl(song)}
                 alt=""
                 className="w-10 h-10 rounded object-cover bg-white/5 flex-shrink-0"
@@ -349,7 +350,7 @@ function NeteaseSection() {
         {account?.logged_in ? (
           <div className="flex items-center gap-4">
             {account.avatar && (
-              <img
+              <img decoding="async"
                 src={toHttpsUrl(account.avatar)}
                 alt=""
                 className="w-12 h-12 rounded-full"

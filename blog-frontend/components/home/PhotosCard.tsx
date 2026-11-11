@@ -124,7 +124,7 @@ export default function PhotosCard() {
             className="absolute inset-0 transition-opacity duration-1000"
             style={{ opacity: i === index ? 1 : 0 }}
           >
-            <img
+            <img decoding="async"
               src={resolveThumbUrl(photo.file_path)}
               alt=""
               className="w-full h-full object-cover"

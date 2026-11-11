@@ -42,6 +42,8 @@ export default function MembersPage() {
   );
   /** 正在编辑的成员（null = 面板收起） */
   const [editing, setEditing] = useState<Member | null>(null);
+  /** GitHub Token 只写不读：单独放一个输入框，留空表示不修改 */
+  const [ghToken, setGhToken] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -115,12 +117,18 @@ export default function MembersPage() {
         display_name: editing.display_name ?? "",
         username: editing.username,
         upload_quota: editing.upload_quota ?? 30,
+        music_quota: editing.music_quota ?? 5,
+        netease_enabled: editing.netease_enabled ?? false,
+        github_username: (editing.github_username ?? "").trim() || null,
+        // 留空就不传 —— 否则会把已有 token 清掉
+        ...(ghToken.trim() ? { github_token: ghToken.trim() } : {}),
         ...(editing.role === "member"
           ? { need_review: editing.need_review }
           : {}),
       });
       flash("已保存");
       setEditing(null);
+      setGhToken("");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存失败");
@@ -377,7 +385,10 @@ export default function MembersPage() {
                     <button
                       type="button"
                       className="admin-link"
-                      onClick={() => setEditing(m)}
+                      onClick={() => {
+                        setEditing(m);
+                        setGhToken("");
+                      }}
                     >
                       编辑
                     </button>
@@ -432,6 +443,77 @@ export default function MembersPage() {
                 }
               />
             </label>
+          </div>
+
+          {/* 音乐 / 网易云 / GitHub：成员的附加权限 */}
+          <div className="admin-filters">
+            <label className="admin-field">
+              <span>本地音乐上限（0 = 不限）</span>
+              <input
+                type="number"
+                min={0}
+                value={editing.music_quota ?? 5}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    music_quota: Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>GitHub 用户名</span>
+              <input
+                value={editing.github_username ?? ""}
+                placeholder="ta 的 GitHub 账号，用来同步自己的仓库"
+                maxLength={100}
+                onChange={(e) =>
+                  setEditing({ ...editing, github_username: e.target.value })
+                }
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>GitHub Token（留空不改）</span>
+              <input
+                type="password"
+                value={ghToken}
+                placeholder="ghp_...（只写不读，保存后看不到）"
+                maxLength={255}
+                onChange={(e) => setGhToken(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="admin-actions">
+            <span className="admin-muted text-xs">网易云：</span>
+            <button
+              type="button"
+              className={
+                editing.netease_enabled
+                  ? "admin-btn"
+                  : "admin-btn admin-btn--ghost"
+              }
+              onClick={() =>
+                setEditing({ ...editing, netease_enabled: true })
+              }
+            >
+              允许使用
+            </button>
+            <button
+              type="button"
+              className={
+                !editing.netease_enabled
+                  ? "admin-btn"
+                  : "admin-btn admin-btn--ghost"
+              }
+              onClick={() =>
+                setEditing({ ...editing, netease_enabled: false })
+              }
+            >
+              不允许
+            </button>
           </div>
 
           {editing.role === "member" && (

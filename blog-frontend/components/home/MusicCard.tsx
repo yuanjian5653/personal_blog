@@ -41,7 +41,7 @@ export default function MusicCard() {
   const coverError = errorKey === songKey;
 
   // 本地歌若没有 cover_path，后端 /api/music/cover 会 404，
-  // 所以先用 hasCover 判断再渲染 <img>，避免破图。
+  // 所以先用 hasCover 判断再渲染 <img decoding="async">，避免破图。
   const shownCover =
     !!currentSong && hasCover(currentSong) && !coverError;
   const coverSrc = currentSong ? getCoverUrl(currentSong) : "";
@@ -73,7 +73,7 @@ export default function MusicCard() {
               title={currentSong.title}
             >
               {shownCover ? (
-                <img
+                <img decoding="async"
                   key={`${currentSong.source}-${currentSong.id}`}
                   src={coverSrc}
                   alt={currentSong.title}

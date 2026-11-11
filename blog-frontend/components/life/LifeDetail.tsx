@@ -245,7 +245,7 @@ export default function LifeDetail({
               {imgView === "carousel" ? (
                 <div className="life-detail-carousel">
                   {displayImages.map((img, i) => (
-                    <img
+                    <img decoding="async"
                       key={i}
                       src={resolveImageUrl(img)}
                       alt=""
@@ -275,7 +275,7 @@ export default function LifeDetail({
                       className="life-detail-image"
                       onClick={() => setLightboxIdx(i)}
                     >
-                      <img src={resolveImageUrl(img)} alt="" loading="lazy" />
+                      <img decoding="async" src={resolveImageUrl(img)} alt="" loading="lazy" />
                     </div>
                   ))}
                 </div>
@@ -290,7 +290,7 @@ export default function LifeDetail({
             <div className="life-detail-author">
               <div className="life-detail-avatar">
                 {authorAvatar ? (
-                  <img
+                  <img decoding="async"
                     src={resolveImageUrl(authorAvatar)}
                     alt={authorName}
                     onError={(e) =>

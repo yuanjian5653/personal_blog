@@ -204,7 +204,7 @@ export default function ProfileCard() {
       >
         <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 flex-shrink-0">
           {avatarUrl ? (
-            <img
+            <img decoding="async"
               src={avatarUrl}
               alt={name}
               className="w-full h-full object-cover"

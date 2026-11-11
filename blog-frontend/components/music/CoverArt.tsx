@@ -40,7 +40,7 @@ export default function CoverArt({
 
   return (
      
-    <img
+    <img decoding="async"
       className={className}
       src={getCoverUrl(song)}
       alt={alt}

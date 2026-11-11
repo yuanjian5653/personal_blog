@@ -20,7 +20,7 @@ from sqlmodel import Session, select
 
 from app.config import settings
 from app.database import get_session
-from app.deps import get_current_admin
+from app.deps import get_current_admin, require_content_owner
 from app.models import Admin, Project
 from app.schemas.project import (
     ProjectRead,
@@ -105,10 +105,17 @@ def list_projects(db: Session = Depends(get_session)):
 @router.get("/all", response_model=list[ProjectRead])
 def list_all_projects(
     db: Session = Depends(get_session),
-    _admin: Admin = Depends(get_current_admin),
+    admin: Admin = Depends(get_current_admin),
 ):
-    """后台列表：包含隐藏的"""
-    rows = db.exec(select(Project)).all()
+    """后台列表：包含隐藏的。
+
+    管理员看全部；成员只看自己同步进来的 —— 别人的项目 ta 既改不了
+    也删不了（update / delete 会 403），列出来只会让人误点。
+    """
+    stmt = select(Project)
+    if getattr(admin, "role", "admin") != "admin":
+        stmt = stmt.where(Project.author_id == admin.id)
+    rows = db.exec(stmt).all()
     return [_to_read(p) for p in sorted(rows, key=_sort_key)]
 
 
@@ -135,16 +142,23 @@ async def sync_projects(
     只更新 GitHub 侧的字段；**人工设置（是否展示 / 排序 / 自定义文案 / 置顶）
     一律保留** —— 否则每次同步都会把后台的调整冲掉。
     """
-    username = settings.GITHUB_USERNAME.strip()
+    # 成员有自己的一套 GitHub 账号就用它，否则退回站点配置
+    mine_user = (getattr(admin, "github_username", None) or "").strip()
+    mine_token = (getattr(admin, "github_token", None) or "").strip()
+    is_admin = getattr(admin, "role", "admin") == "admin"
+
+    username = mine_user or (settings.GITHUB_USERNAME.strip() if is_admin else "")
     if not username:
         raise HTTPException(
             status_code=400,
-            detail="还没有配置 GitHub 账号。请在 blog-backend/.env 里设置 "
-                   "GITHUB_USERNAME=你的用户名，然后重启后端。",
+            detail="还没有配置 GitHub 账号。管理员可以在 blog-backend/.env 里设置 "
+                   "GITHUB_USERNAME；成员请在「我的资料」里填自己的 GitHub 用户名和 Token。",
         )
 
     try:
-        repos = await github_repos.fetch_repos(username, force=True)
+        repos = await github_repos.fetch_repos(
+            username, force=True, token=mine_token or None
+        )
     except RuntimeError as e:
         # 把网络/额度问题转成可读的 502
         raise HTTPException(status_code=502, detail=str(e)) from e
@@ -168,7 +182,13 @@ async def sync_projects(
             "synced_at": datetime.now(timezone.utc),
         }
         if existing is None:
-            db.add(Project(full_name=r["full_name"], **fields))
+            db.add(
+                Project(
+                    full_name=r["full_name"],
+                    author_id=admin.id,
+                    **fields,
+                )
+            )
             created += 1
         else:
             for k, v in fields.items():
@@ -209,6 +229,12 @@ def update_project(
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="项目不存在")
+
+    # 成员只能删自己同步进来的项目
+    require_content_owner(admin, project.author_id)
+
+    # 成员只能改自己同步进来的项目
+    require_content_owner(admin, project.author_id)
 
     data = payload.model_dump(exclude_unset=True)
     apply_updates(
@@ -264,6 +290,9 @@ def delete_project(
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="项目不存在")
+
+    # 成员只能删自己同步进来的项目；管理员不受限
+    require_content_owner(admin, project.author_id)
 
     name = project.full_name
     db.delete(project)

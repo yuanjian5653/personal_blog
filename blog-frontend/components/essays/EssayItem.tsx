@@ -171,7 +171,7 @@ export default function EssayItem({
             {images.length > 0 && (
               <div className="essay-item-detail__images">
                 {images.slice(0, 6).map((img, i) => (
-                  <img
+                  <img decoding="async"
                     key={i}
                     src={resolveImageUrl(img)}
                     alt=""

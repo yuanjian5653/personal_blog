@@ -351,7 +351,7 @@ function ArticleCard({article: a}: { article: ArticleListItem }) {
         <Link href={`/articles/${a.slug}`} className="tl-card">
             <div className="tl-card-cover">
                 {a.cover_path ? (
-                    <img
+                    <img decoding="async"
                         src={resolveImageUrl(a.cover_path)}
                         alt={a.title}
                         loading="lazy"

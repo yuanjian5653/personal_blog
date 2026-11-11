@@ -84,7 +84,7 @@ export default function PlayerBar() {
             boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
           }}
         >
-          <img
+          <img decoding="async"
             src={getCoverUrl(currentSong)}
             alt=""
             className="w-9 h-9 rounded-full object-cover bg-white/5"
@@ -134,7 +134,7 @@ export default function PlayerBar() {
         </button>
 
         {/* 封面 */}
-        <img
+        <img decoding="async"
           src={getCoverUrl(currentSong)}
           alt={currentSong.title}
           className="w-12 h-12 rounded-lg object-cover bg-white/5"

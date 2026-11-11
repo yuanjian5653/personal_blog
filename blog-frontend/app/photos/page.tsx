@@ -137,7 +137,7 @@ export default function PhotosPage() {
                         className={`album-stack__photo ${cls}`}
                         style={{ position: "absolute", inset: 0 }}
                       >
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={resolveThumbUrl(file)}
                           alt=""
                           className="w-full h-full object-cover"

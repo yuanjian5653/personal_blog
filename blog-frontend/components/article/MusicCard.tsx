@@ -85,7 +85,7 @@ export default function MusicCard({ loading = false }: { loading?: boolean }) {
             <div className="side-music-cover">
               {currentSong &&
               (currentSong.cover_url || currentSong.cover_path) ? (
-                <img
+                <img decoding="async"
                   src={getCoverUrl(currentSong)}
                   alt=""
                   onError={(e) =>

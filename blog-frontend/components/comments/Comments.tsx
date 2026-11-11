@@ -179,7 +179,7 @@ export default function Comments({
         {viewerReady && viewer && (
           <div className="comments__me">
             {viewer.avatar_url && (
-              <img src={viewer.avatar_url} alt="" className="comments__me-avatar" />
+              <img decoding="async" src={viewer.avatar_url} alt="" className="comments__me-avatar" />
             )}
             <span className="comments__me-name">
               {displayName({

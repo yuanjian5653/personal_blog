@@ -130,7 +130,7 @@ export default function NotificationsPage() {
               >
                 <span className="notices-item__avatar">
                   {n.actor_avatar ? (
-                    <img src={n.actor_avatar} alt="" width={32} height={32} />
+                    <img decoding="async" src={n.actor_avatar} alt="" width={32} height={32} />
                   ) : (
                     <span className="notices-item__avatar-fallback">
                       {(n.actor_name || n.actor_login || "?").slice(0, 1)}

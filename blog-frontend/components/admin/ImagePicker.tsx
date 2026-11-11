@@ -65,7 +65,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
       {/* 当前选中预览 */}
       <div className="flex items-center gap-3">
         {value ? (
-          <img
+          <img decoding="async"
             src={toFullUrl(value)}
             alt="当前背景"
             className="w-24 h-16 object-cover rounded-lg border border-white/10"
@@ -148,7 +148,7 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
                       borderColor: selected ? "var(--adm-blue)" : "transparent",
                     }}
                   >
-                    <img
+                    <img decoding="async"
                       src={withApiBase(img.url)}
                       alt={img.name}
                       className="w-full h-full object-cover"

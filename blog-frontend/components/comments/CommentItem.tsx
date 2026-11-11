@@ -75,7 +75,7 @@ export default function CommentItem({
         title={name}
       >
         {avatar ? (
-          <img src={avatar} alt={name} loading="lazy" />
+          <img decoding="async" src={avatar} alt={name} loading="lazy" />
         ) : (
           <span>{name[0]?.toUpperCase() || "?"}</span>
         )}

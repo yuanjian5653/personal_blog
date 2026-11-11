@@ -164,7 +164,7 @@ export default function AdminPostsPage() {
               />
 
               {a.cover_path ? (
-                <img
+                <img decoding="async"
                   src={resolveImageUrl(a.cover_path)}
                   alt=""
                   className="w-12 h-12 rounded object-cover flex-shrink-0"

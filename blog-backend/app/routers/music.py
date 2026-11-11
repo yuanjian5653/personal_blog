@@ -1,6 +1,6 @@
 """
 音乐相关路由
-包含：歌曲列表、歌曲详情、音频流、播放计数、封面获取
+包含：歌曲列表、歌曲详情、音频流、播放计数、封面获取、成员上传
 """
 import logging
 import uuid
@@ -8,18 +8,27 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.config import settings
 from app.constants import AUDIO_EXTENSIONS
 from app.database import get_session
-from app.deps import get_current_admin
+from app.db_utils import count as db_count
+from app.deps import (
+    get_current_admin,
+    get_current_admin_optional,
+    require_content_owner,
+)
 from app.models import Admin, Song
+from app.models.admin import DEFAULT_MEMBER_MUSIC_QUOTA
 from app.schemas.music import SongRead
 from app.services.log_service import log_operation
-from app.services.metadata import get_content_type
+from app.services.metadata import calculate_file_hash, extract_metadata, get_content_type
 from app.services.scanner import _index_file, scan_music_folder
 from app.services.stream import stream_audio
+
+# 扫描/上传共用的音频扩展名（constants 里叫 AUDIO_EXTENSIONS）
+SUPPORTED_AUDIO_EXTENSIONS = AUDIO_EXTENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +40,9 @@ def list_songs(
     keyword: str | None = None,          # 可选搜索关键词
     limit: int = 100,
     offset: int = 0,
+    mine: bool = False,                  # true = 只看自己上传的（后台）
     db: Session = Depends(get_session),
+    viewer: Admin | None = Depends(get_current_admin_optional),
 ):
     """
     歌曲列表，支持关键词搜索和分页。
@@ -40,8 +51,14 @@ def list_songs(
         keyword: 搜索标题或艺术家（模糊匹配）
         limit: 每页数量
         offset: 偏移量
+        mine: 只看自己的（后台用）。前台不传，返回全部
     """
     stmt = select(Song)
+
+    if mine:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="未登录")
+        stmt = stmt.where(Song.author_id == viewer.id)
 
     if keyword:
         # ilike 是"不区分大小写"的模糊匹配
@@ -59,6 +76,8 @@ def list_songs(
 def get_song(song_id: int, db: Session = Depends(get_session)):
     """获取单首歌曲详情"""
     song = db.get(Song, song_id)
+    # 成员只能删自己上传的；管理员不受限
+    require_content_owner(current_admin, song.author_id) if song else None
     if not song:
         raise HTTPException(status_code=404, detail="歌曲不存在")
     return song
@@ -197,6 +216,9 @@ def delete_song(
     if not song:
         raise HTTPException(status_code=404, detail="歌曲不存在")
 
+    # 成员只能删自己上传的；管理员不受限
+    require_content_owner(current_admin, song.author_id)
+
     title = song.title
 
     # 删文件
@@ -223,19 +245,50 @@ def delete_song(
     return {"message": "已删除", "deleted_file": delete_file}
 
 
+def _music_quota(admin: Admin) -> int:
+    """这个账号能上传几首本地音乐。0 = 不限。"""
+    q = getattr(admin, "music_quota", None)
+    if q is None:
+        return DEFAULT_MEMBER_MUSIC_QUOTA
+    return int(q)
+
+
+def _music_count(db: Session, admin_id: int) -> int:
+    return db_count(
+        db.exec(
+            select(func.count()).select_from(Song).where(Song.author_id == admin_id)
+        ).one()
+    )
+
+
 @router.post("/upload", response_model=list[SongRead])
 async def upload_songs(
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_session),
     current_admin: Admin = Depends(get_current_admin),
 ):
+    """上传本地音乐文件（自动提取元数据入库）。
+
+    成员也能用，但受 music_quota 限制（0 = 不限）。
+    不做审核：传上去就能播；归属记在自己名下，
+    后台「只看我的」只列自己的，删除也只能删自己的。
+
+    逐首处理：某一首失败只跳过它，不影响同批的其它文件。
     """
-    上传本地音乐文件（自动提取元数据入库）。
-    - 使用原始文件名（避免中文乱码）
-    - 如果重名，自动加 uuid 后缀
-    """
-    created = []
+    admin_id = int(current_admin.id or 0)
+    quota = _music_quota(current_admin)
+    created: list[Song] = []
+
     for file in files:
+        # 配额（把本批已成功的也算进去）
+        if quota > 0 and _music_count(db, admin_id) + len(created) >= quota:
+            logger.info(
+                "[上传] %s 已达上限 %d 首，跳过后续文件",
+                current_admin.username,
+                quota,
+            )
+            break
+
         original = Path(file.filename or "")
         ext = original.suffix.lower()
         if ext not in AUDIO_EXTENSIONS:
@@ -244,22 +297,28 @@ async def upload_songs(
 
         safe_name = original.name
         dest = settings.MUSIC_DIR / safe_name
-        # 重名处理
         if dest.exists():
             safe_name = f"{original.stem}_{uuid.uuid4().hex[:8]}{ext}"
             dest = settings.MUSIC_DIR / safe_name
 
-        # 分块写入
         with open(dest, "wb") as f:
             while chunk := await file.read(1024 * 1024):
                 f.write(chunk)
 
-        # 入库
         try:
             song = _index_file(dest, db)
             if song:
-                created.append(SongRead.model_validate(song))
+                # 归属：统一盖上上传者
+                song.author_id = admin_id
+                db.add(song)
+                created.append(song)
         except Exception as e:
             logger.error("[上传] 入库失败 %s: %s", safe_name, e)
 
-    return created
+    if created:
+        db.commit()
+        for s in created:
+            db.refresh(s)
+        logger.info("[上传] %s 上传了 %d 首", current_admin.username, len(created))
+
+    return [SongRead.model_validate(s) for s in created]

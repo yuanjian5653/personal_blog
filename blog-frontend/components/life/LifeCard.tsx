@@ -82,7 +82,7 @@ export default function LifeCard({
         <div className="life-card__head">
           <div className="life-card__avatar">
             {authorAvatar ? (
-              <img
+              <img decoding="async"
                 src={resolveImageUrl(shownAvatar)}
                 alt={shownName}
                 onError={(e) =>
@@ -112,7 +112,7 @@ export default function LifeCard({
               const isLast = i === MAX_IMAGES - 1 && hiddenCount > 0;
               return (
                 <div key={i} className="life-card__img">
-                  <img
+                  <img decoding="async"
                     src={resolveImageUrl(img)}
                     alt=""
                     loading="lazy"

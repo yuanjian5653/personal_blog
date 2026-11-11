@@ -129,7 +129,7 @@ export default function AdminLifePage() {
               {p.images.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {p.images.slice(0, 6).map((img, i) => (
-                    <img
+                    <img loading="lazy" decoding="async"
                       key={i}
                       src={resolveImageUrl(img)}
                       alt=""

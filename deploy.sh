@@ -53,6 +53,7 @@ MIGRATIONS=(
   "migrate_author_nickname.py"
   "migrate_member_need_review.py"
   "migrate_album_review.py"
+  "migrate_member_music_project.py"
 )
 
 SKIP_BACKEND=0
