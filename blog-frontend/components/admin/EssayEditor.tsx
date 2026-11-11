@@ -1,5 +1,6 @@
 "use client";
 
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { saveMessage } from "@/lib/review";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -28,6 +29,11 @@ export default function EssayEditor() {
   const [data, setData] = useState<FormData>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // 审核状态：成员改完已通过的说说会重新进待审，得让它可见
+  const [review, setReview] = useState<{
+    status?: string;
+    note?: string | null;
+  }>({});
   // 记住"哪个 id 的数据已经到位"。null 表示新建（无需加载）。
   // 用 id 而不是布尔值，这样 id 变化时能自动回到加载中，且不必在 effect 里同步 setState。
   const [loadedId, setLoadedId] = useState<number | null>(null);
@@ -42,9 +48,12 @@ export default function EssayEditor() {
         content: string;
         excerpt: string | null;
         images: string[];
+        review_status?: string;
+        review_note?: string | null;
       }>(`/api/essays/${id}`)
       .then((e) => {
         if (cancelled) return;
+        setReview({ status: e.review_status, note: e.review_note });
         setData({
           title: e.title || "",
           content: e.content,
@@ -80,10 +89,11 @@ export default function EssayEditor() {
         images: data.images,
       };
       if (id) {
-        const saved = await api.put<{ review_status?: string }>(
-          `/api/essays/${id}`,
-          payload
-        );
+        const saved = await api.put<{
+          review_status?: string;
+          review_note?: string | null;
+        }>(`/api/essays/${id}`, payload);
+        setReview({ status: saved.review_status, note: saved.review_note });
         setMsg(saveMessage(saved.review_status));
       } else {
         const created = await api.post<{ id: number }>(
@@ -107,6 +117,12 @@ export default function EssayEditor() {
         <h1 className="text-2xl font-bold">
           {id ? "编辑说说" : "新建说说"}
         </h1>
+        {review.status && (
+          <div className="flex items-center gap-2">
+            <span className="admin-muted text-xs">审核状态：</span>
+            <ReviewStatusBadge status={review.status} note={review.note} />
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/admin/essays")}

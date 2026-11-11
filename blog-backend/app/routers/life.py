@@ -8,6 +8,7 @@ from app.services.review import is_publicly_visible, public_conditions, resubmit
 from app.database import get_session
 from app.db_utils import count as db_count
 from app.deps import (
+    can_edit_content,
     get_current_admin,
     get_current_admin_optional,
     require_content_owner,
@@ -121,13 +122,24 @@ def list_life_posts(
     ]
 
 @router.get("/{post_id}", response_model=LifePostRead)
-def get_life_post(post_id: int, db: Session = Depends(get_session)):
+def get_life_post(
+    post_id: int,
+    db: Session = Depends(get_session),
+    # visitor=True 表示前台请求，必须按访客视角过滤（即使带着后台 Cookie）
+    visitor: bool = False,
+    viewer: Admin | None = Depends(get_current_admin_optional),
+):
     p = db.get(LifePost, post_id)
     if not p:
         raise HTTPException(status_code=404, detail="动态不存在")
 
-    if not is_publicly_visible(p):
-        raise HTTPException(status_code=404, detail="动态不存在")
+    # 待审 / 草稿：
+    #   · 访客             → 404（不暴露"存在但没通过"）
+    #   · 作者本人、管理员 → 可以读（否则编辑待审动态时直接加载失败）
+    #   · 其它登录用户     → 404
+    if visitor or not is_publicly_visible(p):
+        if viewer is None or not can_edit_content(viewer, p.author_id):
+            raise HTTPException(status_code=404, detail="动态不存在")
 
     return _to_read(p)
 

@@ -22,11 +22,15 @@ class ArticleRead(BaseModel):
     # 内容作者（成员标签用）。列表接口只给 id，
     # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
     author_id: int | None = None
+    # 审核状态：列表里的徽章要用。缺这两个字段，前端拿到的是 undefined，
+    # 徽章就永远显示默认值（"通过"）—— 成员改完已通过的文章重新进待审时，
+    # 列表看着像完全没变。
+    review_status: str = "approved"
+    review_note: str | None = None
 
     class Config:
         from_attributes = True
-    review_status: str = "approved"
-    review_note: str | None = None
+
 
 class ArticleListItem(BaseModel):
     """列表页用（不含 content）"""
@@ -47,6 +51,11 @@ class ArticleListItem(BaseModel):
     # 内容作者（成员标签用）。列表接口只给 id，
     # 显示名和头像由前端通过 GET /api/authors 一次性取回后本地关联。
     author_id: int | None = None
+    # 审核状态：列表里的徽章要用。之前这里漏了这两个字段，
+    # 前端拿到的是 undefined，徽章就永远显示默认值（"通过"）——
+    # 成员改完已通过的文章重新进待审时，列表看着像完全没变。
+    review_status: str = "approved"
+    review_note: str | None = None
 
     class Config:
         from_attributes = True

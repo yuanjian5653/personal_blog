@@ -1,5 +1,6 @@
 "use client";
 
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { saveMessage } from "@/lib/review";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -125,14 +126,20 @@ export default function AdminAlbumEditPage() {
           ← 返回列表
         </button>
         <h1 className="text-2xl font-bold">编辑图片组</h1>
-      {/* 审核单位是**整个图片组**：这里说明当前状态，
-          编辑已通过的图片组会自动重新提交审核 */}
-      {album.review_status && album.review_status !== "approved" && (
-        <p className="admin-muted text-xs">
-          {album.review_status === "rejected"
-            ? `已驳回${album.review_note ? `：${album.review_note}` : ""}。修改后会自动重新提交审核。`
-            : "审核中：通过后才会在前台显示。期间可以继续编辑（加图 / 改名），改完自动重新提交。"}
-        </p>
+      {/* 审核单位是**整个图片组**：编辑已通过/已驳回的组会自动重新提交 */}
+      {album.review_status && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="admin-muted text-xs">审核状态：</span>
+          <ReviewStatusBadge
+            status={album.review_status}
+            note={album.review_note}
+          />
+          <span className="admin-muted text-xs">
+            {album.review_status === "approved"
+              ? "编辑后需要重新审核"
+              : "通过前可以继续编辑（加图 / 改名），改完自动重新提交"}
+          </span>
+        </div>
       )}
       </div>
 
