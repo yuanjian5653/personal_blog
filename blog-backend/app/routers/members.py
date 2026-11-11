@@ -27,6 +27,10 @@ from __future__ import annotations
 
 import logging
 
+import httpx
+from typing import Literal
+
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, func, select
 
@@ -374,3 +378,79 @@ def delete_member(
         "message": "已停用（账号记录与操作日志保留，内容不删）",
         "username": target.username,
     }
+
+
+# ============================================================
+# 验证成员的凭据是否真的可用
+# ============================================================
+#
+# 「已配置」不等于「能用」：cookie 会过期，token 会失效。
+# 管理员在音乐 / 项目管理页点一下就能确认，不用让成员去试。
+
+
+class VerifyKind(BaseModel):
+    """验证哪一类凭据"""
+    kind: Literal["netease", "github"]
+
+
+class VerifyResult(BaseModel):
+    ok: bool
+    detail: str
+
+
+@router.post("/{member_id}/verify-credential", response_model=VerifyResult)
+async def verify_member_credential(
+    member_id: int,
+    payload: VerifyKind,
+    db: Session = Depends(get_session),
+    _admin: Admin = Depends(require_admin_role),
+):
+    """用该成员自己填的凭据去请求一次外部接口，看能不能用。"""
+    member = db.get(Admin, member_id)
+    if member is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    if payload.kind == "netease":
+        cookie = (member.netease_cookie or "").strip()
+        if not cookie:
+            return VerifyResult(ok=False, detail="还没配置自己的网易云 Cookie")
+
+        from app.services.netease import verify_music_u
+
+        try:
+            info = await verify_music_u(cookie)
+        except Exception as e:
+            return VerifyResult(ok=False, detail=f"请求网易云失败：{e}")
+
+        if not info.get("valid"):
+            return VerifyResult(ok=False, detail="Cookie 无效或已过期")
+        name = info.get("nickname") or "未知昵称"
+        return VerifyResult(ok=True, detail=f"登录成功：{name}")
+
+    # ---- GitHub ----
+    token = (member.github_token or "").strip()
+    if not token:
+        return VerifyResult(ok=False, detail="还没配置自己的 GitHub Token")
+
+    from app.services.github_repos import API_BASE
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"{API_BASE}/user",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "personal-blog",
+                },
+            )
+    except Exception as e:
+        return VerifyResult(ok=False, detail=f"请求 GitHub 失败：{e}")
+
+    if r.status_code == 401:
+        return VerifyResult(ok=False, detail="Token 无效或已过期")
+    if r.status_code != 200:
+        return VerifyResult(ok=False, detail=f"GitHub 返回 {r.status_code}")
+
+    login = (r.json() or {}).get("login") or "未知账号"
+    return VerifyResult(ok=True, detail=f"连接成功：{login}")

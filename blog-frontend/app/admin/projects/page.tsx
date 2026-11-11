@@ -215,6 +215,33 @@ export default function AdminProjectsPage() {
       {/* 我的 GitHub 账号：成员填自己的，管理员也可以用自己的（优先于站点配置） */}
       <div className="admin-panel space-y-3">
         <div className="admin-panel__title">我的 GitHub 账号</div>
+
+        {/* 明确告诉成员"配好了没"—— 光有输入框看不出状态 */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="admin-muted text-xs">当前状态：</span>
+          <span
+            className={
+              ghUser.trim() && ghHasToken
+                ? "admin-badge admin-badge--approved"
+                : ghUser.trim() || ghHasToken
+                  ? "admin-badge admin-badge--muted"
+                  : "admin-badge admin-badge--rejected"
+            }
+          >
+            {ghUser.trim() && ghHasToken
+              ? `已配置：${ghUser.trim()}`
+              : ghUser.trim()
+                ? "只填了用户名，还缺 Token"
+                : ghHasToken
+                  ? "Token 已保存，还缺用户名"
+                  : "还没配置"}
+          </span>
+          {ghUser.trim() && ghHasToken && (
+            <span className="admin-muted text-xs">
+              （点「同步 GitHub」能拉到仓库就说明配置正确）
+            </span>
+          )}
+        </div>
         <p className="admin-muted text-xs">
           填你自己的 GitHub 用户名和 Token，同步时就会拉**你自己的仓库**。
           管理员如果留空，则用站点级的 GITHUB_USERNAME / GITHUB_TOKEN。
