@@ -24,6 +24,8 @@ export interface Project {
   is_visible: boolean;
   is_pinned: boolean;
   sort_order: number;
+  /** 同步者（后台列表的成员标签用） */
+  author_id?: number | null;
 }
 
 export interface ProjectSyncResult {

@@ -1,5 +1,7 @@
 "use client";
 
+import MemberPermPanel from "@/components/admin/MemberPermPanel";
+import AuthorTag from "@/components/admin/AuthorTag";
 import { useRole } from "@/lib/useRole";
 import { api } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -208,6 +210,8 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
+      {isAdmin && <MemberPermPanel kind="project" />}
+
       {/* 我的 GitHub 账号：成员填自己的，管理员也可以用自己的（优先于站点配置） */}
       <div className="admin-panel space-y-3">
         <div className="admin-panel__title">我的 GitHub 账号</div>
@@ -378,7 +382,10 @@ export default function AdminProjectsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {p.full_name}
+                      <span className="flex items-center gap-2">
+                {p.full_name}
+                <AuthorTag authorId={p.author_id} />
+              </span>
                     </a>
                     {p.summary && (
                       <div

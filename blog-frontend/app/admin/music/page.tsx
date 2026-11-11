@@ -1,7 +1,9 @@
 "use client";
 
-import { withMine } from "@/lib/useRole";
-import { useEffect, useRef, useState } from "react";
+import MemberPermPanel from "@/components/admin/MemberPermPanel";
+import AuthorTag from "@/components/admin/AuthorTag";
+import { useRole, withMine } from "@/lib/useRole";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, API_BASE } from "@/lib/api";
 import type { NeteaseAccount, NeteasePlaylist } from "@/lib/types";
 import { getCoverUrl } from "@/lib/types";
@@ -15,7 +17,7 @@ interface LocalSong {
   album: string;
   duration: number;
   cover_path: string | null;
-  created_at: string;
+  created_at: string;  author_id?: number | null;
 }
 
 /* ========== 本地音乐区块 ========== */
@@ -29,16 +31,22 @@ function LocalSection() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const load = () => {
+  // 角色必须用 hook 读：getRole() 是一次性快照，首帧默认 "admin"，
+  // 成员会先按"全部"拉一次，而且不依赖 role 就不会重拉 —— 会一直看到别人的歌。
+  const role = useRole();
+  const load = useCallback(() => {
     api
-      .get<LocalSong[]>(withMine("/api/music/songs"))
+      .get<LocalSong[]>(
+        // 成员只看自己的；管理员看全部（带成员标签）
+        role === "member" ? withMine("/api/music/songs") : "/api/music/songs"
+      )
       .then(setSongs)
       .catch(() => setSongs([]));
-  };
+  }, [role]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   // 上传
   const handleUpload = async (files: FileList) => {
@@ -116,6 +124,8 @@ function LocalSection() {
 
   return (
     <div className="space-y-4">
+      {role === "admin" && <MemberPermPanel kind="music" />}
+
       {/* 操作栏 */}
       <div className="flex items-center gap-3 flex-wrap">
         <button
@@ -202,7 +212,10 @@ function LocalSection() {
               />
 
               <div className="flex-1 min-w-0">
-                <div className="text-sm truncate">{song.title}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm truncate">{song.title}</span>
+                  <AuthorTag authorId={song.author_id} />
+                </div>
                 <div
                   className="text-xs truncate"
                   style={{ color: "var(--text-secondary)" }}

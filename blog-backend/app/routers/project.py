@@ -59,6 +59,7 @@ def _to_read(p: Project) -> ProjectRead:
         is_visible=p.is_visible,
         is_pinned=p.is_pinned,
         sort_order=p.sort_order,
+        author_id=p.author_id,
     )
 
 

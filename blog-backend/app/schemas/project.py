@@ -22,7 +22,8 @@ class ProjectRead(BaseModel):
     is_visible: bool
     is_pinned: bool
     sort_order: int
-
+    # 同步者（后台列表的成员标签用）
+    author_id: int | None = None
 
 class ProjectUpdate(BaseModel):
     """后台可改的字段（不含 GitHub 同步来的那些）"""
