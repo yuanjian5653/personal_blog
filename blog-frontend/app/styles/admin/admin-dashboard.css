@@ -861,14 +861,19 @@ a.stat-card:hover {
 .admin-field input[type="color"] {
   width: 46px;
   height: 32px;
+  /* 关键：.admin-field 是 flex-direction: column，子项默认
+     align-items: stretch，会把色块沿**交叉轴**（横向）拉满整行。
+     flex: none 只作用于主轴，管不到这里，必须用 align-self 覆盖。 */
+  align-self: flex-start;
   flex: none;
   padding: 2px;
   border-radius: 8px;
   border: 1px solid var(--adm-border);
   background: transparent;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
+  /* 刻意不写 appearance: none —— 少数浏览器下去掉原生外观后
+     色块会变成空白方块。只控尺寸，让浏览器自己画最稳。 */
+  box-sizing: border-box;
 }
 
 .admin-field input[type="color"]::-webkit-color-swatch-wrapper {
@@ -889,6 +894,7 @@ a.stat-card:hover {
 .admin-field input[type="range"] {
   width: 100%;
   max-width: 320px;
+  align-self: flex-start;
   padding: 0;
   border: 0;
   background: transparent;
