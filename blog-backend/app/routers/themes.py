@@ -65,8 +65,15 @@ class ThemeOut(ThemePayload):
 
 
 def _avatars(db: Session) -> dict[int, str]:
-    """账号 id → 头像地址（来自「关于内容」里的档案）。"""
+    """账号 id → 头像地址。
+
+    成员的头像在 author_profiles 里；
+    **管理员的头像在 site_config 里**（「关于内容」页那套 author_avatar），
+    ta 的 author_profiles 往往是空的 —— 之前直接读档案，导致管理员的
+    主题在前台切换器里没有头像。这里补一条回落。
+    """
     from app.models import AuthorProfile
+    from app.services.site_config import get_all_configs
 
     rows = db.exec(select(AuthorProfile)).all()
     out: dict[int, str] = {}
@@ -74,6 +81,14 @@ def _avatars(db: Session) -> dict[int, str]:
         prof = r if isinstance(r, AuthorProfile) else r[0]
         if isinstance(prof, AuthorProfile) and prof.avatar_url:
             out[prof.admin_id] = prof.avatar_url
+
+    site_avatar = (get_all_configs(db).get("author_avatar") or "").strip()
+    if site_avatar:
+        admins = db.exec(select(Admin).where(Admin.role == "admin")).all()
+        for r in admins:
+            a = r if isinstance(r, Admin) else r[0]
+            if isinstance(a, Admin) and a.id is not None and int(a.id) not in out:
+                out[int(a.id)] = site_avatar
     return out
 
 

@@ -178,8 +178,12 @@
    主题切换的过渡
    ------------------------------------------------------------
    CSS 变量本身不能 transition，但**用它的属性**可以。
-   只给容器类挂过渡：给 a / button 加通用过渡会把它们原有的
-   transform 动效（active:scale 之类）挤掉，反而变生硬。
+
+   ⚠️ 绝对不要在这里给 .nav-island 挂 transition。
+   transition 是简写属性，会把 .nav-island 原有的
+     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+   整条覆盖掉 —— 而「滚到顶部时导航栏缩放」正是靠它做弹性动画的。
+   被覆盖后 transform 没有过渡，缩放就变成瞬变，看起来一顿一顿的。
    ============================================================ */
 
 html {
@@ -196,9 +200,9 @@ body::after {
   transition: background-color 0.42s ease;
 }
 
+/* 只给页面卡片挂，不碰导航栏（原因见上） */
 .glass,
-.admin-panel,
-.nav-island {
+.admin-panel {
   transition:
     background-color 0.42s ease,
     border-color 0.42s ease,
@@ -225,7 +229,6 @@ body::after {
   body::after,
   .glass,
   .admin-panel,
-  .nav-island,
   .theme-sw__item,
   .theme-sw__label,
   .theme-sw__main {
