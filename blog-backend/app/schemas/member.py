@@ -25,6 +25,9 @@ class MemberRead(BaseModel):
     netease_enabled: bool | None = None
     # 是否允许用 GitHub 同步项目（NULL = 用默认值）
     github_enabled: bool | None = None
+    # 只读状态：管理员能看出谁配了自己的凭据（不回明文）
+    has_github_token: bool = False
+    has_netease_cookie: bool = False
     # 注意：token 只写不读，不放进响应
     last_login_at: datetime | None
     created_at: datetime

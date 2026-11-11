@@ -69,6 +69,9 @@ class Admin(SQLModel, table=True):
     netease_enabled: bool | None = Field(default=None)
     # 能不能用 GitHub 同步自己的项目（账号由成员自己在项目管理里填）
     github_enabled: bool | None = Field(default=None)
+    # 自己的网易云 MUSIC_U Cookie（成员自己在音乐管理里填；
+    # 为空则用站点配置里站长的那份）
+    netease_cookie: str | None = Field(default=None, max_length=500)
     # 成员自己的 GitHub Token，用来把**他自己的**仓库同步进来。
     # 为空则退回站点级的 settings.GITHUB_TOKEN（那样只能拉到站长的仓库）。
     github_token: str | None = Field(default=None, max_length=255)

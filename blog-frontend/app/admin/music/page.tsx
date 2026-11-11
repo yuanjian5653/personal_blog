@@ -254,6 +254,9 @@ function LocalSection() {
 
 /* ========== 网易云区块 ========== */
 function NeteaseSection() {
+  const role = useRole();
+  // account 是站长的那份还是自己的：后端在 /api/netease/account 里给了 is_own
+  const [isOwn, setIsOwn] = useState(true);
   const [account, setAccount] = useState<NeteaseAccount | null>(null);
   const [playlists, setPlaylists] = useState<NeteasePlaylist[]>([]);
   // account 本身可能为 null（未登录），所以用一个独立的标志表示"加载完成"
@@ -270,11 +273,12 @@ function NeteaseSection() {
 
   const load = () => {
     Promise.all([
-      api.get<NeteaseAccount>("/api/netease/account"),
+      api.get<NeteaseAccount & { is_own?: boolean }>("/api/netease/account"),
       api.get<{ playlists: NeteasePlaylist[] }>("/api/netease/my-playlists"),
       api.get<{ configs: Record<string, string> }>("/api/site-config"),
     ])
       .then(([acc, pls, cfg]) => {
+        setIsOwn(acc.is_own !== false);
         setAccount(acc);
         setPlaylists(pls.playlists);
         setConfigPlaylistId(cfg.configs.netease_playlist_id || "");
@@ -297,12 +301,22 @@ function NeteaseSection() {
     setSavingCookie(true);
     setMsg(null);
     try {
-      const res = await api.post<{
-        success: boolean;
-        nickname: string;
-        avatar: string;
-      }>("/api/netease/cookie", { music_u: cookieInput.trim() });
-      setMsg(`Cookie 已保存并验证成功，账号：${res.nickname}`);
+      // 成员写自己的（/api/admin/profile/my-netease），
+      // 管理员才写站点级（/api/netease/cookie）—— 否则成员一保存就把站长的
+      // 网易云账号覆盖掉了。
+      if (role === "member") {
+        await api.put("/api/admin/profile/my-netease", {
+          cookie: cookieInput.trim(),
+        });
+        setMsg("已保存你自己的网易云 Cookie");
+      } else {
+        const res = await api.post<{
+          success: boolean;
+          nickname: string;
+          avatar: string;
+        }>("/api/netease/cookie", { music_u: cookieInput.trim() });
+        setMsg(`Cookie 已保存并验证成功，账号：${res.nickname}`);
+      }
       setCookieInput("");
       load();
     } catch (e) {
@@ -360,7 +374,18 @@ function NeteaseSection() {
           账号状态
         </h2>
 
-        {account?.logged_in ? (
+        {/* 成员看到的如果还是站长的账号，就别把站长的昵称头像露出来 */}
+        {role === "member" && !isOwn ? (
+          <div className="space-y-2">
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              你还没有配置自己的网易云。下面的歌单是**站长的**，你自己填了
+              MUSIC_U 之后就会用你的账号。
+            </p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              （没有网易云账号也可以只用本地音乐）
+            </p>
+          </div>
+        ) : account?.logged_in ? (
           <div className="flex items-center gap-4">
             {account.avatar && (
               <img decoding="async"
@@ -481,47 +506,25 @@ function NeteaseSection() {
   );
 }
 
-/* ========== 主页面 ========== */
-type TabKey = "local" | "netease";
-
+/* ========== 主页面 ==========
+   本地音乐和网易云原来是两个 tab，来回切很麻烦 —— 合并成一页，
+   按"本地在前、网易云在后"纵向排开。 */
 export default function AdminMusicPage() {
-  const [tab, setTab] = useState<TabKey>("local");
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold">音乐管理</h1>
-
-        <div
-          className="tab-switch"
-          style={{ width: "280px", maxWidth: "100%" }}
-        >
-          {[
-            { key: "local" as const, label: "本地音乐" },
-            { key: "netease" as const, label: "网易云" },
-          ].map((t) => {
-            const active = tab === t.key;
-            return (
-              <div
-                key={t.key}
-                className={`tab ${active ? "active" : ""}`}
-                onClick={() => setTab(t.key)}
-              >
-                <div className="name">{t.label}</div>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
-      <div>
-        <div style={{ display: tab === "local" ? "block" : "none" }}>
-          <LocalSection />
-        </div>
-        <div style={{ display: tab === "netease" ? "block" : "none" }}>
-          <NeteaseSection />
-        </div>
-      </div>
+      <section>
+        <h2 className="admin-panel__title mb-3">本地音乐</h2>
+        <LocalSection />
+      </section>
+
+      <section>
+        <h2 className="admin-panel__title mb-3">网易云</h2>
+        <NeteaseSection />
+      </section>
     </div>
   );
 }

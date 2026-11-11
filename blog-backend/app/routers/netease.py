@@ -4,7 +4,7 @@
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse,PlainTextResponse
-from app.deps import get_current_admin
+from app.deps import get_current_admin, use_my_music_u
 from app.models import Admin
 from app.services.netease import (
     HEADERS,
@@ -21,7 +21,10 @@ from sqlmodel import Session
 from app.services.site_config import get_all_configs, update_configs
 from app.services.netease import verify_music_u
 
-router = APIRouter(prefix="/api/netease", tags=["网易云"])
+router = APIRouter(
+prefix="/api/netease", tags=["网易云"],
+    dependencies=[Depends(use_my_music_u)],
+)
 
 
 @router.get("/search")
@@ -119,11 +122,21 @@ async def api_lyric(
 async def api_account(
     current_admin: Admin = Depends(get_current_admin),
 ):
-    """获取当前登录的网易云账号信息"""
+    """获取当前登录的网易云账号信息。
+
+    is_own 表示这个账号是**当前用户自己填的**，还是回落到了站点配置里
+    站长的那份。成员在后台看到 is_own=False 时，前端会提示"还没配置你自己的"，
+    而不是把站长的账号名/头像显示给 ta。
+    """
+    is_own = bool(getattr(current_admin, "netease_cookie", None))
     account = await get_account()
     if not account:
-        return {"logged_in": False, "message": "未配置 NETEASE_MUSIC_U"}
-    return {"logged_in": True, **account}
+        return {
+            "logged_in": False,
+            "is_own": is_own,
+            "message": "未配置 NETEASE_MUSIC_U",
+        }
+    return {"logged_in": True, "is_own": is_own, **account}
 
 
 @router.get("/my-playlists")

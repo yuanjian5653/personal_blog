@@ -7,6 +7,7 @@ FastAPI 的 Depends 机制允许我们把"获取当前登录管理员"这件事�
 #Cookie(default=None, alias="session_token") 中 alias 要和实际 Cookie 名一致。
 # 过期 Session 顺手删除，避免表里堆积垃圾数据。
 # 时区处理是 Python + MySQL 常见坑：MySQL 的 DATETIME 不存时区，取出来是 naive，必须补 tzinfo。
+from collections.abc import Iterator
 from datetime import datetime, timezone
 
 from fastapi import Cookie, Depends, HTTPException, status
@@ -180,3 +181,19 @@ def require_content_owner(admin: Admin, author_id: int | None) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="只能修改自己发布的内容",
         )
+
+
+def use_my_music_u(
+    admin: Admin | None = Depends(get_current_admin_optional),
+) -> Iterator[None]:
+    """让本次请求的网易云调用用**当前账号自己**的 MUSIC_U。
+
+    挂在网易云路由上即可；没登录或没填过就自动回落到站点配置。
+    """
+    from app.services.netease import reset_current_music_u, set_current_music_u
+
+    set_current_music_u(getattr(admin, "netease_cookie", None) if admin else None)
+    try:
+        yield
+    finally:
+        reset_current_music_u()

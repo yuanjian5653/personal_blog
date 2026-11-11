@@ -25,6 +25,10 @@ export interface Member {
   netease_enabled: boolean | null;
   /** 是否允许用 GitHub 同步项目 */
   github_enabled: boolean | null;
+  /** 只读：配没配自己的 GitHub Token */
+  has_github_token: boolean;
+  /** 只读：配没配自己的网易云 Cookie */
+  has_netease_cookie: boolean;
   last_login_at: string | null;
   created_at: string;
   content_count: number;

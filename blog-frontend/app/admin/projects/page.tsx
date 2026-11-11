@@ -255,9 +255,12 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
-      {/* 配置状态：让"为什么不显示项目"一眼可见 */}
-      <div className="admin-panel">
-        <div className="admin-panel__title">GitHub 配置</div>
+      {/* 站点级 GitHub 配置：只有管理员需要看 */}
+      {isAdmin && (
+        <div className="admin-panel">
+        <div className="admin-panel__title">
+          {isAdmin ? "站点 GitHub 配置" : "站点配置（只读）"}
+        </div>
         <div className="admin-proj-config">
           <span>
             账号：
@@ -295,12 +298,13 @@ export default function AdminProjectsPage() {
             共 {stats.total} 个仓库 · 展示中 {stats.visible} · 置顶 {stats.pinned}
           </p>
         )}
-      </div>
+        </div>
+      )}
 
       {error && <p className="admin-error">{error}</p>}
       {msg && <p className="admin-ok">{msg}</p>}
 
-      {/* 自定义文案编辑 */}
+{/* 自定义文案编辑 */}
       {editingId !== null && (
         <div className="admin-panel space-y-3">
           <div className="admin-panel__title">编辑展示文案</div>

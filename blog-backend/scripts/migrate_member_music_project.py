@@ -30,6 +30,7 @@ COLUMNS = {
         ("github_token", "VARCHAR(255) NULL"),
         ("github_username", "VARCHAR(100) NULL"),
         ("github_enabled", "TINYINT(1) NULL"),
+        ("netease_cookie", "VARCHAR(500) NULL"),
     ),
     "songs": (("author_id", "INT NULL"),),
     "projects": (("author_id", "INT NULL"),),

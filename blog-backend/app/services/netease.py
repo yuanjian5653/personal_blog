@@ -1,3 +1,4 @@
+from contextvars import ContextVar
 """
 网易云音乐公开接口代理
 MUSIC_U 从数据库动态读取（可通过后台保存），不再只依赖 .env
@@ -18,8 +19,34 @@ DEFAULT_HEADERS = {
 }
 
 
+# 请求级覆盖：路由层知道当前登录的是谁，把 ta 自己的 MUSIC_U 放进来。
+#
+# 为什么用 ContextVar 而不是模块级变量：
+#   FastAPI 是异步的，同一进程里可能同时处理多个请求。模块级变量会被
+#   请求之间串数据（A 用了 B 的 cookie）。ContextVar 天然按请求隔离。
+_current_music_u: ContextVar[str | None] = ContextVar(
+    "netease_music_u", default=None
+)
+
+
+def set_current_music_u(cookie: str | None) -> None:
+    """路由层调用：本次请求用这个 cookie（None = 用站点配置）。"""
+    _current_music_u.set(cookie or None)
+
+
+def reset_current_music_u() -> None:
+    _current_music_u.set(None)
+
+
 def get_music_u() -> str:
-    """从数据库读 MUSIC_U，找不到回退 .env"""
+    """当前请求的 MUSIC_U。
+
+    优先用当前登录账号自己填的（成员各自的网易云），
+    没有才回落到站点配置里站长的那份。
+    """
+    override = _current_music_u.get()
+    if override:
+        return override
     try:
         from app.database import engine
         from app.models import SiteConfig

@@ -40,6 +40,9 @@ export default function MemberPermPanel({
 
   const field = kind === "music" ? "netease_enabled" : "github_enabled";
   const label = kind === "music" ? "网易云" : "GitHub 同步";
+  // 管理员还想看出"谁配了自己的凭据"，光有授权不够
+  const hasCred = (m: Member) =>
+    kind === "music" ? m.has_netease_cookie : m.has_github_token;
 
   return (
     <div className="admin-panel space-y-2">
@@ -57,10 +60,17 @@ export default function MemberPermPanel({
                     ? "admin-badge admin-badge--approved"
                     : "admin-badge admin-badge--muted"
                 }
-                title={`${m.display_name || m.username} · ${on ? "已开通" : "未开通"}`}
+                title={
+                  `${m.display_name || m.username}` +
+                  ` · 授权：${on ? "已开通" : "未开通"}` +
+                  ` · 凭据：${hasCred(m) ? "已配置" : "未配置"}`
+                }
               >
                 {m.display_name || m.username}
                 {on ? " ✓" : " ✕"}
+                <span className="admin-muted text-xs" style={{ marginLeft: 4 }}>
+                  {hasCred(m) ? "已配" : "未配"}
+                </span>
               </span>
             );
           })}

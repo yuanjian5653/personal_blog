@@ -189,3 +189,59 @@ def save_my_github(
         username=me.github_username,
         has_token=bool(me.github_token),
     )
+
+
+# ============================================================
+# 我自己的网易云账号（成员在「音乐管理」里填）
+# ============================================================
+#
+# 和 GitHub 账号的处理方式一致：
+#   凭据是成员自己的，管理员只授权能不能用（admin.netease_enabled）。
+#   填了之后，网易云相关请求会优先用这个 cookie（见 deps.use_my_music_u），
+#   没有才回落到站点配置里站长的那份。
+
+
+class MyNeteaseRead(BaseModel):
+    has_cookie: bool = False
+
+
+class MyNeteaseWrite(BaseModel):
+    # 留空表示不修改已有 cookie
+    cookie: str | None = Field(default=None, max_length=500)
+
+
+@router.get("/my-netease", response_model=MyNeteaseRead)
+def get_my_netease(
+    db: Session = Depends(get_session),
+    admin: Admin = Depends(get_current_admin),
+):
+    """只看有没有配，不回 cookie 明文（那等同于账号凭据）。"""
+    me = db.get(Admin, admin.id)
+    if me is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    return MyNeteaseRead(has_cookie=bool(me.netease_cookie))
+
+
+@router.put("/my-netease", response_model=MyNeteaseRead)
+def save_my_netease(
+    payload: MyNeteaseWrite,
+    db: Session = Depends(get_session),
+    admin: Admin = Depends(get_current_admin),
+):
+    """保存自己的网易云 MUSIC_U。留空表示不修改。"""
+    me = db.get(Admin, admin.id)
+    if me is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    raw = (payload.cookie or "").strip()
+    if raw:
+        # 允许直接粘贴整段 cookie，这里只取 MUSIC_U=... 的值
+        if "MUSIC_U=" in raw:
+            raw = raw.split("MUSIC_U=", 1)[1].split(";", 1)[0].strip()
+        me.netease_cookie = raw or None
+        db.add(me)
+        db.commit()
+        db.refresh(me)
+        logger.info("[网易云] %s 更新了自己的 MUSIC_U", me.username)
+
+    return MyNeteaseRead(has_cookie=bool(me.netease_cookie))

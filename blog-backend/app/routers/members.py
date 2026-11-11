@@ -92,6 +92,8 @@ def _to_read(db: Session, admin: Admin, viewer: Admin) -> MemberRead:
         music_quota=admin.music_quota,
         netease_enabled=admin.netease_enabled,
         github_enabled=admin.github_enabled,
+        has_github_token=bool(admin.github_token),
+        has_netease_cookie=bool(admin.netease_cookie),
         github_username=admin.github_username,
         last_login_at=admin.last_login_at,
         created_at=admin.created_at,
