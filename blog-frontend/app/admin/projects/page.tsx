@@ -1,5 +1,7 @@
 "use client";
 
+import { useRole } from "@/lib/useRole";
+import { api } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -23,6 +25,12 @@ export default function AdminProjectsPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   /** 正在编辑自定义文案的项目 id */
   const [editingId, setEditingId] = useState<number | null>(null);
+  // ---- 我自己的 GitHub 账号（管理员用站点配置，成员填自己的）----
+  const [ghUser, setGhUser] = useState("");
+  const [ghToken, setGhToken] = useState("");
+  const [ghHasToken, setGhHasToken] = useState(false);
+  const [ghSaving, setGhSaving] = useState(false);
+
   const [draftTitle, setDraftTitle] = useState("");
   const [draftDesc, setDraftDesc] = useState("");
 
@@ -36,7 +44,41 @@ export default function AdminProjectsPage() {
     fetchProjectConfig()
       .then(setConfig)
       .catch(() => setConfig(null));
+    api
+      .get<{ username: string | null; has_token: boolean }>(
+        "/api/admin/profile/my-github"
+      )
+      .then((g) => {
+        setGhUser(g.username ?? "");
+        setGhHasToken(g.has_token);
+      })
+      .catch(() => undefined);
   }, []);
+
+  const saveGithub = async () => {
+    setGhSaving(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const saved = await api.put<{ username: string | null; has_token: boolean }>(
+        "/api/admin/profile/my-github",
+        {
+          username: ghUser.trim() || null,
+          // 留空表示不改
+          ...(ghToken.trim() ? { token: ghToken.trim() } : {}),
+        }
+      );
+      setGhUser(saved.username ?? "");
+      setGhHasToken(saved.has_token);
+      setGhToken("");
+      setMsg("GitHub 账号已保存");
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setGhSaving(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -130,7 +172,12 @@ export default function AdminProjectsPage() {
     }
   };
 
-  const noUsername = config !== null && !config.username;
+  const role = useRole();
+  const isAdmin = role === "admin";
+  // 管理员：自己的或站点级任一有值即可；成员：必须自己填
+  const noUsername = isAdmin
+    ? config !== null && !config.username && !ghUser.trim()
+    : !ghUser.trim();
 
   return (
     <div className="space-y-4">
@@ -157,6 +204,49 @@ export default function AdminProjectsPage() {
             }
           >
             {syncing ? "同步中…" : "同步 GitHub"}
+          </button>
+        </div>
+      </div>
+
+      {/* 我的 GitHub 账号：成员填自己的，管理员也可以用自己的（优先于站点配置） */}
+      <div className="admin-panel space-y-3">
+        <div className="admin-panel__title">我的 GitHub 账号</div>
+        <p className="admin-muted text-xs">
+          填你自己的 GitHub 用户名和 Token，同步时就会拉**你自己的仓库**。
+          管理员如果留空，则用站点级的 GITHUB_USERNAME / GITHUB_TOKEN。
+          Token 只写不读，保存后看不到明文。
+        </p>
+        <div className="admin-filters">
+          <label className="admin-field">
+            <span>GitHub 用户名</span>
+            <input
+              value={ghUser}
+              placeholder="例如 yuanjian5653"
+              maxLength={100}
+              onChange={(e) => setGhUser(e.target.value)}
+            />
+          </label>
+          <label className="admin-field admin-field--grow">
+            <span>
+              GitHub Token{ghHasToken ? "（已配置，留空不改）" : ""}
+            </span>
+            <input
+              type="password"
+              value={ghToken}
+              placeholder={ghHasToken ? "••••••（留空保持不变）" : "ghp_... 或 github_pat_..."}
+              maxLength={255}
+              onChange={(e) => setGhToken(e.target.value)}
+            />
+          </label>
+        </div>
+        <div className="admin-actions">
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={ghSaving}
+            onClick={() => void saveGithub()}
+          >
+            {ghSaving ? "保存中…" : "保存 GitHub 账号"}
           </button>
         </div>
       </div>
@@ -252,7 +342,7 @@ export default function AdminProjectsPage() {
           <p className="admin-muted p-6">加载中…</p>
         ) : projects.length === 0 ? (
           <p className="admin-muted p-6">
-            还没有项目。{noUsername ? "先配置 GITHUB_USERNAME，" : ""}
+            还没有项目。{noUsername ? "先在上面填好你的 GitHub 用户名和 Token，" : ""}
             然后点右上角「同步 GitHub」。
           </p>
         ) : (

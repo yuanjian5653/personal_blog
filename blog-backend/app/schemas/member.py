@@ -23,8 +23,8 @@ class MemberRead(BaseModel):
     music_quota: int | None = None
     # 是否允许用网易云（NULL = 用默认值）
     netease_enabled: bool | None = None
-    # 成员自己的 GitHub（拉自己的仓库用）
-    github_username: str | None = None
+    # 是否允许用 GitHub 同步项目（NULL = 用默认值）
+    github_enabled: bool | None = None
     # 注意：token 只写不读，不放进响应
     last_login_at: datetime | None
     created_at: datetime
@@ -51,9 +51,8 @@ class MemberCreate(BaseModel):
     music_quota: int | None = Field(default=None, ge=0, le=10000)
     # 是否允许用网易云
     netease_enabled: bool | None = None
-    # 成员自己的 GitHub（用户名 + token，token 只写不读）
-    github_username: str | None = Field(default=None, max_length=100)
-    github_token: str | None = Field(default=None, max_length=255)
+    # 是否允许用 GitHub 同步项目
+    github_enabled: bool | None = None
 
 
 class MemberUpdate(BaseModel):
@@ -68,9 +67,8 @@ class MemberUpdate(BaseModel):
     music_quota: int | None = Field(default=None, ge=0, le=10000)
     # 是否允许用网易云
     netease_enabled: bool | None = None
-    # 成员自己的 GitHub（用户名 + token，token 只写不读）
-    github_username: str | None = Field(default=None, max_length=100)
-    github_token: str | None = Field(default=None, max_length=255)
+    # 是否允许用 GitHub 同步项目
+    github_enabled: bool | None = None
 
 
 class PasswordReset(BaseModel):

@@ -29,6 +29,7 @@ COLUMNS = {
         ("netease_enabled", "TINYINT(1) NULL"),
         ("github_token", "VARCHAR(255) NULL"),
         ("github_username", "VARCHAR(100) NULL"),
+        ("github_enabled", "TINYINT(1) NULL"),
     ),
     "songs": (("author_id", "INT NULL"),),
     "projects": (("author_id", "INT NULL"),),

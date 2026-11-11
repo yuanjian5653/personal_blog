@@ -67,6 +67,8 @@ class Admin(SQLModel, table=True):
     music_quota: int | None = Field(default=None)
     # 能不能用网易云相关功能（成员共享站长的网易云账号）
     netease_enabled: bool | None = Field(default=None)
+    # 能不能用 GitHub 同步自己的项目（账号由成员自己在项目管理里填）
+    github_enabled: bool | None = Field(default=None)
     # 成员自己的 GitHub Token，用来把**他自己的**仓库同步进来。
     # 为空则退回站点级的 settings.GITHUB_TOKEN（那样只能拉到站长的仓库）。
     github_token: str | None = Field(default=None, max_length=255)

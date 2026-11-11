@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.deps import get_current_staff
+from app.deps import get_current_admin, get_current_staff
 from app.models import Admin, AuthorProfile
 from app.models._base import utcnow
 
@@ -129,3 +129,63 @@ def update_my_profile(
 
     logger.info("[资料] %s 更新了自己的关于页信息", me.username)
     return _to_read(prof, me)
+
+# ============================================================
+# 我自己的 GitHub 账号（成员在「项目管理」里填）
+# ============================================================
+#
+# 为什么放在这里而不是「成员管理」：
+#   GitHub 账号是**成员自己的凭据**，属于个人设置；
+#   管理员只负责授权"能不能用 GitHub 同步"（admin.github_enabled）。
+#   两边职责分开，管理员的站点级配置和成员的个人配置互不干扰。
+
+
+class MyGithubRead(BaseModel):
+    username: str | None = None
+    has_token: bool = False
+
+
+class MyGithubWrite(BaseModel):
+    username: str | None = Field(default=None, max_length=100)
+    # 留空表示不修改已有 token
+    token: str | None = Field(default=None, max_length=255)
+
+
+@router.get("/my-github", response_model=MyGithubRead)
+def get_my_github(
+    db: Session = Depends(get_session),
+    admin: Admin = Depends(get_current_admin),
+):
+    """读自己填的 GitHub 账号。token 只回 has_token，不回明文。"""
+    me = db.get(Admin, admin.id)
+    if me is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    return MyGithubRead(
+        username=me.github_username,
+        has_token=bool(me.github_token),
+    )
+
+
+@router.put("/my-github", response_model=MyGithubRead)
+def save_my_github(
+    payload: MyGithubWrite,
+    db: Session = Depends(get_session),
+    admin: Admin = Depends(get_current_admin),
+):
+    """保存自己的 GitHub 用户名 / Token。"""
+    me = db.get(Admin, admin.id)
+    if me is None:
+        raise HTTPException(status_code=404, detail="账号不存在")
+
+    me.github_username = (payload.username or "").strip() or None
+    if payload.token is not None and payload.token.strip():
+        me.github_token = payload.token.strip()
+    db.add(me)
+    db.commit()
+    db.refresh(me)
+
+    logger.info("[GitHub] %s 更新了自己的 GitHub 账号", me.username)
+    return MyGithubRead(
+        username=me.github_username,
+        has_token=bool(me.github_token),
+    )

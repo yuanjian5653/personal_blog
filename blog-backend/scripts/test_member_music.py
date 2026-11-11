@@ -155,12 +155,15 @@ check("网易云默认关", r.json().get("netease_enabled"), None)
 
 r = client.put(
     f"/api/admin/members/{member_a}",
-    json={"netease_enabled": True, "github_username": PFX + "gh"},
+    json={"netease_enabled": True, "github_enabled": True},
 )
-check("设网易云 + GitHub 用户名 200", r.status_code, 200)
+check("设网易云 + GitHub 授权 200", r.status_code, 200)
 check("网易云已开", r.json().get("netease_enabled"), True)
-check("GitHub 用户名已存", r.json().get("github_username"), PFX + "gh")
-check_true("响应里没有 github_token", "github_token" not in r.json())
+check("GitHub 授权已开", r.json().get("github_enabled"), True)
+check_true(
+    "成员管理不再暴露 GitHub 账号字段",
+    "github_username" not in r.json() and "github_token" not in r.json(),
+)
 
 # ---------------------------------------------------------------- 2. 上传音乐
 print("\n=== 2. 成员上传音乐（配额 1 首）===")
@@ -240,6 +243,34 @@ proj_id = r.json()[0]["id"]
 login(member_b)
 r = client.delete(f"/api/projects/{proj_id}")
 check("B 删 A 的项目 403", r.status_code, 403)
+
+
+# ---------------------------------------------------------------- 6. 成员自己填 GitHub
+print("\n=== 6. 成员在项目管理里填自己的 GitHub 账号 ===")
+login(member_a)
+r = client.get("/api/admin/profile/my-github")
+check("读 200", r.status_code, 200)
+check("初始没有 token", r.json().get("has_token"), False)
+
+r = client.put(
+    "/api/admin/profile/my-github",
+    json={"username": PFX + "gh", "token": "ghp_fake_token_for_test"},
+)
+check("保存 200", r.status_code, 200)
+check("用户名已存", r.json().get("username"), PFX + "gh")
+check("已有 token", r.json().get("has_token"), True)
+check_true("不回显 token 明文", "ghp_fake" not in r.text)
+
+r = client.put("/api/admin/profile/my-github", json={"username": PFX + "gh2"})
+check("只改用户名不动 token", r.json().get("has_token"), True)
+
+# ---------------------------------------------------------------- 7. 未授权不能同步
+print("\n=== 7. 没开通 GitHub 授权的成员不能同步 ===")
+login(root.id)
+client.put(f"/api/admin/members/{member_b}", json={"github_enabled": False})
+login(member_b)
+r = client.post("/api/projects/sync")
+check("未授权同步 403", r.status_code, 403)
 
 # ---------------------------------------------------------------- 收尾
 client.cookies.clear()

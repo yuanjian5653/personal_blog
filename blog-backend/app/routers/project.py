@@ -142,10 +142,19 @@ async def sync_projects(
     只更新 GitHub 侧的字段；**人工设置（是否展示 / 排序 / 自定义文案 / 置顶）
     一律保留** —— 否则每次同步都会把后台的调整冲掉。
     """
+    is_admin = getattr(admin, "role", "admin") == "admin"
+
+    # 成员的 GitHub 同步要管理员授权（站点级配置不受此限制）
+    if not is_admin and not getattr(admin, "github_enabled", False):
+        raise HTTPException(
+            status_code=403,
+            detail="管理员还没有给你开通「GitHub 同步项目」。"
+                   "需要的话请找站长在「成员管理」里打开。",
+        )
+
     # 成员有自己的一套 GitHub 账号就用它，否则退回站点配置
     mine_user = (getattr(admin, "github_username", None) or "").strip()
     mine_token = (getattr(admin, "github_token", None) or "").strip()
-    is_admin = getattr(admin, "role", "admin") == "admin"
 
     username = mine_user or (settings.GITHUB_USERNAME.strip() if is_admin else "")
     if not username:
