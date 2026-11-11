@@ -446,7 +446,9 @@ function NeteaseSection() {
         </div>
       </section>
 
-      {/* 前台显示的歌单 */}
+      {/* 前台显示的歌单：这是**站点级**配置（写 site_config），只有管理员该看到。
+          成员看到会以为能设置自己的，实际会改到全站。 */}
+      {role === "admin" && (
       <section className="glass p-5 space-y-3">
         <h2
           className="text-sm font-semibold uppercase tracking-wider"
@@ -502,6 +504,7 @@ function NeteaseSection() {
           </>
         )}
       </section>
+      )}
     </div>
   );
 }

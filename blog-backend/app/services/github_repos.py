@@ -71,7 +71,9 @@ def normalize_repo(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def _request(url: str, params: dict[str, Any]) -> httpx.Response:
+async def _request(
+    url: str, params: dict[str, Any], token: str | None = None
+) -> httpx.Response:
     """请求 GitHub，并处理"代理配了但不可用"的情况。
 
     为什么需要这个 fallback：
@@ -149,7 +151,7 @@ async def fetch_repos(
     url = f"{API_BASE}/users/{username}/repos"
     params = {"per_page": 100, "sort": "updated", "type": "owner"}
 
-    resp = await _request(url, params)
+    resp = await _request(url, params, token)
 
     if resp.status_code == 404:
         raise RuntimeError(f"GitHub 上找不到用户「{username}」")
