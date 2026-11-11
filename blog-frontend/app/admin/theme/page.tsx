@@ -1,5 +1,6 @@
 "use client";
 
+import ColorInput from "@/components/admin/ColorInput";
 import { useEffect, useState } from "react";
 
 import ImagePicker from "@/components/admin/ImagePicker";
@@ -168,10 +169,9 @@ export default function ThemePage() {
 
         <label className="admin-field">
           <span>强调色</span>
-          <input
-            type="color"
+          <ColorInput
             value={mine.theme_accent}
-            onChange={(e) => set("theme_accent", e.target.value)}
+            onChange={(v) => set("theme_accent", v)}
           />
         </label>
 
@@ -196,11 +196,10 @@ export default function ThemePage() {
         {mine.bg_type === "color" ? (
           <label className="admin-field">
             <span>背景色</span>
-            <input
-              type="color"
-              value={mine.bg_color}
-              onChange={(e) => set("bg_color", e.target.value)}
-            />
+            <ColorInput
+            value={mine.bg_color}
+            onChange={(v) => set("bg_color", v)}
+          />
           </label>
         ) : (
           <label className="admin-field">
@@ -255,19 +254,17 @@ export default function ThemePage() {
 
         <label className="admin-field">
           <span>波频起始色</span>
-          <input
-            type="color"
+          <ColorInput
             value={mine.card_wave_color1}
-            onChange={(e) => set("card_wave_color1", e.target.value)}
+            onChange={(v) => set("card_wave_color1", v)}
           />
         </label>
 
         <label className="admin-field">
           <span>波频结束色</span>
-          <input
-            type="color"
+          <ColorInput
             value={mine.card_wave_color2}
-            onChange={(e) => set("card_wave_color2", e.target.value)}
+            onChange={(v) => set("card_wave_color2", v)}
           />
         </label>
 

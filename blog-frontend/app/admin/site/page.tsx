@@ -1,5 +1,6 @@
 "use client";
 
+import ColorInput from "@/components/admin/ColorInput";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import ImagePicker from "@/components/admin/ImagePicker";
@@ -220,12 +221,10 @@ export default function SiteConfigPage() {
               ) : field.type === "color" ? (
                 /* ===== 颜色选择 ===== */
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={configs[field.key] ?? "#000000"}
-                    onChange={(e) => update(field.key, e.target.value)}
-                    className="w-12 h-9 rounded cursor-pointer bg-transparent"
-                  />
+                  <ColorInput
+                  value={configs[field.key] ?? "#000000"}
+                  onChange={(v) => update(field.key, v)}
+                />
                   <input
                     type="text"
                     value={configs[field.key] ?? ""}
