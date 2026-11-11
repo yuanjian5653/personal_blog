@@ -50,9 +50,13 @@ export default function SiteConfigLoader() {
           }
 
           // ---- 背景模糊 ----
+          // blur 为 0 时不设 filter：blur(0px) 依然会建一个合成层，
+          // 滚动时白白多一次合成。--bg-blur 留着给别处用。
+          const blurPx = Number(configs.bg_blur || 0);
+          root.style.setProperty("--bg-blur", `${blurPx}px`);
           root.style.setProperty(
-            "--bg-blur",
-            `${Number(configs.bg_blur || 0)}px`
+            "--bg-filter",
+            blurPx > 0 ? `blur(${blurPx}px)` : "none"
           );
 
           // ---- 背景遮罩 ----

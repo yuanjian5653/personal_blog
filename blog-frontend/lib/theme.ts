@@ -85,6 +85,7 @@ export function applyTheme(
     root.style.removeProperty("--bg-color");
     root.style.removeProperty("--bg-image");
     root.style.removeProperty("--bg-blur");
+    root.style.removeProperty("--bg-filter");
     root.style.removeProperty("--bg-overlay");
     return;
   }
@@ -103,7 +104,10 @@ export function applyTheme(
     root.style.setProperty("--bg-image", "none");
   }
 
-  root.style.setProperty("--bg-blur", `${Number(theme.bg_blur || 0)}px`);
+  const blurPx = Number(theme.bg_blur || 0);
+  root.style.setProperty("--bg-blur", `${blurPx}px`);
+  // 和 SiteConfigLoader 保持一致：blur 为 0 就不建 filter 合成层
+  root.style.setProperty("--bg-filter", blurPx > 0 ? `blur(${blurPx}px)` : "none");
   root.style.setProperty("--bg-overlay", String(Number(theme.bg_overlay || 0)));
   // 卡片样式（glass / black）不归主题管 —— 导航栏的「日夜切换」负责它
 }

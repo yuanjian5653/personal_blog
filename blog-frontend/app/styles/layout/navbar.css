@@ -54,6 +54,11 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 10px 28px -14px rgba(0, 0, 0, 0.6);
   transform-origin: top center;
+  /* 导航栏一直在做 scale 过渡 + backdrop-filter，
+     提前告诉浏览器"这个元素的 transform 会变"，避免滚动时临时建层。
+     注意用 will-change 而不是 translateZ(0) —— 后者会被
+     .is-scrolled 的 scale() 覆盖掉。 */
+  will-change: transform;
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

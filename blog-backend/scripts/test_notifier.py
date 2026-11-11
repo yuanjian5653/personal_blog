@@ -240,6 +240,20 @@ with Session(engine) as db:
             db.add(obj)
     db.commit()
 
+# 别的测试（发文章 / 建相册）会在 outbox 里留 pending，本地没有 worker
+# 消费它们。_send_batch 有批次上限，这些残留会把批次占满，导致本测试
+# 该处理的行处理不到 —— 所以先清掉非本测试制造的 pending。
+with Session(engine) as db:
+    for r in db.exec(select(NotificationOutbox)).all():
+        obj = unwrap(r, NotificationOutbox)
+        if (
+            obj is not None
+            and obj.status == "pending"
+            and not obj.title.startswith(PREFIX)
+        ):
+            db.delete(obj)
+    db.commit()
+
 asyncio.run(notifier._send_batch())
 rows_now = rows_by_title(PREFIX)
 check_true(

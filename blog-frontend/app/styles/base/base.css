@@ -46,7 +46,10 @@ body::before {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: blur(var(--bg-blur));
+  /* 用 --bg-filter 而不是 blur(var(--bg-blur))：
+     blur(0px) 仍然会创建一个 filter 合成层，滚动时白白多一次合成开销。
+     没有模糊就让它是 none，直接不建层。 */
+  filter: var(--bg-filter, none);
   pointer-events: none;
 }
 
