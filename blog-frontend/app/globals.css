@@ -15,6 +15,7 @@
 @import "./styles/layout/navbar.css";
 
 /* ---- 首页 ---- */
+@import "./styles/pages/about.css";       /* 关于页：浮动切换器 + 正文排版 */
 @import "./styles/pages/home-cards.css";      /* 随笔卡片、文章翻转卡片（原 components.css） */
 @import "./styles/pages/entry-cards.css";     /* 首页底部三入口卡片（项目 / 工具 / 友链） */
 @import "./styles/pages/essay-switch.css";     /* 说说卡片的顺时针旋转轮播（覆盖在 home-cards 之上） */

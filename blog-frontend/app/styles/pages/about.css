@@ -1,0 +1,435 @@
+/* ============================================================
+   关于页：切换器（浮动弧形）+ 内容排版
+   ============================================================ */
+
+/* ---------- 浮动切换器 ---------- */
+
+.about-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 45;
+  /* 自己成层，避免和页面里其它 transform 冲突 */
+  isolation: isolate;
+}
+
+.about-fab__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  border: 0;
+  padding: 0;
+  cursor: default;
+  background: radial-gradient(
+    circle at 100% 100%,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.2) 45%,
+    transparent 70%
+  );
+  animation: aboutFabScrimIn 0.22s ease-out;
+}
+
+@keyframes aboutFabScrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 环形容器：0 尺寸，子项以它为原点用 transform 偏移 */
+.about-fab__ring {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+}
+
+.about-fab__main {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--accent) 88%, #000) 0%,
+    var(--accent) 100%
+  );
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  transition:
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.24s ease,
+    background 0.24s ease;
+}
+
+.about-fab__main:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.42),
+    0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.about-fab__main:active {
+  transform: scale(0.95);
+}
+
+.about-fab__main:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.about-fab__main-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- 展开的选项 ---------- */
+
+.about-fab__item {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  /* 收起态：缩成一点、贴在主按钮位置 */
+  transform: translate(0, 0) scale(0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.34s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+  transition-delay: var(--fab-delay, 0ms);
+}
+
+.about-fab--open .about-fab__item {
+  transform: translate(var(--fab-x), var(--fab-y)) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.about-fab__avatar {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 22%, rgba(20, 22, 30, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* 名字只在悬停 / 聚焦时露出来，平时不占地方 */
+.about-fab__label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateX(6px);
+  transition:
+    max-width 0.26s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    padding 0.26s ease;
+  background: rgba(12, 14, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.about-fab__item:hover .about-fab__label,
+.about-fab__item:focus-visible .about-fab__label {
+  max-width: 160px;
+  opacity: 1;
+  transform: translateX(0);
+  padding: 5px 10px;
+}
+
+.about-fab__item:hover .about-fab__avatar {
+  transform: scale(1.08);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.about-fab__item:focus-visible {
+  outline: none;
+}
+
+.about-fab__item:focus-visible .about-fab__avatar {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 当前选中项：加一圈强调色 */
+.about-fab__item.is-active .about-fab__avatar {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- 关于页内容排版 ---------- */
+
+.about-page {
+  /* 给浮动按钮留出底部空间，避免正文末尾被挡住 */
+  padding-bottom: 64px;
+}
+
+/* 切内容时的淡入：只动透明度与位移，不触发重排 */
+.about-pane {
+  animation: aboutPaneIn 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes aboutPaneIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 横幅：底部渐隐到背景，避免和正文硬接 */
+.about-banner {
+  position: relative;
+  height: 190px;
+  border-radius: 16px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.about-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 45%,
+    rgba(8, 10, 16, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+/* 头像：一圈渐变描边，比纯色边框有质感 */
+.about-avatar {
+  width: 76px;
+  height: 76px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(8, 10, 16, 0.9),
+    0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 10px 26px rgba(0, 0, 0, 0.32);
+}
+
+/* 正文排版：中文行高放大到 1.9，标题与段落留白更松 */
+.about-prose {
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--text-primary);
+}
+
+.about-prose h1,
+.about-prose h2,
+.about-prose h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 1.7em 0 0.7em;
+}
+
+.about-prose h1 {
+  font-size: 1.35em;
+}
+
+.about-prose h2 {
+  font-size: 1.18em;
+  padding-left: 10px;
+  border-left: 3px solid var(--accent);
+}
+
+.about-prose h3 {
+  font-size: 1.02em;
+}
+
+.about-prose p {
+  margin: 0.85em 0;
+  color: var(--text-secondary);
+}
+
+.about-prose strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.about-prose a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  transition: border-color 0.18s ease;
+}
+
+.about-prose a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.about-prose ul,
+.about-prose ol {
+  margin: 0.85em 0;
+  padding-left: 1.35em;
+  color: var(--text-secondary);
+}
+
+.about-prose li {
+  margin: 0.32em 0;
+}
+
+.about-prose li::marker {
+  color: color-mix(in srgb, var(--accent) 70%, #fff);
+}
+
+.about-prose blockquote {
+  margin: 1.1em 0;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.about-prose code {
+  font-size: 0.9em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.about-prose pre {
+  margin: 1em 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.about-prose pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.about-prose hr {
+  margin: 1.8em 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.about-prose img {
+  border-radius: 10px;
+  max-width: 100%;
+}
+
+/* 社交链接按钮 */
+.about-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.about-social:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 640px) {
+  .about-fab {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .about-fab__main {
+    width: 50px;
+    height: 50px;
+  }
+
+  .about-fab__avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .about-banner {
+    height: 140px;
+  }
+
+  .about-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 22px;
+  }
+}
+
+/* 尊重"减少动态效果"偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .about-pane,
+  .about-fab__scrim {
+    animation: none;
+  }
+
+  .about-fab__item,
+  .about-fab__label,
+  .about-fab__main {
+    transition-duration: 0.01ms;
+  }
+}
