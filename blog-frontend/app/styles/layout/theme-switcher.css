@@ -1,0 +1,226 @@
+/* ============================================================
+   主题切换器（导航栏最右）+ 主题切换过渡
+   ============================================================ */
+
+.theme-sw {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+
+.theme-sw__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  border: 0;
+  padding: 0;
+  cursor: default;
+  background: rgba(0, 0, 0, 0.28);
+  animation: themeScrimIn 0.2s ease-out;
+}
+
+@keyframes themeScrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.theme-sw__ring {
+  position: absolute;
+  right: 50%;
+  bottom: 50%;
+  width: 0;
+  height: 0;
+}
+
+.theme-sw__main {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--sw-accent, var(--accent)) 22%, transparent);
+  color: var(--sw-accent, var(--accent));
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.24s ease,
+    color 0.24s ease,
+    border-color 0.24s ease;
+}
+
+.theme-sw__main:hover {
+  transform: scale(1.08);
+  border-color: var(--sw-accent, var(--accent));
+}
+
+.theme-sw__main:active {
+  transform: scale(0.94);
+}
+
+.theme-sw__main:focus-visible {
+  outline: 2px solid var(--sw-accent, var(--accent));
+  outline-offset: 2px;
+}
+
+/* ---------- 展开的选项 ---------- */
+
+.theme-sw__item {
+  position: absolute;
+  right: 0;
+  bottom: 17px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-primary);
+  transform: translate(0, 0) scale(0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.18s ease;
+  transition-delay: var(--sw-delay, 0ms);
+}
+
+.theme-sw--open .theme-sw__item {
+  transform: translate(var(--sw-x), var(--sw-y)) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.theme-sw__dot {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--sw-dot);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.theme-sw__item:hover .theme-sw__dot {
+  transform: scale(1.14);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.theme-sw__item.is-active .theme-sw__dot {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.32);
+}
+
+.theme-sw__label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateX(6px);
+  background: rgba(12, 14, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.92);
+  transition:
+    max-width 0.24s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    padding 0.24s ease;
+}
+
+.theme-sw__item:hover .theme-sw__label,
+.theme-sw__item:focus-visible .theme-sw__label {
+  max-width: 140px;
+  opacity: 1;
+  transform: translateX(0);
+  padding: 4px 9px;
+}
+
+.theme-sw__item:focus-visible {
+  outline: none;
+}
+
+.theme-sw__item:focus-visible .theme-sw__dot {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   主题切换的过渡
+   ------------------------------------------------------------
+   CSS 变量本身不能 transition，但**用它的属性**可以。
+   在关键元素上给 background-color / color / border-color / filter
+   加过渡，切主题时就是平滑的淡变，而不是瞬变。
+
+   时长取 420ms：比普通 hover（200ms）长，能明显感到"换了一套"，
+   又不会慢到影响操作。
+   ============================================================ */
+
+html {
+  transition: background-color 0.42s ease;
+}
+
+body::before {
+  transition:
+    background-image 0.42s ease,
+    filter 0.42s ease;
+}
+
+body::after {
+  transition: background-color 0.42s ease;
+}
+
+/* 容器类：背景和描边跟着主题淡变。
+   刻意**不**给 a / button 加通用过渡 —— 那会把它们原有的
+   transform 动效（active:scale 之类）挤掉，反而变生硬。 */
+.glass,
+.admin-panel,
+.nav-island {
+  transition:
+    background-color 0.42s ease,
+    border-color 0.42s ease,
+    box-shadow 0.42s ease;
+}
+
+@media (max-width: 640px) {
+  .theme-sw {
+    width: 30px;
+    height: 30px;
+  }
+
+  .theme-sw__main {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body::before,
+  body::after,
+  .glass,
+  .admin-panel,
+  .nav-island,
+  .theme-sw__item,
+  .theme-sw__label,
+  .theme-sw__main {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+  }
+}

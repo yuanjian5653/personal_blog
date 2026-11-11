@@ -13,6 +13,7 @@
 
 /* ---- 顶部导航（悬浮液态玻璃岛）---- */
 @import "./styles/layout/navbar.css";
+@import "./styles/layout/theme-switcher.css"; /* 主题切换器 + 切换过渡 */
 
 /* ---- 首页 ---- */
 @import "./styles/pages/about.css";       /* 关于页：浮动切换器 + 正文排版 */

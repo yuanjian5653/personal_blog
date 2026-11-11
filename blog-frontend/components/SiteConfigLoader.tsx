@@ -1,5 +1,6 @@
 "use client";
 
+import { isDefaultTheme, readThemeOverride } from "@/lib/theme";
 import { loadAuthors } from "@/lib/authors";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -14,42 +15,52 @@ export default function SiteConfigLoader() {
       .then(({ configs }) => {
         const root = document.documentElement;
 
-        // ---- 主题色 ----
-        if (configs.theme_accent) {
-          root.style.setProperty("--accent", configs.theme_accent);
-        }
+        // 用户在前台选了一套成员主题时，**外观相关的配置不再由这里覆盖**，
+        // 否则每次路由切换（这个 effect 依赖 pathname）都会把主题冲掉。
+        // 站点标题、备案号这些非外观配置仍然照常应用。
+        const themed = !isDefaultTheme() && readThemeOverride() !== null;
 
-        // ---- 卡片样式 ----
-        // 优先级：localStorage 覆盖 > 后台配置 > 默认 glass
-        let cardStyle = configs.card_style || "glass";
-        try {
-          const override = localStorage.getItem("card_style_override");
-          if (override === "glass" || override === "black") {
-            cardStyle = override;
+        if (!themed) {
+          // ---- 主题色 ----
+          if (configs.theme_accent) {
+            root.style.setProperty("--accent", configs.theme_accent);
           }
-        } catch {}
-        // 白名单校验后直接写入
-        document.documentElement.dataset.cardStyle =
-          cardStyle === "black" ? "black" : "glass";
 
-        // ---- 背景色 ----
-        root.style.setProperty("--bg-color", configs.bg_color || "#0f1115");
+          // ---- 卡片样式 ----
+          // 优先级：localStorage 覆盖 > 后台配置 > 默认 glass
+          let cardStyle = configs.card_style || "glass";
+          try {
+            const override = localStorage.getItem("card_style_override");
+            if (override === "glass" || override === "black") {
+              cardStyle = override;
+            }
+          } catch {}
+          // 白名单校验后直接写入
+          root.dataset.cardStyle = cardStyle === "black" ? "black" : "glass";
 
-        // ---- 背景图 ----
-        if (configs.bg_type === "image" && configs.bg_image) {
-          const url = withApiBase(configs.bg_image);
-          root.style.setProperty("--bg-image", `url("${url}")`);
-        } else {
-          root.style.setProperty("--bg-image", "none");
+          // ---- 背景色 ----
+          root.style.setProperty("--bg-color", configs.bg_color || "#0f1115");
+
+          // ---- 背景图 ----
+          if (configs.bg_type === "image" && configs.bg_image) {
+            const url = withApiBase(configs.bg_image);
+            root.style.setProperty("--bg-image", `url("${url}")`);
+          } else {
+            root.style.setProperty("--bg-image", "none");
+          }
+
+          // ---- 背景模糊 ----
+          root.style.setProperty(
+            "--bg-blur",
+            `${Number(configs.bg_blur || 0)}px`
+          );
+
+          // ---- 背景遮罩 ----
+          root.style.setProperty(
+            "--bg-overlay",
+            String(Number(configs.bg_overlay || 0))
+          );
         }
-
-        // ---- 背景模糊 ----
-        const blur = Number(configs.bg_blur || 0);
-        root.style.setProperty("--bg-blur", `${blur}px`);
-
-        // ---- 背景遮罩 ----
-        const overlay = Number(configs.bg_overlay || 0);
-        root.style.setProperty("--bg-overlay", String(overlay));
 
         // ---- 站点标题 ----
         if (configs.site_title) {

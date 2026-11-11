@@ -1,5 +1,6 @@
 "use client";
 
+import { readThemeOverride } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCachedFetch } from "@/lib/useCachedFetch";
@@ -27,7 +28,11 @@ export default function PhotosCard() {
         api.get<{ configs: Record<string, string> }>("/api/site-config"),
         api.get<Album[]>("/api/albums?visitor=1"),
       ]);
-      const configuredId = cfg.configs?.home_album_id;
+      // 主题里指定了相册就以主题为准（切主题后会清掉卡片缓存，见 lib/theme.ts）
+      const override = readThemeOverride();
+      const configuredId = override?.home_album_id
+        ? String(override.home_album_id)
+        : cfg.configs?.home_album_id;
       const list = albums || [];
       if (list.length === 0) return { album: null, photos: [] };
 

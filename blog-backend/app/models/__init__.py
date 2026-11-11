@@ -24,6 +24,7 @@ from app.models.subscriber import Subscriber
 from app.models.notification import NotificationOutbox
 from app.models.reply_notification import ReplyNotification
 from app.models.easter_egg import EasterEgg
+from app.models.member_theme import MemberTheme
 
 __all__ = [
     "Admin",
@@ -51,5 +52,6 @@ __all__ = [
     "NotificationOutbox",
     "ReplyNotification",
     "EasterEgg",
+    "MemberTheme",
 ]
 from app.models.upload_log import UploadLog

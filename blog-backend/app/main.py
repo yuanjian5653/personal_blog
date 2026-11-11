@@ -32,6 +32,7 @@ from app.routers import (
     review,
     site_config,
     subscribe,
+    themes,
     tools,
     upload,
 )
@@ -181,6 +182,7 @@ app.include_router(authors.router)
 app.include_router(review.router)
 app.include_router(profile.router)
 app.include_router(members_public.router)
+app.include_router(themes.router)
 
 @app.get("/")
 def root():

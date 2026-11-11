@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Search, Send, Settings, ShieldCheck, Sparkles, Users, Wrench, type IconNode } from "lucide";
+import { BookUser, Clock, ExternalLink, FileText, FolderGit2, Image as ImageIcon, Inbox, LayoutDashboard, Link2, LogOut, Mail, MessageSquare, Music, NotebookPen, Palette, Search, Send, Settings, ShieldCheck, Sparkles, Users, Wrench, type IconNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import { fetchCurrentAdmin, logout } from "@/lib/auth";
 import { setRole } from "@/lib/useRole";
@@ -33,34 +33,37 @@ const MENU: Array<{
   /** 仅管理员可见（成员只会看到内容相关的几项） */
   adminOnly?: boolean;
 }> = [
-  // 总览
+  // ---- 总览 ----
   { href: "/admin/dashboard", label: "仪表盘", icon: LayoutDashboard },
 
-  // 写作与内容
+  // ---- 内容：日常最常进的几个，放最前面 ----
   { href: "/admin/posts", label: "文章管理", icon: FileText },
   { href: "/admin/essays", label: "随笔管理", icon: NotebookPen },
   { href: "/admin/life", label: "生活动态", icon: Inbox },
-  { href: "/admin/profile", label: "关于内容", icon: BookUser },
-
-  // 媒体
   { href: "/admin/photos", label: "图片管理", icon: ImageIcon },
-  { href: "/admin/music", label: "音乐管理", icon: Music, adminOnly: true },
 
-  // 互动
+  // ---- 互动与审核 ----
+  { href: "/admin/review", label: "内容审核", icon: ShieldCheck, adminOnly: true },
   { href: "/admin/comments", label: "评论管理", icon: MessageSquare, adminOnly: true },
   { href: "/admin/guestbook", label: "杂谈管理", icon: Inbox, adminOnly: true },
-
-  // 展示与扩展
-  { href: "/admin/projects", label: "项目管理", icon: FolderGit2, adminOnly: true },
   { href: "/admin/friends", label: "友链管理", icon: Link2 },
+
+  // ---- 我的：个人资料 + 主题 ----
+  { href: "/admin/profile", label: "关于内容", icon: BookUser },
+  { href: "/admin/theme", label: "我的主题", icon: Palette },
+
+  // ---- 成员与订阅（管理员）----
   { href: "/admin/members", label: "成员管理", icon: Users, adminOnly: true },
-  { href: "/admin/review", label: "内容审核", icon: ShieldCheck, adminOnly: true },
-  { href: "/admin/tools", label: "工具管理", icon: Wrench, adminOnly: true },
   { href: "/admin/subscribers", label: "订阅管理", icon: Mail, adminOnly: true },
   { href: "/admin/notifications", label: "通知队列", icon: Send, adminOnly: true },
+
+  // ---- 扩展内容（管理员）----
+  { href: "/admin/music", label: "音乐管理", icon: Music, adminOnly: true },
+  { href: "/admin/projects", label: "项目管理", icon: FolderGit2, adminOnly: true },
+  { href: "/admin/tools", label: "工具管理", icon: Wrench, adminOnly: true },
   { href: "/admin/easter-eggs", label: "暗号彩蛋", icon: Sparkles, adminOnly: true },
 
-  // 系统
+  // ---- 系统（管理员）----
   { href: "/admin/site", label: "站点配置", icon: Settings, adminOnly: true },
   { href: "/admin/logs", label: "操作日志", icon: Clock, adminOnly: true },
 ];

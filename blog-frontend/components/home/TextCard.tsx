@@ -1,5 +1,6 @@
 "use client";
 
+import { onThemeChange, readThemeOverride } from "@/lib/theme";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerProvider";
@@ -119,16 +120,41 @@ export default function TextCard() {
 
   useEffect(() => {
     if (pathname.startsWith("/admin")) return;
+    let alive = true;
+
+    // 站配置是"默认主题"的值；用户切换过主题时，
+    // 以主题里存的首页卡片设置为准（切换要即时生效，不能等重新请求）。
+    const apply = (configs: Record<string, string>) => {
+      const override = readThemeOverride();
+      const text = override?.card_text || configs.card_text;
+      const c1 = override?.card_wave_color1 || configs.card_wave_color1;
+      const c2 = override?.card_wave_color2 || configs.card_wave_color2;
+      if (text) setTextContent(text);
+      if (c1) setWaveColor1(c1);
+      if (c2) setWaveColor2(c2);
+    };
+
     api
       .get<{ configs: Record<string, string> }>("/api/site-config")
       .then((d) => {
-        if (d.configs.card_text) setTextContent(d.configs.card_text);
-        if (d.configs.card_wave_color1)
-          setWaveColor1(d.configs.card_wave_color1);
-        if (d.configs.card_wave_color2)
-          setWaveColor2(d.configs.card_wave_color2);
+        if (alive) apply(d.configs);
       })
       .catch(() => {});
+
+    // 主题切换时重新应用（后台 switch 会广播这个事件）
+    const off = onThemeChange(() => {
+      api
+        .get<{ configs: Record<string, string> }>("/api/site-config")
+        .then((d) => {
+          if (alive) apply(d.configs);
+        })
+        .catch(() => {});
+    });
+
+    return () => {
+      alive = false;
+      off();
+    };
   }, [pathname]);
 
   const typed = useTypewriter(textContent);

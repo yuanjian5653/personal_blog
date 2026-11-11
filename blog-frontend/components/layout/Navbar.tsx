@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeSwitcher from "@/components/layout/ThemeSwitcher";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -166,6 +167,8 @@ export default function Navbar() {
         <div className="nav-island__actions">
           <NoticeBell />
           <ThemeToggle />
+          {/* 主题切换放最右：它是"换整套外观"，比昼夜切换更重 */}
+          <ThemeSwitcher />
         </div>
 
         <button
