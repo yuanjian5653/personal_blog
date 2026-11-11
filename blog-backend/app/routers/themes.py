@@ -49,8 +49,6 @@ class ThemePayload(BaseModel):
     bg_image: str = Field(default="", max_length=500)
     bg_blur: int = Field(default=0, ge=0, le=60)
     bg_overlay: float = Field(default=0.0, ge=0, le=1)
-    card_style: str = Field(default="glass", max_length=20)
-
     card_text: str = Field(default="", max_length=2000)
     card_wave_color1: str = Field(default="#7c5cff", max_length=20)
     card_wave_color2: str = Field(default="#4cc9f0", max_length=20)
@@ -77,7 +75,6 @@ def _to_out(theme: MemberTheme, owner: Admin | None) -> ThemeOut:
         bg_image=theme.bg_image,
         bg_blur=theme.bg_blur,
         bg_overlay=theme.bg_overlay,
-        card_style=theme.card_style,
         card_text=theme.card_text,
         card_wave_color1=theme.card_wave_color1,
         card_wave_color2=theme.card_wave_color2,

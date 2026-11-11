@@ -83,7 +83,6 @@ export default function ThemePage() {
         bg_image: mine.bg_image,
         bg_blur: mine.bg_blur,
         bg_overlay: mine.bg_overlay,
-        card_style: mine.card_style,
         card_text: mine.card_text,
         card_wave_color1: mine.card_wave_color1,
         card_wave_color2: mine.card_wave_color2,
@@ -146,6 +145,7 @@ export default function ThemePage() {
       <p className="admin-muted text-xs">
         前台的默认外观来自「站点配置」里站长的那一套。你在这里做的主题是**额外的一套**，
         管理员点「上线」之后才会出现在前台导航栏的切换按钮里。
+        卡片是毛玻璃还是纯黑由导航栏的「日夜切换」单独控制，不在这里设。
       </p>
 
       {/* ---------- 基本信息 ---------- */}
@@ -236,23 +236,6 @@ export default function ThemePage() {
           />
         </label>
 
-        <div className="admin-actions">
-          <span className="admin-muted text-xs">卡片样式：</span>
-          <button
-            type="button"
-            className={mine.card_style === "glass" ? "admin-btn" : "admin-btn admin-btn--ghost"}
-            onClick={() => set("card_style", "glass")}
-          >
-            毛玻璃
-          </button>
-          <button
-            type="button"
-            className={mine.card_style === "black" ? "admin-btn" : "admin-btn admin-btn--ghost"}
-            onClick={() => set("card_style", "black")}
-          >
-            纯黑
-          </button>
-        </div>
       </div>
 
       {/* ---------- 首页卡片 ---------- */}
@@ -354,8 +337,7 @@ export default function ThemePage() {
                         }}
                       />
                       <span className="admin-muted text-xs ml-2">
-                        {t.bg_type === "image" ? "背景图" : t.bg_color} ·{" "}
-                        {t.card_style === "black" ? "纯黑" : "毛玻璃"}
+                        {t.bg_type === "image" ? "背景图" : t.bg_color}
                       </span>
                     </td>
                     <td>

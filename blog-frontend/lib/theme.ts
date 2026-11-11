@@ -23,7 +23,6 @@ export interface ThemeLike {
   bg_image: string;
   bg_blur: number;
   bg_overlay: number;
-  card_style: string;
   card_text: string;
   card_wave_color1: string;
   card_wave_color2: string;
@@ -75,7 +74,6 @@ export function applyTheme(
     | "bg_image"
     | "bg_blur"
     | "bg_overlay"
-    | "card_style"
   > | null
 ): void {
   const root = document.documentElement;
@@ -86,7 +84,6 @@ export function applyTheme(
     root.style.removeProperty("--bg-image");
     root.style.removeProperty("--bg-blur");
     root.style.removeProperty("--bg-overlay");
-    delete root.dataset.cardStyle;
     return;
   }
 
@@ -106,10 +103,7 @@ export function applyTheme(
 
   root.style.setProperty("--bg-blur", `${Number(theme.bg_blur || 0)}px`);
   root.style.setProperty("--bg-overlay", String(Number(theme.bg_overlay || 0)));
-
-  // 白名单校验，和 SiteConfigLoader 保持一致
-  root.dataset.cardStyle =
-    theme.card_style === "black" ? "black" : "glass";
+  // 卡片样式（glass / black）不归主题管 —— 导航栏的「日夜切换」负责它
 }
 
 /** 把主题记下来（供首页卡片读取），并广播一次变更 */
@@ -119,9 +113,6 @@ export function commitTheme(theme: ThemeLike | null): void {
     if (theme) {
       localStorage.setItem(LS_KEY, JSON.stringify(theme));
       localStorage.setItem(LS_DEFAULT, "0");
-      // 换整套主题时，把「昼夜切换」留下的卡片样式覆盖清掉，
-      // 否则 SiteConfigLoader 会优先用旧覆盖，主题的 card_style 不生效。
-      localStorage.removeItem("card_style_override");
       // 首页图片卡片是 5 分钟缓存的，清掉它下次进入首页就按新主题的相册取
       localStorage.removeItem("home_photos_cache");
     } else {
@@ -154,7 +145,6 @@ export function themeFromConfigs(configs: Record<string, string>): ThemeLike {
     bg_image: configs.bg_image || "",
     bg_blur: Number(configs.bg_blur || 0),
     bg_overlay: Number(configs.bg_overlay || 0),
-    card_style: configs.card_style || "glass",
     card_text: configs.card_text || "",
     card_wave_color1: configs.card_wave_color1 || "#7c5cff",
     card_wave_color2: configs.card_wave_color2 || "#4cc9f0",
