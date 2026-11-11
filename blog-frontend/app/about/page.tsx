@@ -179,7 +179,7 @@ export default function AboutPage() {
           </div>
         ) : (
           <div className="mb-5">
-            <h1 className="text-3xl font-bold tracking-tight">关于本站</h1>
+            <h1 className="about-hero-title">关于本站</h1>
           </div>
         )}
 

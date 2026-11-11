@@ -15,6 +15,8 @@ import { withApiBase } from "./api";
 export interface ThemeLike {
   admin_id: number;
   owner_name: string;
+  /** 成员头像：切换器直接显示头像，比纯色圆点好认 */
+  owner_avatar?: string | null;
   is_published: boolean;
   name: string;
   theme_accent: string;
@@ -137,6 +139,7 @@ export function themeFromConfigs(configs: Record<string, string>): ThemeLike {
   return {
     admin_id: 0,
     owner_name: "默认",
+    owner_avatar: configs.author_avatar || null,
     is_published: true,
     name: "默认主题",
     theme_accent: configs.theme_accent || "#7c5cff",

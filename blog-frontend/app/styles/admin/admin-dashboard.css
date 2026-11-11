@@ -849,3 +849,48 @@ a.stat-card:hover {
     transition: none;
   }
 }
+
+/* ============================================================
+   颜色选择器
+   ------------------------------------------------------------
+   .admin-field 里的 input 是 width: 100%，对 <input type="color">
+   来说就是一条横贯整个面板的长条 —— 又丑又难点。
+   这里固定成一块色块，并去掉浏览器默认的内外边距。
+   ============================================================ */
+
+.admin-field input[type="color"] {
+  width: 46px;
+  height: 32px;
+  flex: none;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.admin-field input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.admin-field input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+.admin-field input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+/* 滑杆（模糊度 / 遮罩）也别拉得太宽，固定一个舒适宽度 */
+.admin-field input[type="range"] {
+  width: 100%;
+  max-width: 320px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--accent);
+}

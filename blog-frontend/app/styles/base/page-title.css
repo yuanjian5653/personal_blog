@@ -1,0 +1,120 @@
+/* ============================================================
+   页面主标题：统一成同一套渐变，并跟随主题强调色
+   ------------------------------------------------------------
+   之前各页面各写一套：archive 系列是渐变，essays / projects /
+   tools / notices / subscribe 是纯色 —— 点开不同栏目观感不一致。
+
+   这里把它们收进同一个选择器列表，只保留**字号**的差异
+   （各页面的视觉层次还是要有区别），颜色和字重统一。
+
+   渐变用 --accent，所以换主题时标题颜色会跟着变；
+   给 background 加过渡，切主题是淡变而不是瞬变。
+   ============================================================ */
+
+.archive-hero-title,
+.essays-hero-title,
+.projects-hero__title,
+.tools-hero__title,
+.tool-detail__title,
+.notices-title,
+.subscribe-title,
+.about-hero-title {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  /* 起点用 --text-primary 而不是 accent：
+     accent 如果是很亮的颜色（用户在主题里可以随便挑），
+     纯 accent 渐变在浅色背景下会看不清。
+     --text-primary 本身就是"和背景对比度够"的颜色，拿它打底最稳，
+     中间段用 accent 保留主题感。 */
+  background-image: linear-gradient(
+    115deg,
+    var(--text-primary) 0%,
+    var(--accent) 62%,
+    color-mix(in srgb, var(--accent) 55%, var(--text-primary)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  transition: background-image 0.42s ease;
+  /* 渐变文字在部分浏览器里会丢失下划线/描边，这里统一去掉 */
+  text-decoration: none;
+}
+
+/* 各页面只保留字号差异 —— 列表页大一点，次级页小一点 */
+.archive-hero-title {
+  font-size: 32px;
+}
+
+.essays-hero-title {
+  font-size: 30px;
+}
+
+.projects-hero__title {
+  font-size: 28px;
+}
+
+.tools-hero__title {
+  font-size: 26px;
+}
+
+.subscribe-title {
+  font-size: 26px;
+}
+
+.notices-title {
+  font-size: 24px;
+}
+
+.tool-detail__title {
+  font-size: 22px;
+}
+
+/* 关于页的标题原来是 Tailwind 的 text-3xl + font-bold */
+.about-hero-title {
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+/* 小屏收一档，避免长标题换行后压到内容 */
+@media (max-width: 640px) {
+  .archive-hero-title {
+    font-size: 26px;
+  }
+
+  .essays-hero-title {
+    font-size: 25px;
+  }
+
+  .projects-hero__title {
+    font-size: 24px;
+  }
+
+  .tools-hero__title,
+  .subscribe-title {
+    font-size: 23px;
+  }
+
+  .notices-title,
+  .about-hero-title {
+    font-size: 22px;
+  }
+
+  .tool-detail__title {
+    font-size: 20px;
+  }
+}
+
+/* 系统要求减少动效时不做颜色过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .archive-hero-title,
+  .essays-hero-title,
+  .projects-hero__title,
+  .tools-hero__title,
+  .tool-detail__title,
+  .notices-title,
+  .subscribe-title,
+  .about-hero-title {
+    transition: none;
+  }
+}

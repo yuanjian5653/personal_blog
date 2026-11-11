@@ -51,3 +51,4 @@
    html[data-card-style="black"] 对 --adm-* 的深色改写
    （两者选择器优先级相同，靠加载顺序决定胜负） */
 @import "./styles/admin/admin-shell.css";
+@import "./styles/base/page-title.css"; /* 页面主标题统一渐变（必须最后，用于覆盖各页原有规则） */

@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveImageUrl } from "@/lib/url";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MorphIcon } from "morphicons/react";
@@ -149,20 +150,29 @@ export default function ThemeSwitcher() {
     key: number | null;
     label: string;
     dot: string;
+    avatar: string | null;
     theme?: ThemeLike;
   }> = [
     {
       key: null,
       label: "默认主题",
       dot: defaultTheme?.theme_accent || "#7c5cff",
+      avatar: defaultTheme?.owner_avatar ?? null,
     },
     ...themes.map((t) => ({
       key: t.admin_id as number | null,
       label: t.name || t.owner_name,
       dot: t.theme_accent || "#7c5cff",
+      avatar: t.owner_avatar ?? null,
       theme: t,
     })),
   ];
+
+  // 主按钮上显示"当前这套主题属于谁"的头像
+  const currentAvatar =
+    currentId === null
+      ? defaultTheme?.owner_avatar ?? null
+      : themes.find((x) => x.admin_id === currentId)?.owner_avatar ?? null;
 
   return (
     <>
@@ -175,7 +185,15 @@ export default function ThemeSwitcher() {
         aria-expanded={open}
         onClick={toggle}
       >
-        <MorphIcon icon={open ? X : Palette} size={16} />
+        {open || !currentAvatar ? (
+          <MorphIcon icon={open ? X : Palette} size={16} />
+        ) : (
+          <img
+            src={resolveImageUrl(currentAvatar) ?? ""}
+            alt=""
+            className="theme-sw__main-avatar"
+          />
+        )}
       </button>
 
       {/* 只在用户点开后才渲染 → 服务端不会碰到 document，
@@ -215,7 +233,14 @@ export default function ThemeSwitcher() {
                     }
                     onClick={() => pick(o.theme ?? null)}
                   >
-                    <span className="theme-sw__dot" />
+                    <span
+                      className="theme-sw__dot"
+                      style={
+                        o.avatar
+                          ? { backgroundImage: `url(${resolveImageUrl(o.avatar)})` }
+                          : undefined
+                      }
+                    />
                     <span className="theme-sw__label">{o.label}</span>
                   </button>
                 );

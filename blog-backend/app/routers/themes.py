@@ -58,14 +58,32 @@ class ThemePayload(BaseModel):
 class ThemeOut(ThemePayload):
     admin_id: int
     owner_name: str
+    # 成员头像：前台切换器直接显示头像，比纯色圆点好认
+    owner_avatar: str | None = None
     is_published: bool
     updated_at: str | None = None
 
 
-def _to_out(theme: MemberTheme, owner: Admin | None) -> ThemeOut:
+def _avatars(db: Session) -> dict[int, str]:
+    """账号 id → 头像地址（来自「关于内容」里的档案）。"""
+    from app.models import AuthorProfile
+
+    rows = db.exec(select(AuthorProfile)).all()
+    out: dict[int, str] = {}
+    for r in rows:
+        prof = r if isinstance(r, AuthorProfile) else r[0]
+        if isinstance(prof, AuthorProfile) and prof.avatar_url:
+            out[prof.admin_id] = prof.avatar_url
+    return out
+
+
+def _to_out(
+    theme: MemberTheme, owner: Admin | None, avatar: str | None = None
+) -> ThemeOut:
     return ThemeOut(
         admin_id=theme.admin_id,
         owner_name=(owner.shown_name if owner else "未知"),
+        owner_avatar=avatar,
         is_published=theme.is_published,
         updated_at=theme.updated_at.isoformat() if theme.updated_at else None,
         name=theme.name,
@@ -114,6 +132,7 @@ def list_published_themes(db: Session = Depends(get_session)):
     前端把它当成第一个选项。这样站长的配置改了立即生效，不用同步两份。
     """
     owners = _owners(db)
+    avatars = _avatars(db)
     out: list[ThemeOut] = []
     for t in _themes(db):
         if not t.is_published:
@@ -122,7 +141,7 @@ def list_published_themes(db: Session = Depends(get_session)):
         # 账号被停用后它的主题也不该再露出来
         if owner is None or getattr(owner, "status", "active") != "active":
             continue
-        out.append(_to_out(t, owner))
+        out.append(_to_out(t, owner, avatars.get(t.admin_id)))
     out.sort(key=lambda x: x.owner_name)
     return out
 
@@ -141,7 +160,7 @@ def get_my_theme(
     rows = _themes(db)
     mine = next((t for t in rows if t.admin_id == (admin.id or 0)), None)
     if mine is not None:
-        return _to_out(mine, me)
+        return _to_out(mine, me, _avatars(db).get(admin.id or 0))
 
     return ThemeOut(
         admin_id=int(admin.id or 0),
@@ -183,7 +202,7 @@ def save_my_theme(
     db.commit()
     db.refresh(mine)
     me = db.get(Admin, admin.id)
-    return _to_out(mine, me)
+    return _to_out(mine, me, _avatars(db).get(admin.id or 0))
 
 
 # ============================================================
@@ -197,8 +216,9 @@ def list_all_themes(
 ):
     """所有成员的主题，含未上线的。"""
     owners = _owners(db)
+    avatars = _avatars(db)
     out = [
-        _to_out(t, owners.get(t.admin_id))
+        _to_out(t, owners.get(t.admin_id), avatars.get(t.admin_id))
         for t in _themes(db)
         if t.admin_id in owners
     ]
@@ -249,4 +269,4 @@ def publish_theme(
         theme.name,
     )
     owner = db.get(Admin, admin_id)
-    return _to_out(theme, owner)
+    return _to_out(theme, owner, _avatars(db).get(admin_id))
