@@ -153,16 +153,26 @@ async def sync_projects(
                    "需要的话请找站长在「成员管理」里打开。",
         )
 
-    # 成员有自己的一套 GitHub 账号就用它，否则退回站点配置
-    mine_user = (getattr(admin, "github_username", None) or "").strip()
-    mine_token = (getattr(admin, "github_token", None) or "").strip()
+    # 两类账号的 GitHub 来源**彻底分开**，不互相覆盖：
+    #   管理员 → 站点配置（.env 的 GITHUB_USERNAME / GITHUB_TOKEN）
+    #   成员   → 自己在「项目管理」里填的
+    #
+    # 之前管理员填了「我的 GitHub 账号」会优先于站点配置，等于存在两套，
+    # 同一个人的两个地方显示不同账号 —— 现在统一成一处。
+    if is_admin:
+        username = settings.GITHUB_USERNAME.strip()
+        mine_token = ""
+    else:
+        username = (getattr(admin, "github_username", None) or "").strip()
+        mine_token = (getattr(admin, "github_token", None) or "").strip()
 
-    username = mine_user or (settings.GITHUB_USERNAME.strip() if is_admin else "")
     if not username:
         raise HTTPException(
             status_code=400,
-            detail="还没有配置 GitHub 账号。管理员可以在 blog-backend/.env 里设置 "
-                   "GITHUB_USERNAME；成员请在「我的资料」里填自己的 GitHub 用户名和 Token。",
+            detail=(
+                "还没有配置 GitHub 账号。管理员在 blog-backend/.env 里设置 "
+                "GITHUB_USERNAME；成员请在「项目管理」里填自己的 GitHub 用户名和 Token。"
+            ),
         )
 
     try:

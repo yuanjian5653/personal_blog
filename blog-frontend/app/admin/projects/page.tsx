@@ -176,9 +176,9 @@ export default function AdminProjectsPage() {
 
   const role = useRole();
   const isAdmin = role === "admin";
-  // 管理员：自己的或站点级任一有值即可；成员：必须自己填
+  // 管理员只看站点配置；成员必须自己填
   const noUsername = isAdmin
-    ? config !== null && !config.username && !ghUser.trim()
+    ? config !== null && !config.username
     : !ghUser.trim();
 
   return (
@@ -212,7 +212,8 @@ export default function AdminProjectsPage() {
 
       {isAdmin && <MemberPermPanel kind="project" />}
 
-      {/* 我的 GitHub 账号：成员填自己的，管理员也可以用自己的（优先于站点配置） */}
+      {/* 我的 GitHub 账号：只有成员需要 —— 管理员的 GitHub 就是「站点 GitHub 配置」 */}
+      {!isAdmin && (
       <div className="admin-panel space-y-3">
         <div className="admin-panel__title">我的 GitHub 账号</div>
 
@@ -281,6 +282,7 @@ export default function AdminProjectsPage() {
           </button>
         </div>
       </div>
+      )}
 
       {/* 站点级 GitHub 配置：只有管理员需要看 */}
       {isAdmin && (
