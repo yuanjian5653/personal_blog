@@ -1,53 +1,36 @@
 "use client";
 
-import { saveMessage } from "@/lib/review";
-import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { MorphIcon } from "morphicons/react";
+import { Plus, RefreshCw } from "lucide";
 
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { resolveImageUrl } from "@/lib/url";
 import {
-  createFriendLink,
   deleteFriendLink,
   fetchAllFriendLinks,
   updateFriendLink,
-  uploadFriendCover,
   type FriendLink,
 } from "@/lib/friendlinks";
 
-/** 表单的初始值 */
-const EMPTY = {
-  name: "",
-  url: "",
-  category: "",
-  description: "",
-  cover: "",
-  weight: 0,
-  is_visible: true,
-  sort_order: 0,
-};
-
-type FormState = typeof EMPTY;
-
+/**
+ * 友链管理（列表只负责看和删，编辑去独立页面）
+ *
+ * 为什么改成独立编辑页：
+ *   以前这条列表上面挂着一整块表单，和文章 / 说说 / 动态 / 图片组的
+ *   「进页面编辑」完全不是一种交互。统一之后，所有内容都是
+ *   「列表 → 点编辑 → 编辑页 → 返回」，心智负担小得多。
+ */
 export default function AdminFriendsPage() {
   const [links, setLinks] = useState<FriendLink[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // 正在编辑的 id；null 表示"新增"
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  // 审核页的「查看详情」会带 ?focus={id} 过来
-  const focusRef = useRef<number | null>(null);
-  const focusedOnce = useRef(false);
 
   const load = useCallback(() => {
     fetchAllFriendLinks()
-      .then((rows) => {
-        setLinks(rows);
-      })
+      .then(setLinks)
       .catch((e) => {
         setError(e instanceof Error ? e.message : "加载失败");
         setLinks([]);
@@ -55,97 +38,25 @@ export default function AdminFriendsPage() {
   }, []);
 
   useEffect(() => {
-    // 审核页的「查看详情」会带 ?focus={id}：先记下来，加载完自动展开那一条
-    const raw = new URLSearchParams(window.location.search).get("focus");
-    const n = raw ? Number(raw) : NaN;
-    focusRef.current = Number.isFinite(n) ? n : null;
     load();
+    // 从编辑页返回时重新拉一次，避免看到旧状态
+    const onPageShow = () => load();
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, [load]);
 
-  /** 权重区间，用于在表格里画相对长度条 */
-  const weightRange = useMemo(() => {
-    if (!links || links.length === 0) return { min: 0, max: 1 };
-    const ws = links.map((l) => l.weight);
-    return { min: Math.min(...ws), max: Math.max(...ws) };
-  }, [links]);
-
-  const resetForm = () => {
-    setForm(EMPTY);
-    setEditingId(null);
+  const flash = (m: string) => {
+    setMsg(m);
+    window.setTimeout(() => setMsg(null), 3000);
   };
 
-  const startEdit = (link: FriendLink) => {
-    setEditingId(link.id);
-    setForm({
-      name: link.name,
-      url: link.url,
-      category: link.category ?? "",
-      description: link.description ?? "",
-      cover: link.cover ?? "",
-      weight: link.weight,
-      is_visible: link.is_visible,
-      sort_order: link.sort_order,
-    });
+  const toggleVisible = async (link: FriendLink) => {
     setError(null);
-    setMsg(null);
-    // 滚到表单，避免在长列表里"点了没反应"的错觉
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // 加载完成后展开 ?focus= 指定的那一条（只做一次）。
-  // 放在 startEdit 之后：ESLint 的 no-use-before-define 不允许提前引用。
-  useEffect(() => {
-    if (focusedOnce.current || focusRef.current === null || !links) return;
-    focusedOnce.current = true;
-    const target = links.find((r) => r.id === focusRef.current);
-    if (!target) return;
-    // startEdit 内部是同步 setState，这里延到下一个任务，
-    // 避免触发 react-hooks/set-state-in-effect 的级联渲染告警
-    window.setTimeout(() => {
-      startEdit(target);
-      document
-        .getElementById("friend-editor")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
-    // startEdit 每次渲染都是新函数，但 focusedOnce 保证只跑一次
-  }, [links]);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setMsg(null);
     try {
-      const payload = {
-        name: form.name.trim(),
-        url: form.url.trim(),
-        category: form.category.trim() || null,
-        description: form.description.trim() || null,
-        cover: form.cover.trim() || null,
-        weight: Number(form.weight) || 0,
-        is_visible: form.is_visible,
-        sort_order: Number(form.sort_order) || 0,
-      };
-      if (!payload.name) throw new Error("请填写名称");
-      if (!payload.url) throw new Error("请填写网址");
-
-      if (editingId === null) {
-        const created = await createFriendLink(payload);
-        setMsg(
-          created.review_status === "pending"
-            ? "已提交，等待审核"
-            : "已添加"
-        );
-      } else {
-        const saved = await updateFriendLink(editingId, payload);
-        setMsg(saveMessage(saved.review_status));
-      }
-      resetForm();
+      await updateFriendLink(link.id, { is_visible: !link.is_visible });
       load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
-    } finally {
-      setBusy(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
     }
   };
 
@@ -155,205 +66,53 @@ export default function AdminFriendsPage() {
     setError(null);
     try {
       await deleteFriendLink(link.id);
-      if (editingId === link.id) resetForm();
-      setMsg("已删除");
+      flash("已删除");
       load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "删除失败");
     } finally {
       setBusy(false);
     }
   };
 
-  /** 快速切换显示/隐藏（不必进表单） */
-  const toggleVisible = async (link: FriendLink) => {
-    try {
-      await updateFriendLink(link.id, { is_visible: !link.is_visible });
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败");
-    }
-  };
-
-  const pickCover = async (file: File) => {
-    setUploading(true);
-    setError(null);
-    try {
-      const path = await uploadFriendCover(file);
-      setForm((f) => ({ ...f, cover: path }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "上传失败");
-    } finally {
-      setUploading(false);
-    }
-  };
+  /** 权重区间，用于在表格里画相对长度条 */
+  const weightRange = useMemo(() => {
+    if (!links || links.length === 0) return { min: 0, max: 1 };
+    const ws = links.map((l) => l.weight);
+    return { min: Math.min(...ws), max: Math.max(...ws) };
+  }, [links]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">友链管理</h1>
-        {links && <span className="admin-muted text-xs">共 {links.length} 条</span>}
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">友链管理</h1>
+          {links && <span className="admin-muted text-xs">共 {links.length} 条</span>}
+        </div>
+        <div className="admin-actions">
+          <button
+            type="button"
+            className="admin-btn admin-btn--ghost"
+            onClick={() => load()}
+          >
+            <MorphIcon icon={RefreshCw} size={14} /> 刷新
+          </button>
+          <Link href="/admin/friends/new" className="admin-btn">
+            <MorphIcon icon={Plus} size={14} /> 添加友链
+          </Link>
+        </div>
       </div>
 
-      {/* ---------- 表单 ---------- */}
-      <form id="friend-editor" className="admin-panel space-y-3" onSubmit={submit}>
-        <div className="admin-panel__title">
-          {editingId === null ? "添加友链" : `编辑友链 #${editingId}`}
-        </div>
+      {error && <p className="admin-error">{error}</p>}
+      {msg && <p className="admin-ok">{msg}</p>}
 
-        <div className="admin-filters">
-          <label className="admin-field">
-            <span>名称 *</span>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="例如：某某的博客"
-              maxLength={100}
-            />
-          </label>
-
-          <label className="admin-field admin-field--grow">
-            <span>网址 *</span>
-            <input
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-              placeholder="example.com（不写 https:// 会自动补）"
-              maxLength={500}
-            />
-          </label>
-
-          <label className="admin-field">
-            <span>类型</span>
-            <input
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="技术 / 设计 / 生活"
-              maxLength={50}
-            />
-          </label>
-        </div>
-
-        <div className="admin-filters">
-          <label className="admin-field">
-            <span>权重（越大越突出）</span>
-            <input
-              type="number"
-              value={form.weight}
-              onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })}
-            />
-          </label>
-
-          <label className="admin-field">
-            <span>排序（同权重时越小越前）</span>
-            <input
-              type="number"
-              value={form.sort_order}
-              onChange={(e) =>
-                setForm({ ...form, sort_order: Number(e.target.value) })
-              }
-            />
-          </label>
-
-          <label className="admin-field">
-            <span>显示</span>
-            <select
-              value={form.is_visible ? "1" : "0"}
-              onChange={(e) =>
-                setForm({ ...form, is_visible: e.target.value === "1" })
-              }
-            >
-              <option value="1">显示</option>
-              <option value="0">隐藏</option>
-            </select>
-          </label>
-        </div>
-
-        <label className="admin-field admin-field--grow">
-          <span>简介</span>
-          <input
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="一句话介绍这个站点"
-            maxLength={500}
-          />
-        </label>
-
-        {/* 封面 */}
-        <div className="admin-field admin-field--grow">
-          <span>封面</span>
-          <div className="fl-cover-row">
-            {form.cover ? (
-               
-              <img
-                src={resolveImageUrl(form.cover)}
-                alt=""
-                className="fl-cover-preview"
-              />
-            ) : (
-              <span className="fl-cover-preview fl-cover-preview--empty">无</span>
-            )}
-            <input
-              value={form.cover}
-              onChange={(e) => setForm({ ...form, cover: e.target.value })}
-              placeholder="也可以直接粘贴图片地址"
-              className="fl-cover-input"
-            />
-            <button
-              type="button"
-              className="admin-btn admin-btn--ghost"
-              disabled={uploading}
-              onClick={() => fileRef.current?.click()}
-            >
-              {uploading ? "上传中…" : "上传"}
-            </button>
-            {form.cover && (
-              <button
-                type="button"
-                className="admin-link admin-link--danger"
-                onClick={() => setForm({ ...form, cover: "" })}
-              >
-                清除
-              </button>
-            )}
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) pickCover(f);
-              e.target.value = "";
-            }}
-          />
-        </div>
-
-        {error && <p className="admin-error">{error}</p>}
-        {msg && <p className="admin-ok">{msg}</p>}
-
-        <div className="flex items-center gap-3">
-          <button type="submit" className="admin-btn" disabled={busy}>
-            {busy ? "保存中…" : editingId === null ? "添加" : "保存修改"}
-          </button>
-          {editingId !== null && (
-            <button
-              type="button"
-              className="admin-btn admin-btn--ghost"
-              onClick={resetForm}
-            >
-              取消编辑
-            </button>
-          )}
-        </div>
-      </form>
-
-      {/* ---------- 列表 ---------- */}
       <div className="admin-panel admin-panel--flush">
         {links === null ? (
           <p className="admin-muted p-6">加载中…</p>
         ) : links.length === 0 ? (
-          <p className="admin-muted p-6">还没有友链，用上面的表单添加一条</p>
+          <p className="admin-muted p-6">
+            还没有友链。点右上角「添加友链」。
+          </p>
         ) : (
           <table className="admin-table">
             <thead>
@@ -368,10 +127,12 @@ export default function AdminFriendsPage() {
             </thead>
             <tbody>
               {links.map((link) => (
-                <tr key={link.id} style={link.is_visible ? undefined : { opacity: 0.55 }}>
+                <tr
+                  key={link.id}
+                  style={link.is_visible ? undefined : { opacity: 0.55 }}
+                >
                   <td>
                     {link.cover ? (
-                       
                       <img
                         src={resolveImageUrl(link.cover)}
                         alt=""
@@ -400,7 +161,10 @@ export default function AdminFriendsPage() {
                       {link.url}
                     </a>
                     {link.description && (
-                      <div className="admin-muted admin-cell-sub" title={link.description}>
+                      <div
+                        className="admin-muted admin-cell-sub"
+                        title={link.description}
+                      >
                         {link.description}
                       </div>
                     )}
@@ -419,7 +183,9 @@ export default function AdminFriendsPage() {
                       <span className="fl-weight__bar">
                         <span
                           className="fl-weight__fill"
-                          style={{ width: `${weightPercent(link.weight, weightRange)}%` }}
+                          style={{
+                            width: `${weightPercent(link.weight, weightRange)}%`,
+                          }}
                         />
                       </span>
                     </div>
@@ -428,7 +194,7 @@ export default function AdminFriendsPage() {
                     <button
                       type="button"
                       className="admin-link"
-                      onClick={() => toggleVisible(link)}
+                      onClick={() => void toggleVisible(link)}
                       title="点击切换显示 / 隐藏"
                     >
                       {link.is_visible ? "显示中" : "已隐藏"}
@@ -436,17 +202,14 @@ export default function AdminFriendsPage() {
                   </td>
                   <td>
                     <div className="admin-actions">
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => startEdit(link)}
-                      >
+                      <Link className="admin-link" href={`/admin/friends/${link.id}`}>
                         编辑
-                      </button>
+                      </Link>
                       <button
                         type="button"
                         className="admin-link admin-link--danger"
-                        onClick={() => remove(link)}
+                        disabled={busy}
+                        onClick={() => void remove(link)}
                       >
                         删除
                       </button>

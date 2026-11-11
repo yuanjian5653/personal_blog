@@ -1,222 +1,116 @@
 "use client";
 
-import { saveMessage } from "@/lib/review";
-import AuthorTag from "@/components/admin/AuthorTag";
-import { withMine, getRole } from "@/lib/useRole";
-import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { MorphIcon } from "morphicons/react";
+import { Plus, RefreshCw } from "lucide";
 
-import { useEffect, useRef, useState } from "react";
+import AuthorTag from "@/components/admin/AuthorTag";
+import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { api } from "@/lib/api";
-import type { LifePost } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
-import ImageUploader from "@/components/admin/ImageUploader";
+import type { LifePost } from "@/lib/types";
+import { withMine } from "@/lib/useRole";
 
-interface EditData {
-  id: number | null;
-  content: string;
-  imagesText: string;      // 每行一个路径
-  location: string;
-  created_at: string;      // 可选，用于编辑已有动态的时间
-}
-
-const EMPTY: EditData = {
-  id: null,
-  content: "",
-  imagesText: "",
-  location: "",
-  created_at: "",
-};
-
+/**
+ * 生活动态（列表只负责看和删，编辑去独立页面）
+ *
+ * 原来是弹窗编辑。为了和其他内容统一（文章 / 说说 / 图片组都是独立编辑页），
+ * 这里只管列表：新建 → /admin/life/new，编辑 → /admin/life/{id}。
+ */
 export default function AdminLifePage() {
   // null = 尚未加载完；loading 由它派生，避免在 effect 里同步 setState
   const [posts, setPosts] = useState<LifePost[] | null>(null);
   const loading = posts === null;
-  const [editing, setEditing] = useState<EditData | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  // 打开编辑
-  const openEdit = (p: LifePost) => {
-    setEditing({
-      id: p.id,
-      content: p.content,
-      imagesText: p.images.join("\n"),
-      location: p.location || "",
-      created_at: p.created_at,
-    });
-    setMsg(null);
-  };
-
-  // 审核页的「查看详情」会带 ?focus={id} 过来：加载完后自动打开那一条的编辑框
-  const focusId = useRef<number | null>(null);
-  const focusedOnce = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = () => {
     api
       .get<LifePost[]>(withMine("/api/life"))
-      .then((rows) => {
-        setPosts(rows);
-        // 只在第一次加载后自动展开，避免每次保存刷新都抢回焦点
-        if (!focusedOnce.current && focusId.current !== null) {
-          focusedOnce.current = true;
-          const target = rows.find((r) => r.id === focusId.current);
-          if (target) {
-            openEdit(target);
-            window.setTimeout(() => {
-              document
-                .getElementById("life-editor")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 100);
-          }
-        }
-      })
+      .then(setPosts)
       .catch(() => setPosts([]));
   };
 
   useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("focus");
-    const n = raw ? Number(raw) : NaN;
-    focusId.current = Number.isFinite(n) ? n : null;
     load();
-    // 只在挂载时读一次
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // 从编辑页返回时重新拉一次，避免看到旧状态
+    const onPageShow = () => load();
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
-  // 打开新建
-  const openCreate = () => {
-    setEditing({ ...EMPTY });
-    setMsg(null);
-  };
-
-  // 保存
-  const handleSave = async () => {
-    if (!editing) return;
-    if (!editing.content.trim() && !editing.imagesText.trim()) {
-      setMsg("内容和图片至少填一个");
-      return;
-    }
-    setSaving(true);
-    setMsg(null);
-    try {
-      const images = editing.imagesText
-        .split("\n")
-        .map((x) => x.trim())
-        .filter(Boolean);
-
-      const payload = {
-        content: editing.content,
-        images,
-        location: editing.location.trim() || null,
-      };
-
-      if (editing.id) {
-        const saved = await api.put<{ review_status?: string }>(
-          `/api/life/${editing.id}`,
-          payload
-        );
-        setMsg(saveMessage(saved.review_status));
-      } else {
-        const created = await api.post<{ review_status?: string }>(
-          "/api/life",
-          payload
-        );
-        setMsg(saveMessage(created.review_status));
-      }
-      setEditing(null);
-      load();
-    } catch (e) {
-      setMsg(`保存失败：${(e as Error).message}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 删除
   const handleDelete = async (p: LifePost) => {
     const preview = p.content.slice(0, 20) || "(无内容)";
-    if (!confirm(`确定删除这条动态？\n\n${preview}...`)) return;
+    if (!window.confirm(`确定删除这条动态？\n\n${preview}...`)) return;
+    setError(null);
     try {
       await api.delete(`/api/life/${p.id}`);
       setPosts((prev) => (prev ?? []).filter((x) => x.id !== p.id));
     } catch (e) {
-      alert(`删除失败：${(e as Error).message}`);
+      setError(e instanceof Error ? e.message : "删除失败");
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* 头部 */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">生活动态</h1>
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded-lg text-sm"
-          style={{ background: "var(--adm-blue)", color: "#fff" }}
-        >
-          + 新建动态
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">生活动态</h1>
+          {posts && (
+            <span className="admin-muted text-xs">共 {posts.length} 条</span>
+          )}
+        </div>
+        <div className="admin-actions">
+          <button
+            type="button"
+            className="admin-btn admin-btn--ghost"
+            onClick={() => load()}
+          >
+            <MorphIcon icon={RefreshCw} size={14} /> 刷新
+          </button>
+          <Link href="/admin/life/new" className="admin-btn">
+            <MorphIcon icon={Plus} size={14} /> 新建动态
+          </Link>
+        </div>
       </div>
 
-      {msg && (
-        <div
-          className="text-sm px-4 py-2 rounded-lg"
-          style={{
-            background: msg.includes("失败")
-              ? "rgba(248,113,113,0.1)"
-              : "rgba(34,197,94,0.1)",
-            color: msg.includes("失败") ? "#f87171" : "#4ade80",
-          }}
-        >
-          {msg}
-        </div>
-      )}
+      {error && <p className="admin-error">{error}</p>}
 
-      {/* 列表 */}
       {loading ? (
-        <div style={{ color: "var(--text-secondary)" }}>加载中...</div>
+        <p className="admin-muted p-6">加载中…</p>
       ) : posts.length === 0 ? (
-        <div
-          className="glass p-16 text-center text-sm"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          还没有动态
+        <div className="glass p-16 text-center text-sm" style={{ color: "var(--text-secondary)" }}>
+          还没有动态。点右上角「新建动态」。
         </div>
       ) : (
         <div className="space-y-3">
           {posts.map((p) => (
-            <div
-              key={p.id}
-              className="glass p-4 hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-start justify-between gap-3 mb-2">
+            <div key={p.id} className="glass p-4 group">
+              <div className="mb-2 flex items-start justify-between gap-3">
                 <div
-                  className="text-xs"
+                  className="flex flex-wrap items-center gap-2 text-xs"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  {formatDateTime(p.created_at)}
+                  <span>{formatDateTime(p.created_at)}</span>
                   <ReviewStatusBadge
                     status={p.review_status}
                     note={p.review_note}
                   />
                   <AuthorTag authorId={p.author_id} />
-                  {p.location && ` · ${p.location}`}
-                  {/* 点赞量（后台只读，用来判断哪条受欢迎） */}
+                  {p.location && <span>· {p.location}</span>}
                   <span className="admin-like-count" title="点赞数">
                     ♥ {p.likes ?? 0}
                   </span>
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="text-xs px-3 py-1.5 rounded hover:bg-white/10"
-                  >
+                <div className="admin-actions">
+                  <Link className="admin-link" href={`/admin/life/${p.id}`}>
                     编辑
-                  </button>
+                  </Link>
                   <button
-                    onClick={() => handleDelete(p)}
-                    className="text-xs px-3 py-1.5 rounded"
-                    style={{ color: "#f87171" }}
+                    type="button"
+                    className="admin-link admin-link--danger"
+                    onClick={() => void handleDelete(p)}
                   >
                     删除
                   </button>
@@ -225,7 +119,7 @@ export default function AdminLifePage() {
 
               {p.content && (
                 <p
-                  className="text-sm line-clamp-3 mb-2"
+                  className="mb-2 text-sm line-clamp-3"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {p.content}
@@ -233,13 +127,13 @@ export default function AdminLifePage() {
               )}
 
               {p.images.length > 0 && (
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   {p.images.slice(0, 6).map((img, i) => (
                     <img
                       key={i}
                       src={resolveImageUrl(img)}
                       alt=""
-                      className="w-16 h-16 rounded object-cover"
+                      className="h-16 w-16 rounded object-cover"
                       onError={(e) =>
                         ((e.target as HTMLImageElement).style.display = "none")
                       }
@@ -247,7 +141,7 @@ export default function AdminLifePage() {
                   ))}
                   {p.images.length > 6 && (
                     <div
-                      className="w-16 h-16 rounded flex items-center justify-center text-xs"
+                      className="flex h-16 w-16 items-center justify-center rounded text-xs"
                       style={{
                         background: "var(--adm-tag-bg)",
                         color: "var(--text-secondary)",
@@ -260,97 +154,6 @@ export default function AdminLifePage() {
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* 编辑弹窗 */}
-      {editing && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6"
-          style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => setEditing(null)}
-        >
-          <div
-            className="glass p-6 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold">
-              {editing.id ? "编辑动态" : "新建动态"}
-            </h2>
-
-            {/* 内容 */}
-            <div>
-              <label
-                className="block text-xs mb-2"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                内容
-              </label>
-              <textarea
-                value={editing.content}
-                onChange={(e) =>
-                  setEditing({ ...editing, content: e.target.value })
-                }
-                rows={5}
-                placeholder="说点什么……"
-                className="admin-input"
-              />
-            </div>
-
-            {/* 图片 */}
-            <div>
-              <ImageUploader
-                value={editing.imagesText
-                  .split("\n")
-                  .map((x) => x.trim())
-                  .filter(Boolean)}
-                onChange={(imgs) =>
-                  setEditing({ ...editing, imagesText: imgs.join("\n") })
-                }
-                multiple
-                max={9}
-                showInput
-                label="图片（最多 9 张）"
-              />
-            </div>
-
-            {/* 位置 */}
-            <div>
-              <label
-                className="block text-xs mb-2"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                位置（可选）
-              </label>
-              <input
-                type="text"
-                value={editing.location}
-                onChange={(e) =>
-                  setEditing({ ...editing, location: e.target.value })
-                }
-                placeholder="南昌市 高新区"
-                className="admin-input"
-              />
-            </div>
-
-            {/* 操作 */}
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setEditing(null)}
-                className="admin-btn admin-btn--ghost"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-                style={{ background: "var(--adm-blue)", color: "#fff" }}
-              >
-                {saving ? "提交中..." : getRole() === "member" ? "提交" : "保存"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -37,8 +37,7 @@ export interface PendingItem {
 /**
  * 待审内容 → 对应管理编辑页的地址。
  *
- * 文章/说说/图片组有独立编辑页；动态和友链是列表页内联编辑，
- * 用 ?focus={id} 让它们在打开时自动展开那一条。
+ * 五种内容现在都用独立编辑页，路径统一为 /admin/{类型}/{id}。
  */
 export function editHref(item: PendingItem): string | null {
   switch (item.kind) {
@@ -49,9 +48,9 @@ export function editHref(item: PendingItem): string | null {
     case "album":
       return `/admin/photos/${item.id}`;
     case "life":
-      return `/admin/life?focus=${item.id}`;
+      return `/admin/life/${item.id}`;
     case "friendlink":
-      return `/admin/friends?focus=${item.id}`;
+      return `/admin/friends/${item.id}`;
     default:
       return null;
   }
