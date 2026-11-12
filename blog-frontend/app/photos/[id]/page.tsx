@@ -1,5 +1,6 @@
 "use client";
 
+import { seededRandom } from "@/lib/random";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
@@ -8,11 +9,6 @@ import type { AlbumDetail } from "@/lib/types";
 import { resolveImageUrl, resolveThumbUrl } from "@/lib/url";
 import { useMounted } from "@/lib/useMounted";
 
-/** 简单的可复现伪随机（基于 id） */
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 233280;
-  return x - Math.floor(x);
-}
 
 export default function AlbumDetailPage() {
   const params = useParams();

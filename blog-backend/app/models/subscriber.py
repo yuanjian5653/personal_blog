@@ -61,6 +61,3 @@ class Subscriber(SQLModel, table=True):
     # 上次发确认信的时间，用于"5 分钟内不重复发"
     last_notified_at: datetime | None = Field(default=None)
 
-    @property
-    def is_confirmed(self) -> bool:
-        return self.status == "confirmed"

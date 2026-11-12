@@ -119,7 +119,7 @@ export function initialOf(name: string): string {
  * 否则服务端与客户端算出的值不同会造成 hydration 不一致。
  * 生活动态的卡片旋转角也用它。
  */
-export function seededRandom(id: number, salt = 0): number {
+export function seededUnit(id: number, salt = 0): number {
   const x = Math.sin(id * 12.9898 + salt * 78.233) * 43758.5453;
   return x - Math.floor(x);
 }

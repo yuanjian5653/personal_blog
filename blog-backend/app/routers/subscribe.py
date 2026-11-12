@@ -30,14 +30,16 @@ from __future__ import annotations
 import hashlib
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session, select
 
 from app.config import settings
+from app.models._base import utcnow
 from app.database import get_session
+from app.net_utils import client_ip
 from app.deps import get_current_admin
 from app.models import Admin, Subscriber
 from app.schemas.subscriber import SubscriberRead, SubscriberStats, SubscribeRequest
@@ -58,31 +60,7 @@ GENERIC_FAIL = "提交失败，请稍后再试。"
 # 工具
 # ============================================================
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
-
-def _parse_xff(xff: str | None) -> str | None:
-    """从 X-Forwarded-For 里取真实客户端 IP（取**最后一段**）。
-
-    nginx 用 $proxy_add_x_forwarded_for 时会把真实地址**追加**在末尾，
-    客户端自己伪造的值会被排在前面。所以取最后一段才拿得到真实 IP，
-    取第一段等于让攻击者用假 IP 绕过订阅的频率限制。
-    """
-    if not xff:
-        return None
-    parts = [p.strip() for p in xff.split(",") if p.strip()]
-    return parts[-1] if parts else None
-
-
-def _client_ip(request: Request) -> str | None:
-    """取真实客户端 IP（用于订阅频率限制）。"""
-    real = _parse_xff(request.headers.get("x-forwarded-for"))
-    if real:
-        return real
-    if request.client:
-        return request.client.host
-    return None
 
 
 def _hash_ip(ip: str | None) -> str | None:
@@ -118,7 +96,7 @@ async def _send_confirm_email(db: Session, sub: Subscriber) -> tuple[bool, str |
     else:
         ok, err = False, "邮件功能未配置（MAIL_FROM / MAIL_PASSWORD 为空）"
 
-    sub.last_notified_at = _utcnow()
+    sub.last_notified_at = utcnow()
     db.add(sub)
     db.commit()
     return ok, err
@@ -165,8 +143,8 @@ async def subscribe(
     """提交邮箱，发送确认邮件。无论邮箱是否已存在，返回话术都一样。"""
     email = payload.email
     source = (payload.source or "").strip()[:40] or None
-    ip_hash = _hash_ip(_client_ip(request))
-    now = _utcnow()
+    ip_hash = _hash_ip(client_ip(request))
+    now = utcnow()
 
     # ---- IP 冷却：同一 IP 短时间内只处理一次 ----
     #
@@ -261,7 +239,7 @@ def confirm(
         return _page("已经确认过了", f"{sub.email} 已经是订阅状态，不用重复确认。")
 
     sub.status = "confirmed"
-    sub.confirmed_at = _utcnow()
+    sub.confirmed_at = utcnow()
     sub.unsubscribed_at = None
     db.add(sub)
     db.commit()
@@ -293,7 +271,7 @@ def unsubscribe(
         return _page("已经退订了", f"{sub.email} 已经在退订状态，不会再收到通知。")
 
     sub.status = "unsubscribed"
-    sub.unsubscribed_at = _utcnow()
+    sub.unsubscribed_at = utcnow()
     db.add(sub)
     db.commit()
 

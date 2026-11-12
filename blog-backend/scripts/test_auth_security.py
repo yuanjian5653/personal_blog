@@ -26,6 +26,7 @@ sys.path.insert(0, str(BACKEND))
 
 from test_guard import guard  # noqa: E402
 
+from app import net_utils
 from app.config import settings  # noqa: E402
 from app.database import init_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -273,7 +274,7 @@ print("\n=== 9. X-Forwarded-For 伪造无法绕过 IP 限速 ===")
 # nginx 的 $proxy_add_x_forwarded_for 会把真实 IP **追加在末尾**，
 # 客户端自己伪造的值排在前面。所以必须取最后一段。
 # 如果取第一段，攻击者换着假 IP 就能绕过 IP 限速。
-pf = auth_module._parse_xff
+pf = net_utils.parse_xff
 
 check("无头 → None", pf(None), None)
 check("空串 → None", pf(""), None)
@@ -291,7 +292,7 @@ from app.routers import subscribe as subscribe_module  # noqa: E402
 
 check(
     "订阅模块的解析与登录模块一致",
-    subscribe_module._parse_xff("1.2.3.4, 5.6.7.8"),
+    net_utils.parse_xff("1.2.3.4, 5.6.7.8"),
     pf("1.2.3.4, 5.6.7.8"),
 )
 check_true(

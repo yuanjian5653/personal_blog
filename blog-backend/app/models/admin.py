@@ -97,9 +97,6 @@ class Admin(SQLModel, table=True):
         """是不是管理员（拥有全部权限）"""
         return self.role == ROLE_ADMIN
 
-    @property
-    def is_active(self) -> bool:
-        return self.status == STATUS_ACTIVE
 
     @property
     def shown_name(self) -> str:

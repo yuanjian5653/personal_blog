@@ -7,8 +7,13 @@ import { usePlayer } from "@/components/player/PlayerProvider";
 import { parseLrc, findActiveLyricIndex, type LyricLine } from "@/lib/lrc";
 import { getCoverUrl, getLyricUrl } from "@/lib/types";
 
-/** 歌曲唯一标识：切歌时要能区分"这份歌词属于哪首歌" */
-function songKey(song: { id: number; source?: string }): string {
+/**
+ * 歌词缓存的 key。
+ * 注意：lib/musicPlaylist.ts 里也有个 songKey，但那边是 `source:id`、
+ * 给播放列表去重用；这里只在本组件内做歌词归属判断，两者互不比较，
+ * 所以刻意用不同的名字避免误读。
+ */
+function lyricKey(song: { id: number; source?: string }): string {
   return `${song.source ?? "local"}-${song.id}`;
 }
 
@@ -22,12 +27,12 @@ export default function MusicCard({ loading = false }: { loading?: boolean }) {
     lines: LyricLine[];
   } | null>(null);
 
-  const key = currentSong ? songKey(currentSong) : null;
+  const key = currentSong ? lyricKey(currentSong) : null;
   const lyrics = key && lyricsData?.key === key ? lyricsData.lines : [];
 
   useEffect(() => {
     if (!currentSong) return;
-    const k = songKey(currentSong);
+    const k = lyricKey(currentSong);
     let cancelled = false;
 
     fetch(getLyricUrl(currentSong))

@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlmodel import Session, func, select
 
 from app.database import get_session
+from app.models._base import as_aware
 from app.db_utils import column_values, count as db_count
 from app.deps import get_current_admin
 from app.models import (
@@ -66,10 +67,6 @@ def _day_keys(days: int) -> list[str]:
     return [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
 
 
-
-def _as_aware(dt: datetime) -> datetime:
-    """MySQL 取出来的 DATETIME 是 naive，统一补 UTC"""
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
 
 
 # ============================================================
@@ -180,7 +177,7 @@ def dashboard_stats(
     for created in db.exec(
         select(Article.created_at).where(Article.created_at >= start)
     ).all():
-        key = _as_aware(created).date().isoformat()
+        key = as_aware(created).date().isoformat()
         if key in article_days:
             article_days[key] += 1
 
@@ -191,7 +188,7 @@ def dashboard_stats(
             PageView.created_at >= start
         )
     ).all():
-        key = _as_aware(created).date().isoformat()
+        key = as_aware(created).date().isoformat()
         if key in seen and vhash:
             seen[key].add(vhash)
 
@@ -225,7 +222,7 @@ def dashboard_stats(
     # 观感很奇怪。上面那两张 30 天趋势图仍按 UTC 分桶（保持原有行为不变），
     # 所以边界上可能有一天误差 —— 这是刻意的取舍，不是 bug。
     def local_date(dt) -> str:
-        return (_as_aware(dt) + timedelta(hours=SITE_TZ_HOURS)).date().isoformat()
+        return (as_aware(dt) + timedelta(hours=SITE_TZ_HOURS)).date().isoformat()
 
     heat_days = _day_keys(HEATMAP_DAYS)
     heat_set = set(heat_days)
@@ -291,7 +288,7 @@ def dashboard_stats(
             select(PageView.created_at).where(PageView.created_at >= start)
         ).all()
     ):
-        hour_buckets[(_as_aware(created).hour + SITE_TZ_HOURS) % 24] += 1
+        hour_buckets[(as_aware(created).hour + SITE_TZ_HOURS) % 24] += 1
     hour_distribution = [
         HourPoint(hour=h, value=hour_buckets[h]) for h in range(24)
     ]

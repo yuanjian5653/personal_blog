@@ -1,5 +1,6 @@
 "use client";
 
+import { seededRandom } from "@/lib/random";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MorphIcon } from "morphicons/react";
@@ -13,10 +14,6 @@ import { useMounted } from "@/lib/useMounted";
 import LifeImageLightbox from "./LifeImageLightbox";
 import Comments from "@/components/comments/Comments";
 
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9301 + 49297) * 233280;
-  return x - Math.floor(x);
-}
 
 interface Props {
   post: LifePost;

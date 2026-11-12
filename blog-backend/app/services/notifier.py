@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlmodel import Session
 
 from app.config import settings
+from app.models._base import utcnow
 from app.database import engine
 from app.db_utils import model as _model, models as _models
 from app.models import NotificationOutbox, Subscriber
@@ -46,9 +47,6 @@ STALE_SENDING_MINUTES = 10
 RETRY_DELAY_MINUTES = 10
 MAX_ATTEMPTS = 3
 
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 # ============================================================
@@ -83,7 +81,7 @@ def _enqueue(
                 logger.info("[通知] %s#%s 已入队过，跳过", target_type, target_id)
                 return False
 
-            now = _utcnow()
+            now = utcnow()
             scheduled = now
 
             # 冷却合并：距上次发送不足冷却期就顺延。
@@ -302,7 +300,7 @@ def render_digest(
 
 async def _send_batch() -> None:
     """处理一批到期的通知。没有到期项时立即返回。"""
-    now = _utcnow()
+    now = utcnow()
 
     with Session(engine) as db:
         # 崩溃遗留的 sending 记录：超过 10 分钟就放回 pending

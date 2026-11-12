@@ -13,3 +13,17 @@ def utcnow() -> datetime:
     用法：`created_at: datetime = Field(default_factory=utcnow)`
     """
     return datetime.now(timezone.utc)
+
+
+def as_aware(dt: datetime | None) -> datetime | None:
+    """把 MySQL 取出来的 naive DATETIME 补上 UTC。
+
+    MySQL 的 DATETIME 不存时区，读出来是 naive；直接和
+    datetime.now(timezone.utc) 比较会抛 TypeError。统一走这里。
+
+    这个函数原来在 admin.py / auth.py / comments.py 各有一份，
+    其中两处不接受 None、一处接受 —— 现在统一成接受 None。
+    """
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt

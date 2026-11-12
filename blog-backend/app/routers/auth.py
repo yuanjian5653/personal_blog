@@ -35,7 +35,9 @@ from sqlmodel import Session, select
 
 from app.config import settings
 from app.database import get_session
+from app.models._base import as_aware
 from app.deps import get_current_admin
+from app.net_utils import client_ip
 from app.models import Admin, AdminSession
 from app.schemas.auth import AdminInfo, LoginRequest, LoginResponse
 from app.services.security import (
@@ -66,35 +68,6 @@ _DUMMY_HASH = hash_password("timing-equalizer-not-a-real-password")
 _ip_failures: dict[str, list[float]] = {}
 
 
-def _parse_xff(xff: str | None) -> str | None:
-    """从 X-Forwarded-For 里取**真实客户端 IP**。
-
-    为什么取最后一段而不是第一段：
-        本站 nginx 用的是
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        这个变量的行为是"把 $remote_addr 追加到客户端传来的值后面"。
-        于是客户端如果自己伪造了这个头，结果会是
-            <攻击者伪造的IP>, <真实IP>
-        取第一段等于用了攻击者给的假 IP —— 换着假 IP 就能绕过 IP 限速。
-        取**最后一段**才是离我们最近的那一跳（也就是 nginx 看到的真实地址）。
-
-    只有一个反代（nginx）时这个规则是安全的；将来若在前面再加一层代理，
-    要改成"从右往左跳过已知可信代理"的写法。
-    """
-    if not xff:
-        return None
-    parts = [p.strip() for p in xff.split(",") if p.strip()]
-    if not parts:
-        return None
-    return parts[-1]
-
-
-def _client_ip(request: Request) -> str:
-    """取真实客户端 IP（用于登录限速）。"""
-    real = _parse_xff(request.headers.get("x-forwarded-for"))
-    if real:
-        return real
-    return request.client.host if request.client else "unknown"
 
 
 def _secure_cookie(request: Request) -> bool:
@@ -146,11 +119,6 @@ def _record_ip_failure(ip: str) -> None:
                 _ip_failures.pop(key, None)
 
 
-def _as_aware(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
-
 
 @router.post("/login", response_model=LoginResponse)
 def login(
@@ -163,7 +131,7 @@ def login(
 
     流程：IP 限速 → 账号锁定检查 → 校验密码 → 失败计数 → 成功则轮换会话。
     """
-    ip = _client_ip(request)
+    ip = client_ip(request) or "unknown"
 
     # ---- 0. IP 层限速 ----
     if _ip_blocked(ip):
@@ -179,7 +147,7 @@ def login(
     admin = row if isinstance(row, Admin) else (row[0] if row else None)
 
     # ---- 2. 账号锁定检查（放在密码校验之前，避免锁定期还能靠耗时探信息）----
-    locked_until = _as_aware(getattr(admin, "locked_until", None)) if admin else None
+    locked_until = as_aware(getattr(admin, "locked_until", None)) if admin else None
     now = datetime.now(timezone.utc)
     if admin is not None and locked_until is not None and locked_until > now:
         remain = int((locked_until - now).total_seconds() // 60) + 1

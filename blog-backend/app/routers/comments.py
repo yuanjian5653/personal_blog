@@ -30,6 +30,7 @@ from sqlmodel import Session, func, select
 
 from app.config import settings
 from app.database import get_session
+from app.models._base import as_aware
 from app.models import (
     Article,
     Comment,
@@ -84,10 +85,6 @@ def _safe_return_path(path: str | None) -> str:
 # 访客登录态
 # ============================================================
 
-def _as_aware(dt: datetime) -> datetime:
-    """MySQL 的 DATETIME 取出来是 naive，统一补上 UTC 再比较"""
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
-
 
 def get_current_commenter(
     commenter_token: str | None = Cookie(default=None, alias=COMMENTER_COOKIE),
@@ -105,7 +102,7 @@ def get_current_commenter(
     if sess is None:
         return None
 
-    if _as_aware(sess.expires_at) < datetime.now(timezone.utc):
+    if as_aware(sess.expires_at) < datetime.now(timezone.utc):
         # 过期顺手清理
         db.delete(sess)
         db.commit()
