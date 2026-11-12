@@ -41,7 +41,10 @@ export default function ImagePicker({ value, onChange, allowExternal = true }: P
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await api.post<{ url: string }>(
+      // 必须用 api.upload —— api.post 会 JSON.stringify(body)，
+      // FormData 被序列化成 "{}"，文件根本发不出去，后端只看到
+      // 一个空 JSON，于是回 422「file: 必填」。
+      const res = await api.upload<{ url: string }>(
         "/api/site-config/images/upload",
         formData
       );

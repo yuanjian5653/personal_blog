@@ -123,18 +123,27 @@ export async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
+/**
+ * 组装请求体。
+ *
+ * 关键：FormData **绝对不能** JSON.stringify ——
+ * `JSON.stringify(new FormData())` 得到的是字符串 "{}"，
+ * 文件会被整个丢掉，后端只收到一个空 JSON，报「file: 必填」。
+ * 这个坑一开始出现在 ImagePicker（背景图/头像上传）。
+ * 这里统一兜住：只要是 FormData 就原样传，让浏览器自己带 boundary。
+ */
+function makeBody(body: unknown, method: "POST" | "PUT"): RequestInit {
+  if (body === undefined || body === null) return { method };
+  if (body instanceof FormData) return { method, body };
+  return { method, body: JSON.stringify(body) };
+}
+
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body?: unknown) =>
-    apiFetch<T>(path, {
-      method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
-    }),
+    apiFetch<T>(path, makeBody(body, "POST")),
   put: <T>(path: string, body?: unknown) =>
-    apiFetch<T>(path, {
-      method: "PUT",
-      body: body ? JSON.stringify(body) : undefined,
-    }),
+    apiFetch<T>(path, makeBody(body, "PUT")),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
   /** 表单上传（图片 / 音频 / 文档）。走 apiFetch，错误格式和别处一致 */
   upload: <T>(path: string, formData: FormData) =>
