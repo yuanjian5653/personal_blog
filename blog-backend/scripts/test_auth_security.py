@@ -29,7 +29,8 @@ from test_guard import guard  # noqa: E402
 from app import net_utils
 from app.config import settings  # noqa: E402
 from app.database import init_db  # noqa: E402
-from app.main import app  # noqa: E402
+from app.main import app
+from app.routers.auth import MAX_SESSIONS  # noqa: E402
 from app.models import Admin, AdminSession  # noqa: E402
 from app.routers import auth as auth_module  # noqa: E402
 from app.services.security import hash_password  # noqa: E402
@@ -181,18 +182,24 @@ check("清空失败计数", get_admin().failed_attempts, 0)
 check("清空锁定状态", get_admin().locked_until, None)
 
 cookie = r.headers.get("set-cookie", "")
+# 从 Set-Cookie 里取出 token 值，后面判断"旧会话还在不在"要用
+cookie_token = cookie.split(";")[0].split("=", 1)[-1] if "=" in cookie else ""
 check_true("设置了 session_token", "session_token=" in cookie, cookie[:80])
 check_true("HttpOnly 存在", "httponly" in cookie.lower(), cookie[:120])
 
 # ------------------------------------------------------------------ 4. 会话轮换
-print("\n=== 4. 登录成功后旧会话失效 ===")
+print("\n=== 4. 多设备共存 + 会话上限 ===")
 with Session(engine) as db:
     admin_db = db.exec(select(Admin).where(Admin.username == TEST_USER)).first()
     a = admin_db if isinstance(admin_db, Admin) else admin_db[0]
     sessions = db.exec(
         select(AdminSession).where(AdminSession.admin_id == a.id)
     ).all()
-check("只剩 1 条会话", len(sessions), 1)
+check_true(
+    f"会话数不超过上限（{MAX_SESSIONS}）",
+    len(sessions) <= MAX_SESSIONS,
+    f"实际 {len(sessions)} 条",
+)
 
 # 再登录一次，token 应该换新，旧的不再有效
 r2 = client.post(
@@ -208,7 +215,18 @@ with Session(engine) as db:
     sessions = db.exec(
         select(AdminSession).where(AdminSession.admin_id == a.id)
     ).all()
-check("旧会话被删，仍只剩 1 条", len(sessions), 1)
+# 旧行为是"删掉所有旧会话"（单点登录），会把用户在别的设备上踢下线，
+# 表现为点任何按钮都 401「Session 无效」。现在改成多设备共存 + 上限。
+check_true(
+    "旧会话没被立刻踢掉（多设备共存，登录两次应有多条）",
+    len(sessions) > 1,
+    f"实际 {len(sessions)} 条",
+)
+check_true(
+    f"会话数仍不超过上限（{MAX_SESSIONS}）",
+    len(sessions) <= MAX_SESSIONS,
+    f"实际 {len(sessions)} 条",
+)
 
 # ------------------------------------------------------------------ 5. 不泄露账号是否存在
 print("\n=== 5. 账号不存在与密码错误响应一致 ===")

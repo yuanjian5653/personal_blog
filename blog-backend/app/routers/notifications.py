@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app.config import settings
 from app.database import get_session
 from app.deps import get_current_admin
 from datetime import timedelta
@@ -36,6 +37,35 @@ def _to_dict(row: NotificationOutbox) -> dict:
         "sent_count": row.sent_count,
         "sent_at": row.sent_at,
         "created_at": row.created_at,
+    }
+
+
+@router.get("/status")
+def notification_status(
+    _admin: Admin = Depends(get_current_admin),
+):
+    """通知功能的前置条件检查。
+
+    为什么要这个：邮件没配时，点「发布公告」只会得到一句 400，
+    用户得回头翻代码才知道缺哪个环境变量。这里提前摊开说清楚。
+    """
+    from app.services import mailer
+
+    missing: list[str] = []
+    if not (settings.MAIL_FROM or "").strip():
+        missing.append("MAIL_FROM（发件邮箱）")
+    if not (settings.MAIL_PASSWORD or "").strip():
+        missing.append("MAIL_PASSWORD（SMTP 密码/授权码）")
+
+    return {
+        "mail_configured": mailer.mail_configured(),
+        "missing": missing,
+        "mail_host": settings.MAIL_HOST,
+        "mail_port": settings.MAIL_PORT,
+        "site_url": settings.SITE_URL,
+        "site_url_is_local": (settings.SITE_URL or "").startswith(
+            ("http://localhost", "http://127.0.0.1")
+        ),
     }
 
 

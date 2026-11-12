@@ -48,6 +48,9 @@ from app.services.security import (
 
 logger = logging.getLogger(__name__)
 
+# 同一个账号最多保留几个有效会话（多设备共存，超出踢最旧的）
+MAX_SESSIONS = 5
+
 router = APIRouter(prefix="/api/auth", tags=["认证"])
 
 COOKIE_NAME = "session_token"
@@ -191,13 +194,38 @@ def login(
     admin.locked_until = None
     db.add(admin)
 
-    old_sessions = db.exec(
-        select(AdminSession).where(AdminSession.admin_id == admin.id)
+    # ---- 会话管理：支持多设备，但限制数量 ----
+    #
+    # 以前这里是"删掉该账号的所有旧会话"，等于单点登录 ——
+    # 在手机 / 另一台电脑上登录，会把正在用的这台踢下线，
+    # 表现为点任何按钮都返回 401「Session 无效」，很容易被误判成别的故障。
+    #
+    # 现在：先清过期的，再按"最多留 MAX_SESSIONS 个"删最旧的。
+    # 这样多设备能共存，表也不会无限增长。
+    now_utc = datetime.now(timezone.utc)
+    existing = db.exec(
+        select(AdminSession)
+        .where(AdminSession.admin_id == admin.id)
+        .order_by(AdminSession.created_at)
     ).all()
-    for s in old_sessions:
+
+    alive: list[AdminSession] = []
+    for s in existing:
         obj = s if isinstance(s, AdminSession) else s[0]
-        if isinstance(obj, AdminSession):
-            db.delete(obj)
+        if not isinstance(obj, AdminSession):
+            continue
+        expires = obj.expires_at
+        if expires is not None and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires is not None and expires < now_utc:
+            db.delete(obj)          # 过期了，顺手清掉
+        else:
+            alive.append(obj)
+
+    # 超额的从最旧的开始删（alive 已按 created_at 升序）
+    overflow = len(alive) - (MAX_SESSIONS - 1)   # -1 是给马上要新建的这个留位
+    for obj in alive[: max(0, overflow)]:
+        db.delete(obj)
 
     token = generate_session_token()
     expires_at = now + timedelta(days=settings.SESSION_EXPIRE_DAYS)

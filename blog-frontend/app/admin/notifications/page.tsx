@@ -5,11 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   NOTIFY_EVENT_LABEL,
   NOTIFY_STATUS_LABEL,
+  fetchNotificationStatus,
   broadcastSiteUpdate,
   deleteNotification,
   fetchNotifications,
   retryNotification,
   type NotificationListResult,
+  type NotificationStatus,
 } from "@/lib/notifications";
 
 /**
@@ -23,6 +25,8 @@ export default function AdminNotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** 邮件有没有配好 —— 提前告诉用户，而不是点了才报错 */
+  const [status, setStatus] = useState<NotificationStatus | null>(null);
 
   // 「网站更新」公告的草稿
   const [noticeTitle, setNoticeTitle] = useState("");
@@ -37,6 +41,9 @@ export default function AdminNotificationsPage() {
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    fetchNotificationStatus()
+      .then(setStatus)
+      .catch(() => setStatus(null));
   }, []);
 
   useEffect(() => {
@@ -129,10 +136,27 @@ export default function AdminNotificationsPage() {
         </button>
       </div>
 
-      {data && !data.mail_configured && (
-        <p style={{ color: "#f59e0b", fontSize: 13 }}>
-          邮件功能未配置（MAIL_FROM / MAIL_PASSWORD 为空）——
-          内容发布仍会入队，但发送会一直失败，重试 3 次后标记为「失败」。
+      {status && !status.mail_configured && (
+        <div className="admin-panel space-y-1">
+          <div className="admin-panel__title">邮件还没配置，公告发不出去</div>
+          <p className="admin-muted text-xs">
+            缺少：<strong>{status.missing.join("、") || "配置项"}</strong>
+            —— 在 blog-backend/.env 里填好，然后重启后端。
+          </p>
+          <p className="admin-muted text-xs">
+            当前 SMTP：{status.mail_host}:{status.mail_port}
+          </p>
+          <p className="admin-muted text-xs">
+            内容发布仍会入队，但发送会一直失败，重试 3 次后标记为「失败」。
+          </p>
+        </div>
+      )}
+
+      {status?.site_url_is_local && (
+        <p className="admin-error">
+          SITE_URL 还是 <code>{status.site_url}</code> ——
+          订阅确认和退订链接会指向本机，别人点开是打不开的。
+          部署后请在 .env 里改成真实域名。
         </p>
       )}
 

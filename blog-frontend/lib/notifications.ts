@@ -80,3 +80,17 @@ export function retryNotification(id: number): Promise<{ message: string }> {
 export function deleteNotification(id: number): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/api/admin/notifications/${id}`);
 }
+
+/** 通知功能的前置条件（邮件有没有配好） */
+export interface NotificationStatus {
+  mail_configured: boolean;
+  missing: string[];
+  mail_host: string;
+  mail_port: number;
+  site_url: string;
+  site_url_is_local: boolean;
+}
+
+export function fetchNotificationStatus(): Promise<NotificationStatus> {
+  return api.get<NotificationStatus>("/api/admin/notifications/status");
+}
