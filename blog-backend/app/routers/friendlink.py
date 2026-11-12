@@ -150,7 +150,11 @@ def create_friend_link(
     if not data["name"]:
         raise HTTPException(status_code=400, detail="名称不能为空")
 
-    link = FriendLink(**data)
+    # author_id 必须显式写：FriendLinkCreate 里没有这个字段，
+    # 漏了就是 NULL —— 成员随后在「友链管理」里看不到自己刚提交的那条
+    # （后台列表按 author_id 过滤），编辑时还会报"不存在或不属于你"。
+    # 这和之前 create_album 踩的是同一个坑。
+    link = FriendLink(**data, author_id=admin.id)
     stamp_new_content(link, admin, db)
     db.add(link)
     db.commit()
