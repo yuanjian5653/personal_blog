@@ -35,6 +35,7 @@ from app.routers import (
     themes,
     tools,
     upload,
+    gallery,
 )
 import asyncio
 
@@ -183,6 +184,7 @@ app.include_router(review.router)
 app.include_router(profile.router)
 app.include_router(members_public.router)
 app.include_router(themes.router)
+app.include_router(gallery.router)
 
 @app.get("/")
 def root():

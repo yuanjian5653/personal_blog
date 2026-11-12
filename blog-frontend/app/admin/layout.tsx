@@ -44,6 +44,7 @@ const MENU: Array<{
 
   // ---- 互动与审核 ----
   { href: "/admin/review", label: "内容审核", icon: ShieldCheck, adminOnly: true },
+    { href: "/admin/gallery", label: "图库", icon: ImageIcon },
   { href: "/admin/comments", label: "评论管理", icon: MessageSquare, adminOnly: true },
   { href: "/admin/guestbook", label: "杂谈管理", icon: Inbox, adminOnly: true },
   { href: "/admin/friends", label: "友链管理", icon: Link2 },
