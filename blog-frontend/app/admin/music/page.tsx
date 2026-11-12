@@ -4,7 +4,7 @@ import MemberPermPanel from "@/components/admin/MemberPermPanel";
 import AuthorTag from "@/components/admin/AuthorTag";
 import { useRole, withMine } from "@/lib/useRole";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_BASE } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { NeteaseAccount, NeteasePlaylist } from "@/lib/types";
 import { getCoverUrl } from "@/lib/types";
 import { toHttpsUrl } from "@/lib/url";
@@ -58,16 +58,7 @@ function LocalSection() {
       for (let i = 0; i < files.length; i++) {
         formData.append("files", files[i]);
       }
-      const res = await fetch(`${API_BASE}/api/music/upload`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `上传失败 (${res.status})`);
-      }
-      const created = await res.json();
+      const created = await api.upload<LocalSong[]>("/api/music/upload", formData);
       setMsg(`上传成功 ${created.length} 首`);
       load();
     } catch (e) {

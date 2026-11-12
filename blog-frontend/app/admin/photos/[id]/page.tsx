@@ -4,7 +4,7 @@ import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { saveMessage } from "@/lib/review";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api, API_BASE } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { AlbumDetail, Photo } from "@/lib/types";
 import { resolveImageUrl } from "@/lib/url";
 
@@ -80,16 +80,7 @@ export default function AdminAlbumEditPage() {
         formData.append("files", files[i]);
       }
 
-      await fetch(`${API_BASE}/api/albums/${id}/photos`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      }).then(async (res) => {
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `上传失败 (${res.status})`);
-        }
-      });
+      await api.upload(`/api/albums/${id}/photos`, formData);
 
       setMsg(`上传成功 ${files.length} 张`);
       loadAlbum();

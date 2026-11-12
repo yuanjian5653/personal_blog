@@ -7,7 +7,6 @@ import ReviewStatusBadge from "@/components/admin/ReviewStatusBadge";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { API_BASE } from "@/lib/api";
 import type { ArticleListItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 import { resolveImageUrl } from "@/lib/url";
@@ -48,18 +47,10 @@ export default function AdminPostsPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${API_BASE}/api/articles/parse-document`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `解析失败 (${res.status})`);
-      }
-
-      const data = await res.json();
+      const data = await api.upload<{ title: string; content: string }>(
+        "/api/articles/parse-document",
+        formData
+      );
 
       // 把解析结果存到 sessionStorage，编辑器启动时读取
       sessionStorage.setItem(

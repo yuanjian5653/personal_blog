@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { API_BASE } from "@/lib/api";
+import { API_BASE, api } from "@/lib/api";
 import { resolveImageUrl } from "@/lib/url";
 
 interface ImageUploaderProps {
@@ -57,18 +57,10 @@ export default function ImageUploader({
         ? `${API_BASE}/api/upload/images`
         : `${API_BASE}/api/upload/image`;
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `上传失败 (${res.status})`);
-      }
-
-      const data = await res.json();
+      const data = await api.upload<{ url: string } | { url: string }[]>(
+        endpoint.replace(API_BASE, ""),
+        fd
+      );
 
       if (multiple) {
         const urls = (data as { url: string }[]).map((d) => d.url);
