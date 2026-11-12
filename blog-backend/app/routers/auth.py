@@ -97,6 +97,36 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _secure_cookie(request: Request) -> bool:
+    """这次响应里的 session Cookie 要不要加 Secure。
+
+    为什么不能直接写 secure=settings.COOKIE_SECURE：
+      · 配成 True，但用户是用 http:// 访问时，浏览器**不会保存** Secure cookie
+        —— 登录接口返回 200，下一次请求就没有会话，表现为"登录成功却马上
+        退出 / 其他设备根本登不上"。
+      · 配成 False，走 https 时又少了保护。
+
+    所以配成 True 时按**实际协议**决定：反向代理后面看 X-Forwarded-Proto。
+    协议是 http 但配置要求 Secure 时，降级为不加密并打警告（可用性优先）。
+    """
+    if not settings.COOKIE_SECURE:
+        return False
+
+    proto = (
+        request.headers.get("x-forwarded-proto") or request.url.scheme or ""
+    )
+    proto = proto.split(",")[0].strip().lower()
+    if proto == "https":
+        return True
+
+    logger.warning(
+        "[登录] COOKIE_SECURE=true 但本次请求协议是 %s —— Cookie 降级为不加密。"
+        "否则浏览器不会保存它，表现为「登录成功却马上掉线」。建议启用 HTTPS。",
+        proto or "未知",
+    )
+    return False
+
+
 def _ip_blocked(ip: str) -> bool:
     now = time.time()
     hits = [t for t in _ip_failures.get(ip, []) if now - t < IP_WINDOW_SECONDS]
@@ -223,7 +253,7 @@ def login(
         samesite=settings.COOKIE_SAMESITE,   # 防 CSRF
         # 生产必须 true：否则浏览器允许这个 Cookie 随明文 HTTP 请求一起发出，
         # 一次 http:// 访问就能让会话 token 被中间人拿到。
-        secure=settings.COOKIE_SECURE,
+        secure=_secure_cookie(request),
         path="/",
     )
 
